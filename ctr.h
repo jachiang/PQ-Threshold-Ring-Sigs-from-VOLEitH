@@ -66,25 +66,16 @@ inline random_oracle_digest random_oracle_digest_xor(random_oracle_digest a, ran
 # if defined(AES_NI)
 #  include "aesni.h"
 
-// TODO: probably below definitions should go in aesni.h
+typedef TODO aes128_state;
+typedef TODO aes192_state;
+typedef TODO aes256_state;
+typedef TODO rijndael128x128_state;
+typedef TODO rijndael192x192_state;
+typedef TODO rijndael256x256_state;
 
-// AES, with key size == security parameter.
-typedef TODO aes_state;
-
-// Rijndael, with block size == key size == security parameter.
-typedef TODO rijndael_state;
-
-inline void aes_init(aes_state* cipher, const unsigned char* key);
-inline void aes_enc_block(const aes_state* cipher,
-                          unsigned char* ctxt, const unsigned char* msg);
-inline void aes_enc_pipelined(const aes_state* cipher,
-                              unsigned char* ctxt, const unsigned char* msg, size_t len);
-
-inline void rijndael_init(rijndael_state* cipher, const unsigned char* key);
-inline void rijndael_enc_block(const rijndael_state* cipher, unsigned char* ctxt,
-                               const unsigned char* msg);
-inline void rijndael_enc_pipelined(const rijndael_state* cipher,
-                                   unsigned char* ctxt, const unsigned char* msg, size_t len);
+inline void aes_init(aes_state* aes, const unsigned char* key);
+inline void aes_enc_block(const aes_state* aes, unsigned char* ctxt, const unsigned char* msg);
+inline void aes_enc_pipelined(const aes_state* aes, unsigned char* ctxt, const unsigned char* msg, size_t len);
 
 # elif defined(AES_FIXSLICING)
 
@@ -92,10 +83,24 @@ inline void rijndael_enc_pipelined(const rijndael_state* cipher,
 
 # endif
 
-# if defined(PRG_EVEN_MANSOUR)
-#  include "even_mansour_impl.h"
+# if defined(PRG_MANSOUR)
+#  include "
+
 # elif defined(PRG_CTR)
-#  include "ctr_impl.h"
+
+typedef TODO prg_state;
+
+// TODO: probably below definitions should go in aesni.h
+inline void prg_init(prg_state* prg, const unsigned char* seed);
+inline void prg_gen(prg_state* prg, unsigned char* output, size_t size);
+inline void prg_gen_blocks_interleaved(prg_state* prgs, unsigned char* output, size_t num_prgs, size_t num_blocks);
+
+// Expand to 2*PRG_SEED_SIZE bytes
+inline void prg_double(prg_state* prg, const unsigned char* seed, unsigned char* output);
+
+// Expand to PRG_SEED_SIZE + DIGEST_SIZE bytes.
+inline void prg_digest(prg_state* prg, const unsigned char* seed, unsigned char* output);
+
 # endif
 
 #endif
