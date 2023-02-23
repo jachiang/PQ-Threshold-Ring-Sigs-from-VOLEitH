@@ -12,8 +12,8 @@
 #include <immintrin.h>
 #include <wmmintrin.h>
 
-// TODO: 4 fields: 128, 196, 256, 320 bits. Each with packed and unpacked versions.
-// Unpacked versions should be at least 64 bits longer, to delay .
+// TODO: 3 fields: 128, 196, 256 bits. Each with packed and unpacked versions.  Unpacked versions
+// are double length (or at least 64 bits longer, but double seems more useful), to avoid modular reduction.
 
 typedef __m128i gf128;
 typedef __m256i gf256;
@@ -48,9 +48,6 @@ inline gf256 xor_256(gf256 x, gf256 y)
 
 // TODO
 
-#elif defined(RANDOM_ORACLE_BLAKE2)
-#include "blake2.h"
-
 typedef TODO random_oracle_state;
 typedef TODO random_oracle_digest;
 
@@ -64,13 +61,14 @@ inline random_oracle_digest random_oracle_digest_xor(random_oracle_digest a, ran
 // TODO: XOF?
 #endif
 
-#if defined(CIPHER_AESNI)
+#define PRG_SEED_SIZE (SECURITY_PARAM/8)
+
+#if defined(AES_NI)
 #include "aesni.h"
 
 typedef TODO prg_state;
 
 // TODO: probably below definitions should go in aesni.h
-#define PRG_SEED_SIZE (SECURITY_PARAM/8)
 inline void prg_init(prg_state* prg, const unsigned char* seed);
 inline void prg_gen(prg_state* prg, unsigned char* output, size_t size);
 inline void prg_gen_blocks_interleaved(prg_state* prgs, unsigned char* output, size_t num_prgs, size_t num_blocks);
@@ -81,11 +79,7 @@ inline void prg_double(prg_state* prg, const unsigned char* seed, unsigned char*
 // Expand to PRG_SEED_SIZE + DIGEST_SIZE bytes.
 inline void prg_digest(prg_state* prg, const unsigned char* seed, unsigned char* output);
 
-#elif defined(CIPHER_AES_C)
-
-// TODO
-
-#elif defined(CIPHER_CHACHA)
+#elif defined(AES_FIXSLICING)
 
 // TODO
 

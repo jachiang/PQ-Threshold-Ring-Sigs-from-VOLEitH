@@ -1,0 +1,6 @@
+[submodule "XKCP"]
+	path = XKCP
+	url = git@github.com:XKCP/XKCP.git
+[submodule "aes-fixslicing"]
+	path = aes-fixslicing
+	url = git@github.com:aadomn/aes.git
