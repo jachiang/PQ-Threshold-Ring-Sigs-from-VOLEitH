@@ -1,0 +1,17 @@
+#define CRYPTO_SECRETKEYBYTES (SECURITY_PARAM / 8)
+#define CRYPTO_PUBLICKEYBYTES (2 * SECURITY_PARAM / 8)
+#define FAEST_SIGNATURE_BYTES 0 /* TODO */
+
+#define CRYPTO_ALGNAME "FAEST_%NAME%"
+
+// TODO: need to build this file automatically, once for each setting.
+
+int crypto_sign_keypair(unsigned char* pk, unsigned char* sk);
+int crypto_sign(
+	unsigned char *sm, unsigned long long *smlen,
+	const unsigned char *m, unsigned long long mlen,
+	const unsigned char *sk);
+int crypto_sign_open(
+	unsigned char *m, unsigned long long *mlen,
+	const unsigned char *sm, unsigned long long smlen,
+	const unsigned char *pk);

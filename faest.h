@@ -1,9 +1,10 @@
 #include "config.h"
 #include <stdbool.h>
+#include <stddef.h>
 
 #define FAEST_SECRET_KEY_BYTES (SECURITY_PARAM / 8)
-#define FAEST_PUBLIC_KEY_BYTES SECURITY_PARAM
-#define FAEST_SIGNATURE_BYTES TODO
+#define FAEST_PUBLIC_KEY_BYTES (2 * SECURITY_PARAM / 8)
+#define FAEST_SIGNATURE_BYTES 0 /* TODO */
 
 // Random seed can be set to null for deterministic signatures.
 

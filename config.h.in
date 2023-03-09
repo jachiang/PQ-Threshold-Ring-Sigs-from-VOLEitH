@@ -1,0 +1,12 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define SECURITY_PARAM %SECURITY_PARAM%
+#define OWF_%OWF%
+#define PRG_%PRG%
+#define TREE_PRG_%TREE_PRG%
+#define BITS_PER_WITNESS %TAU%
+
+#define RANDOM_ORACLE_SHA3
+
+#endif
