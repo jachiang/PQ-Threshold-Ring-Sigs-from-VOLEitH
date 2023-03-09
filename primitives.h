@@ -92,9 +92,9 @@ inline void rijndael_enc_pipelined(const rijndael_state* cipher,
 
 # endif
 
-# if defined(PRG_EVEN_MANSOUR)
+# if defined(PRG_RIJNDAEL_EVEN_MANSOUR)
 #  include "even_mansour_impl.h"
-# elif defined(PRG_CTR)
+# elif defined(PRG_AES_CTR)
 #  include "ctr_impl.h"
 # endif
 
