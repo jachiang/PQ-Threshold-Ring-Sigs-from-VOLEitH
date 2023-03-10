@@ -44,7 +44,7 @@ settings = \
 	)
 
 define link-recipe
-$(1)/$(2) : $(2) | $(dir $(1)/$(2))
+$(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(2))
 	rm -f $$@
 	$(CP_AL) $$< $$@
 endef
@@ -60,7 +60,7 @@ endef
 
 define full-recipe
 $(2)_objects = $$(patsubst %.c,$(3)/%.o,$$(filter %.c,$$($(1)_sources)))
-$(2)_headers = $$(addprefix $(3)/,$$(filter %.h,$$(patsubst %.in,%,$$($(1)_sources))))
+$(2)_headers = $$(foreach header,$$(filter %.h,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
 $(2)_targets = $$($(2)_objects) $$($(2)_headers)
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
 
@@ -84,13 +84,17 @@ $$($(2)_depfiles):
 include $$(wildecard $$($(2)_depfiles))
 endef
 
-$(foreach setting,$(settings),\
-	$(let name,$(call first,$(setting)),\
-		$(eval $(call full-recipe,ref,$(name)_ref,Reference_Implementations/$(name),$(setting)))\
-	)\
-)
+#$(foreach setting,$(settings),\
+#	$(let name,$(call first,$(setting)),\
+#		$(eval $(call full-recipe,ref,$(name)_ref,Reference_Implementation/$(name),$(setting)))\
+#	)\
+#)
 $(foreach setting,$(settings),\
 	$(let name,$(call first,$(setting)),\
 		$(eval $(call full-recipe,avx2,$(name)_avx2,Additional_Implementations/$(name)_avx2,$(setting)))\
 	)\
 )
+
+clean:
+	rm -rf Reference_Implementation Additional_Implementations
+.PHONY: clean
