@@ -32,7 +32,7 @@ inline poly256 xor256(poly256 x, poly256 y)
 
 inline poly128 mul64(poly64 x, poly64 y)
 {
-	return _mm_clmulepi64_si128(_mm_set_epi64x(0, x), _mm_set_epi64(0, y), 0x00)
+	return _mm_clmulepi64_si128(_mm_set_epi64x(0, x), _mm_set_epi64x(0, y), 0x00);
 }
 
 inline poly256 mul128(poly128, poly128);
