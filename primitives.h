@@ -9,28 +9,35 @@
 // TODO: Should probably use "blocks" much more often than "unsigned char*"s.
 
 
-// TODO: does this need to change based on even vs odd NIST levels?
-// TODO: ditch in favor of sizeof?
-#define DIGEST_SIZE (SECURITY_PARAM/4)
-
 // TODO: ought to pick a random oracle that allows parallelization, so that it's compatible if
 // anybody wants to make a parallel implementation.
 #if defined(RANDOM_ORACLE_SHA3)
-# include "sha3.h"
+# include "KeccakHash.h"
 
-// TODO
+typedef Keccak_HashInstance random_oracle_state;
 
-typedef TODO random_oracle_state;
-typedef TODO random_oracle_digest;
+inline int random_oracle_init(random_oracle_state* ro)
+{
+#if SECURITY_PARAM <= 128
+	return Keccak_HashInitialize_SHAKE128(ro);
+#else
+	return Keccak_HashInitialize_SHAKE256(ro);
+#endif
+}
 
-inline void random_oracle_init(random_oracle_state* ro);
-// TODO: needed? random_oracle_clone
-inline void random_oracle_update(random_oracle_state* ro, const unsigned char* input, size_t size);
-inline void random_oracle_final(random_oracle_state* ro, unsigned char* digest);
+inline int random_oracle_update(random_oracle_state* ro, const unsigned char* input, size_t bytes)
+{
+	return Keccak_HashUpdate(ro, inputs, bytes * 8);
+}
 
-inline random_oracle_digest random_oracle_digest_xor(random_oracle_digest a, random_oracle_digest b);
+inline int random_oracle_final(random_oracle_state* ro, unsigned char* digest, size_t bytes)
+{
+	int ret = Keccak_HashFinal(ro, digest);
+	if (ret != KECCAK_SUCCESS)
+		return ret;
+	return Keccak_HashSqueeze(ro, digest, 8 * bytes);
+}
 
-// TODO: XOF?
 #endif
 
 #include "aes.h"

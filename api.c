@@ -1,4 +1,5 @@
 #include "faest.h"
+#include <string.h>
 
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {

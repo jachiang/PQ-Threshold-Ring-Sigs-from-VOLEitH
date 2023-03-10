@@ -1,10 +1,10 @@
 CPPFLAGS += -MMD -MP -MF $*.d
-CFLAGS ?= -O2 -march=native
+CFLAGS ?= -O2 -march=native -mtune=native
 
-CP_AL = cp -al
+CP_L = cp -l
 MKDIR_P = mkdir -p
 
-shared_sources = $(wildcard *.c *.h *.in)
+shared_sources = $(wildcard *.c *.h *.in) $(wildcard XKCP/lib/high/Keccak/FIPS202/KeccakHash.*)
 #opt_sources = $(wildcard opt/*.c opt/*.h)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h)
@@ -13,9 +13,9 @@ all:
 .PHONY: all
 
 security_params = 128 192 256
-taus_128 = 10 11 12 13 14 15 16 17 18 19 20 22 24 26 28 30 32 36 40 44
-taus_192 = 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 32 34 36 38 40 42 44 46 48 52 56 60 64
-taus_256 = 20 22 24 26 28 30 32 34 36 38 40 44 48 52 56 60 64 72 80 88
+taus_128 = 10 11 12 13 14 15 16 17 18 19 20 22 24 26 28 30 32
+taus_192 = 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 32 34 36 38 40 42 44 46 48
+taus_256 = 20 22 24 26 28 30 32 34 36 38 40 44 48 52 56 60 64
 
 # Format: long name (for macro definition), single letter name.
 ciphers = AES_CTR,c RIJNDAEL_EVEN_MANSOUR,e
@@ -46,7 +46,7 @@ settings = \
 define link-recipe
 $(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(2))
 	rm -f $$@
-	$(CP_AL) $$< $$@
+	$(CP_L) $$< $$@
 endef
 
 define config-recipe
@@ -94,6 +94,12 @@ $(foreach setting,$(settings),\
 		$(eval $(call full-recipe,avx2,$(name)_avx2,Additional_Implementations/$(name)_avx2,$(setting)))\
 	)\
 )
+$(foreach setting,$(settings),\
+	$(let name,$(call first,$(setting)),\
+		$(eval $(call full-recipe,avx2_vaes,$(name)_avx2_vaes,Additional_Implementations/$(name)_avx2_vaes,$(setting)))\
+	)\
+)
+# TODO: AVX-512
 
 clean:
 	rm -rf Reference_Implementation Additional_Implementations
