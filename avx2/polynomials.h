@@ -3,7 +3,6 @@
 
 #include <inttypes.h>
 
-#include <tmmintrin.h>
 #include <immintrin.h>
 #include <wmmintrin.h>
 

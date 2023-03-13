@@ -3,7 +3,6 @@
 
 #include <inttypes.h>
 
-#include <tmmintrin.h>
 #include <immintrin.h>
 #include <wmmintrin.h>
 
@@ -14,7 +13,8 @@ typedef __m128i poly64x2;
 typedef __m128i poly128;
 typedef __m256i poly128x2;
 typedef __m256i poly256;
-typedef struct {
+typedef struct
+{
 	__m256i l;
 	__m256i h;
 } poly512;

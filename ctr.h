@@ -1,5 +1,5 @@
-#ifndef PRIMITIVES_H
-#define PRIMITIVES_H
+#ifndef CTR_H
+#define CTR_H
 
 # include <stddef.h>
 # include "config.h"
@@ -84,7 +84,7 @@ inline void aes_enc_pipelined(const aes_state* aes, unsigned char* ctxt, const u
 # endif
 
 # if defined(PRG_MANSOUR)
-#  include "
+#  include ""
 
 # elif defined(PRG_CTR)
 
