@@ -35,18 +35,12 @@ inline int random_oracle_final(random_oracle_state* ro, unsigned char* digest, s
 	int ret = Keccak_HashFinal(ro, digest);
 	if (ret != KECCAK_SUCCESS)
 		return ret;
-	return Keccak_HashSqueeze(ro, digest, 8 * bytes);
+	return Keccak_HashSqueeze(ro, digest, bytes * 8);
 }
 
 #endif
 
 #include "aes.h"
 #include "rijndael.h"
-
-#if defined(PRG_RIJNDAEL_EVEN_MANSOUR)
-#include "even_mansour_impl.h"
-#elif defined(PRG_AES_CTR)
-#include "ctr_impl.h"
-#endif
 
 #endif

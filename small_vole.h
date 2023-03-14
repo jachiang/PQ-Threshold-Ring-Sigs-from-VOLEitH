@@ -8,42 +8,31 @@
 #define VOLE_MIN_K (SECURITY_PARAM / BITS_PER_WITNESS)
 #define VOLE_MAX_K ((SECURITY_PARAM + BITS_PER_WITNESS - 1) / BITS_PER_WITNESS)
 
-// How many times to duplicate each PRG key (for easier vectorized access.)
-#if defined(PRG_AES_CTR)
-#define VOLE_KEY_DUPS AES_VECTOR_WIDTH
-#elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
-#define VOLE_KEY_DUPS 1
-#endif
+// Given the PRG keys and the chosen VOLE input u, generate the VOLE correlation v and a correction
+// c to send to the receiver. u and c must be VOLE_ROWS bits long. v is stored in column-major
+// order, with columns packed tightly (after being padded to a whole number of block_preferreds).
+// fixed_key is only used for PRGs based on fixed-key AES. Input must by permuted according to
+// TODO.
+void generate_sender_min_k(
+	const block_secpar* restrict keys, const TODO_round_keys* restrict fixed_key,
+	const block_preferred* restrict u, block_preferred* restrict v, block_preferred* restrict c);
+void generate_sender_max_k(
+	const block_secpar* restrict keys, const TODO_round_keys* restrict fixed_key,
+	const block_preferred* restrict u, block_preferred* restrict v, block_preferred* restrict c);
 
-typedef struct
-{
-	prg_key keys[VOLE_KEY_DUPS << VOLE_MAX_K];
-	size_t idx;
-} vole_prgs_state;
-
-typedef struct
-{
-	vole_prgs_state prgs;
-} vole_sender_state;
-
-typedef struct
-{
-	vole_prgs_state prgs;
-
-	// Delta, expanded so that each bit is stored in a single byte (either 0 or 0xff).
-	unsigned char delta_bytes[VOLE_MAX_K];
-} vole_receiver_state;
-
-// Given the chosen VOLE input u, generate the VOLE correlation v and a correction c to send to the
-// receiver. u must be FAEST_WITNESS_BITS bits long, and c must be VOLE_ROWS bits long. v is stored
-// in column-major order, with columns packed tightly (after being padded to a whole number of
-// block_preferreds).
-void generate_sender_min_k(vole_sender_state* state, const block_preferred* u, block_preferred* v, size_t stride, block_preferred* c)
-void generate_sender_max_k(vole_sender_state* state, const block_preferred* u, block_preferred* v, size_t stride, block_preferred* c)
-
-// Given the correction c, generate the VOLE correlation q.  q is stored in column-major order, with
-// columns separated by stride blocks.
-void generate_receiver_min_k(vole_receiver_state* state, const block_preferred* c, block_preferred* q, size_t stride);
-void generate_receiver_max_k(vole_receiver_state* state, const block_preferred* c, block_preferred* q, size_t stride);
+// Given the correction c, generate the VOLE correlation q. The arguments are similar to
+// Given the PRG keys, the secret delta, and the correction string c, generate the VOLE correlation
+// q. c must be VOLE_ROWS bits long. q is stored in column-major order, with columns packed tightly
+// (after being padded to a whole number of block_preferreds). A k-bit delta is represented as k
+// bytes, with each byte being either 0 or 0xff. fixed_key is only used for PRGs based on fixed-key
+// AES. Input must by permuted according to TODO.
+void generate_receiver_min_k(
+	const block_secpar* restrict keys, const TODO_round_keys* restrict fixed_key,
+	const block_preferred* restrict c, block_preferred* restrict q,
+	const unsigned char* restrict delta);
+void generate_receiver_max_k(
+	const block_secpar* restrict keys, const TODO_round_keys* restrict fixed_key,
+	const block_preferred* restrict c, block_preferred* restrict q,
+	const unsigned char* restrict delta);
 
 #endif

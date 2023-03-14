@@ -19,7 +19,7 @@ taus_256 = 20 22 24 26 28 30 32 34 36 38 40 44 48 52 56 60 64
 
 # Format: long name (for macro definition), single letter name.
 ciphers = AES_CTR,c RIJNDAEL_EVEN_MANSOUR,e
-tree_prgs = $(ciphers) SHA3,s
+tree_prgs = $(ciphers) RO,s
 # TODO: Maybe separate for bottom level tree PRG?
 
 comma=,
