@@ -43,6 +43,10 @@ inline block192 block192_set_low64(uint64_t x)
 // Number of block128s in a block_preferred
 #define BLOCK_PREFERRED_LEN (1 << BLOCK_PREFERRED_LEN_SHIFT)
 
+// TODO: I think these things need to be more specialized. Instead of "vector size", which may be
+// too small for somethings, I think it should just be 1 block typedef for every different kind of
+// block size that may occur in the program. Like cipher_block in small_vole.h.
+
 static_assert(sizeof(block128) == 16, "Padding in block128.");
 static_assert(sizeof(block192) == 24, "Padding in block192.");
 static_assert(sizeof(block256) == 32, "Padding in block256.");
@@ -57,5 +61,7 @@ inline block128 block128_set_low64(uint64_t x);
 inline block256 block256_set_low64(uint64_t x);
 inline block_secpar block_secpar_set_low64(uint64_t x);
 inline block_preferred block_preferred_set_low64(uint64_t x);
+
+inline block256 block256_set_128(block128 x0, block128 x1);
 
 #endif

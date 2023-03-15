@@ -13,6 +13,7 @@ inline block128 block128_xor(block128 x, block128 y) { return _mm_xor_si128(x, y
 inline block256 block256_xor(block256 x, block256 y); { return _mm_xor_si256(x, y); }
 inline block128 block128_set_low64(uint64_t x) { return _mm_set_epi64x(0, x); }
 inline block256 block256_set_low64(uint64_t x) { return _mm256_setr_epi64x(x, 0, 0, 0); }
+inline block256 block256_set_128(block128 x0, block128 x1) { return _mm256_setr_m128i(x0, x1); }
 
 inline block_preferred block_preferred_xor(block_preferred x, block_preferred y) { return block256_xor(x, y); }
 inline block_preferred block_preferred_set_low64(uint64_t x) { return block256_set_low64(x); }
