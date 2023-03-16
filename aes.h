@@ -53,7 +53,7 @@ inline void rijndael_encrypt_fixed_key_vole(const rijndael_round_keys* rijndael,
 #elif SECURITY_PARAM == 192
 typedef rijndael192_round_keys rijndael_round_keys;
 #elif SECURITY_PARAM == 256
-typedef rijndael256_round_keys rijndael_round_keys
+typedef rijndael256_round_keys rijndael_round_keys;
 inline void rijndael_encrypt_fixed_key_vole(const rijndael_round_keys* rijndael, const block_secpar* input, block_secpar* output)
 {
 	rijndael256_encrypt_fixed_key_vole(rijndael, input, output);
