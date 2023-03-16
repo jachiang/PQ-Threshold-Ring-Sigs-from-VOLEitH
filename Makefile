@@ -96,7 +96,9 @@ $(3)/:
 $(3)/%/:
 	$$(MKDIR_P) $$@
 
-all : $$($(2)_targets)
+$(2) : $$($(2)_targets)
+.PHONY : $(2)
+all : $(2)
 
 # https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 $$($(2)_depfiles):
