@@ -5,11 +5,22 @@
 #include <wmmintrin.h>
 
 #define AES_VECTOR_WIDTH_SHIFT 0
+#define AES_PREFERRED_WIDTH_SHIFT 3
 
 typedef struct
 {
-	__m128i keys[AES_ROUNDS + 1];
+	block128 keys[AES_ROUNDS + 1];
 } aes_round_keys;
+
+typedef struct
+{
+	block192 keys[RIJNDAEL192_ROUNDS + 1];
+} rijndael192_round_keys;
+
+typedef struct
+{
+	block256 keys[RIJNDAEL256_ROUNDS + 1];
+} rijndael256_round_keys;
 
 inline void aes_round_function(const aes_round_keys* aes, block128* state, block128* after_sbox, int round)
 {

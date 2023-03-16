@@ -27,7 +27,7 @@ inline int random_oracle_init(random_oracle_state* ro)
 
 inline int random_oracle_update(random_oracle_state* ro, const unsigned char* input, size_t bytes)
 {
-	return Keccak_HashUpdate(ro, inputs, bytes * 8);
+	return Keccak_HashUpdate(ro, input, bytes * 8);
 }
 
 inline int random_oracle_final(random_oracle_state* ro, unsigned char* digest, size_t bytes)
@@ -41,6 +41,5 @@ inline int random_oracle_final(random_oracle_state* ro, unsigned char* digest, s
 #endif
 
 #include "aes.h"
-#include "rijndael.h"
 
 #endif

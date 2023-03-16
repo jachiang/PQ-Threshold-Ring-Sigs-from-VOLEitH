@@ -33,34 +33,36 @@ inline block192 block192_set_low64(uint64_t x)
 // typedef /**/ block192;
 // typedef /**/ block256;
 //
-// // Size of the largest supported vector register (at least block128).
-// typedef /**/ block_preferred;
-//
 // typedef /**/ block_secpar;
 //
-// #define BLOCK_PREFERRED_LEN_SHIFT /**/
+// // Block representing a chunck of a column for the small field VOLE. Used when reducing the PRG
+// // outputs down to a VOLE correlation. THis will be at least as big as vole_cipher_block.
+// typedef /**/ vole_block;
+// #define VOLE_BLOCK_SHIFT /**/
 
-// Number of block128s in a block_preferred
-#define BLOCK_PREFERRED_LEN (1 << BLOCK_PREFERRED_LEN_SHIFT)
-
-// TODO: I think these things need to be more specialized. Instead of "vector size", which may be
-// too small for somethings, I think it should just be 1 block typedef for every different kind of
-// block size that may occur in the program. Like cipher_block in small_vole.h.
+// Number of block128s in a vole_block.
+#define VOLE_BLOCK (1 << VOLE_BLOCK_SHIFT)
 
 static_assert(sizeof(block128) == 16, "Padding in block128.");
 static_assert(sizeof(block192) == 24, "Padding in block192.");
 static_assert(sizeof(block256) == 32, "Padding in block256.");
-static_assert(sizeof(block_preferred) == BLOCK_PREFERRED_LEN * 16, "Padding in block_preferred.");
+
+#if SECURITY_PARAM == 128
+#define BLOCK_SECPAR_LEN_SHIFT 0
+#elif SECURITY_PARAM == 256
+#define BLOCK_SECPAR_LEN_SHIFT 1
+#endif
+
+// Number of block128s in a block_secpar, assuming that this is a whole number.
+#define BLOCK_SECPAR_LEN (1 << BLOCK_SECPAR_LEN_SHIFT)
 
 inline block128 block128_xor(block128 x, block128 y);
 inline block256 block256_xor(block256 x, block256 y);
-inline block_preferred block_preferred_xor(block_preferred x, block_preferred y);
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y);
 
 inline block128 block128_set_low64(uint64_t x);
 inline block256 block256_set_low64(uint64_t x);
 inline block_secpar block_secpar_set_low64(uint64_t x);
-inline block_preferred block_preferred_set_low64(uint64_t x);
 
 inline block256 block256_set_128(block128 x0, block128 x1);
 

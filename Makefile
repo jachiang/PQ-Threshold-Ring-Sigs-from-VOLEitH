@@ -4,10 +4,25 @@ CFLAGS ?= -O2 -march=native -mtune=native
 CP_L = cp -l
 MKDIR_P = mkdir -p
 
-shared_sources = $(wildcard *.c *.h *.in) $(wildcard XKCP/lib/high/Keccak/FIPS202/KeccakHash.*)
+keccak_sources = \
+	$(wildcard XKCP/lib/high/Keccak/FIPS202/KeccakHash.*)\
+	$(wildcard XKCP/lib/high/Keccak/KeccakSponge.*)\
+	$(wildcard XKCP/lib/common/*)\
+	$(wildcard XKCP/lib/low/common/*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600/common/*)
+keccak_avx2_sources = \
+	$(wildcard XKCP/lib/low/KeccakP-1600/AVX2/*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times2/SIMD128/KeccakP-1600-times2-*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times2/SIMD128/SSSE3-u2/SIMD128-config.h)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/KeccakP-1600-times4-*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/u12/SIMD256-config.h)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times8/fallback-on4/*)
+
+shared_sources = $(wildcard *.c *.h *.in) $(keccak_sources)
 #opt_sources = $(wildcard opt/*.c opt/*.h)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
-avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h)
+avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
+avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
 
 all:
 .PHONY: all
@@ -37,7 +52,9 @@ settings = \
 			$(foreach prg,$(ciphers),\
 				$(foreach tree_prg,$(tree_prgs),\
 					$(foreach tau,$(taus_$(security_param)),\
-						sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(tau)\
+						$(if $(and $(findstring 192,security_param),$(findstring RIJNDAEL,prg)),,\
+							sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(tau)\
+						)\
 					)\
 				)\
 			)\
@@ -45,7 +62,7 @@ settings = \
 	)
 
 define link-recipe
-$(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(2))
+$(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(notdir $(2)))
 	rm -f $$@
 	$(CP_L) $$< $$@
 endef
@@ -60,8 +77,8 @@ $(1)/% : %.in | $(1)/
 endef
 
 define full-recipe
-$(2)_objects = $$(patsubst %.c,$(3)/%.o,$$(filter %.c,$$($(1)_sources)))
-$(2)_headers = $$(foreach header,$$(filter %.h,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
+$(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
+$(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
 $(2)_targets = $$($(2)_objects) $$($(2)_headers)
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
 
@@ -95,11 +112,11 @@ $(foreach setting,$(settings),\
 		$(eval $(call full-recipe,avx2,$(name)_avx2,Additional_Implementations/$(name)_avx2,$(setting)))\
 	)\
 )
-$(foreach setting,$(settings),\
-	$(let name,$(call first,$(setting)),\
-		$(eval $(call full-recipe,avx2_vaes,$(name)_avx2_vaes,Additional_Implementations/$(name)_avx2_vaes,$(setting)))\
-	)\
-)
+#$(foreach setting,$(settings),\
+#	$(let name,$(call first,$(setting)),\
+#		$(eval $(call full-recipe,avx2_vaes,$(name)_avx2_vaes,Additional_Implementations/$(name)_avx2_vaes,$(setting)))\
+#	)\
+#)
 # TODO: AVX-512
 
 clean:

@@ -7,6 +7,13 @@
 #define TREE_PRG_%TREE_PRG%
 #define BITS_PER_WITNESS %TAU%
 
+// SHA3 is currently the only option.
 #define RANDOM_ORACLE_SHA3
+
+// XKCP configuration.
+#define XKCP_has_KeccakP1600
+#define XKCP_has_KeccakP1600times2
+#define XKCP_has_KeccakP1600times4
+#define XKCP_has_KeccakP1600times8
 
 #endif

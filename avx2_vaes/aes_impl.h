@@ -8,4 +8,7 @@
 
 // TODO: Stuff in common with avx2
 
+// Want to do each pair of AESes from adjacent columns, rather than the same column, so that they
+// can use two adjacent keys.
+
 #endif
