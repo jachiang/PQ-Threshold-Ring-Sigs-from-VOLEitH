@@ -1,13 +1,8 @@
-#ifndef PRIMITIVES_H
-#define PRIMITIVES_H
+#ifndef RANDOM_ORACLE_H
+#define RANDOM_ORACLE_H
 
 #include <stddef.h>
 #include "config.h"
-
-#include "polynomials.h"
-
-// TODO: Should probably use "blocks" much more often than "unsigned char*"s.
-
 
 // TODO: ought to pick a random oracle that allows parallelization, so that it's compatible if
 // anybody wants to make a parallel implementation.
@@ -39,7 +34,5 @@ inline int random_oracle_final(random_oracle_state* ro, unsigned char* digest, s
 }
 
 #endif
-
-#include "aes.h"
 
 #endif

@@ -89,7 +89,7 @@ $(eval $(call config-recipe,$(3),$(4)))
 
 headers-$(2) : $$($(2)_headers)
 .PHONY: headers-$(2)
-$$($(2)_objects)) : headers-$(2)
+$$($(2)_objects)) : | headers-$(2)
 
 $(3)/:
 	$$(MKDIR_P) $$@

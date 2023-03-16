@@ -1,3 +1,3 @@
-#include "primitives.h"
+#include "polynomials.h"
 
 // TODO: extern inlines
