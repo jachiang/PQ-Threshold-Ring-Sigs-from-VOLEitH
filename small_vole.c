@@ -1,5 +1,6 @@
 #include "config.h"
 #include "small_vole.h"
+#include <string.h>
 
 #define COL_LEN (VOLE_ROWS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK)
 
@@ -91,7 +92,7 @@ have_cipher_output:
 
 			// Grey's codes trick. col is the index of the bit that will change when incrementing
 			// the Gray's code.
-			size_t col = _mm_tzcnt_u64(i + VOLE_WIDTH);
+			size_t col = _tzcnt_u64(i + VOLE_WIDTH);
 			if (col > VOLE_MIN_K - 1)
 				col = VOLE_MIN_K - 1;
 			v[COL_LEN * col + j] = vole_block_xor(v[COL_LEN * col + j], accum[j]);
