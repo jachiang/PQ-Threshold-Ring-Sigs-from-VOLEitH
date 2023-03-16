@@ -3,6 +3,18 @@
 
 #include "block.h"
 
+// The homomorphic commitments use small field VOLE with a mix of two values of k: VOLE_MIN_K and
+// VOLE_MAX_K. k is the number of bits of Delta input to a single VOLE.
+#define VOLE_MIN_K (SECURITY_PARAM / BITS_PER_WITNESS)
+#define VOLE_MAX_K ((SECURITY_PARAM + BITS_PER_WITNESS - 1) / BITS_PER_WITNESS)
+
+// Number of VOLEs that use VOLE_MIN_K and VOLES_MAX_K.
+#define VOLES_MIN_K (BITS_PER_WITNESS - VOLES_MAX_K)
+#define VOLES_MAX_K (SECURITY_PARAM % BITS_PER_WITNESS)
+
+#define VOLE_ROWS 1600 // TODO
+
+
 #if defined(PRG_AES_CTR)
 // Block of the cipher used for the small field VOLE.
 #define VOLE_CIPHER_BLOCK_SHIFT 0
@@ -38,8 +50,5 @@ inline vole_cipher_block vole_cipher_block_set_low64(uint64_t x) { return block_
 #define VOLE_WIDTH (1 << VOLE_WIDTH_SHIFT)
 #define VOLE_WIDTH_SHIFT (AES_PREFERRED_WIDTH_SHIFT - VOLE_CIPHER_BLOCKS_SHIFT)
 // TODO: What about a RIJNDAEL_PREFERRED_WIDTH?
-
-
-#define VOLE_ROWS 1600 // TODO
 
 #endif

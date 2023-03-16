@@ -39,10 +39,9 @@ inline block192 block192_set_low64(uint64_t x)
 // Interface defined by block_impl.h
 
 // typedef /**/ block128;
-// typedef /**/ block192;
 // typedef /**/ block256;
-//
-// typedef /**/ block_secpar;
+// typedef /**/ block384;
+// typedef /**/ block512;
 //
 // // Block representing a chunck of a column for the small field VOLE. Used when reducing the PRG
 // // outputs down to a VOLE correlation. THis will be at least as big as vole_cipher_block.
@@ -55,35 +54,67 @@ inline block192 block192_set_low64(uint64_t x)
 static_assert(sizeof(block128) == 16, "Padding in block128.");
 static_assert(sizeof(block192) == 24, "Padding in block192.");
 static_assert(sizeof(block256) == 32, "Padding in block256.");
-
-#if SECURITY_PARAM == 128
-#define BLOCK_SECPAR_LEN_SHIFT 0
-#elif SECURITY_PARAM == 256
-#define BLOCK_SECPAR_LEN_SHIFT 1
-#endif
-
-// Number of block128s in a block_secpar, assuming that this is a whole number.
-#define BLOCK_SECPAR_LEN (1 << BLOCK_SECPAR_LEN_SHIFT)
+static_assert(sizeof(block384) == 48, "Padding in block384.");
+static_assert(sizeof(block512) == 64, "Padding in block512.");
 
 inline block128 block128_xor(block128 x, block128 y);
 inline block256 block256_xor(block256 x, block256 y);
-inline block_secpar block_secpar_xor(block_secpar x, block_secpar y);
+inline block384 block384_xor(block384 x, block384 y);
+inline block512 block512_xor(block512 x, block512 y);
 inline vole_block vole_block_xor(vole_block x, vole_block y);
 
 inline block128 block128_and(block128 x, block128 y);
 inline block256 block256_and(block256 x, block256 y);
-inline block_secpar block_secpar_and(block_secpar x, block_secpar y);
+inline block384 block384_and(block384 x, block384 y);
+inline block512 block512_and(block512 x, block512 y);
 inline vole_block vole_block_and(vole_block x, vole_block y);
 
 inline block128 block128_set_all_8(uint8_t x);
 inline block256 block256_set_all_8(uint8_t x);
+inline block384 block384_set_all_8(uint8_t x);
+inline block512 block512_set_all_8(uint8_t x);
 inline vole_block vole_block_set_all_8(uint8_t x);
 
 inline block128 block128_set_low64(uint64_t x);
 inline block256 block256_set_low64(uint64_t x);
-inline block_secpar block_secpar_set_low64(uint64_t x);
+inline block384 block384_set_low64(uint64_t x);
+inline block512 block512_set_low64(uint64_t x);
 inline vole_block vole_block_set_low64(uint64_t x);
 
 inline block256 block256_set_128(block128 x0, block128 x1);
+
+#if SECURITY_PARAM == 128
+#define BLOCK_SECPAR_LEN_SHIFT 0
+typedef block128 block_secpar;
+typedef block256 block_2secpar;
+inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block128_xor(x, y); }
+inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block128_and(x, y); }
+inline block_secpar block_secpar_set_low64(uint64_t x) { return block128_set_low64(x); }
+inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block256_xor(x, y); }
+inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block256_and(x, y); }
+inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
+#elif SECURITY_PARAM == 192
+typedef block192 block_secpar;
+typedef block384 block_2secpar;
+inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block192_xor(x, y); }
+inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block192_and(x, y); }
+inline block_secpar block_secpar_set_low64(uint64_t x) { return block192_set_low64(x); }
+inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block384_xor(x, y); }
+inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block384_and(x, y); }
+inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block384_set_low64(x); }
+#elif SECURITY_PARAM == 256
+#define BLOCK_SECPAR_LEN_SHIFT 1
+typedef block256 block_secpar;
+typedef block512 block_2secpar;
+inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block256_xor(x, y); }
+inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block256_and(x, y); }
+inline block_secpar block_secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
+inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block512_xor(x, y); }
+inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block512_and(x, y); }
+inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block512_set_low64(x); }
+#endif
+
+// Number of block128s in a block_secpar, assuming that this is a whole number.
+#define BLOCK_SECPAR_LEN (1 << BLOCK_SECPAR_LEN_SHIFT)
 
 #endif

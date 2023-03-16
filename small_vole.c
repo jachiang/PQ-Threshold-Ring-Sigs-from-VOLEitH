@@ -104,7 +104,6 @@ static ALWAYS_INLINE void generate_vole(
 		memset(&vq[0], 0, COL_LEN * k * sizeof(vole_block));
 
 	size_t i = 0;
-
 	if (receiver)
 	{
 		// Handle first iteration separately, since the 0th PRG key is a dummy. Hopefully the

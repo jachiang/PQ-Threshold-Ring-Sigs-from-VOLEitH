@@ -6,11 +6,6 @@
 #include "aes.h"
 #include "vole_params.h"
 
-// The homomorphic commitments use the small field VOLE with a mix of two values of k: VOLE_MIN_K
-// and VOLE_MAX_K. k is the number of bits of Delta input to a single VOLE.
-#define VOLE_MIN_K (SECURITY_PARAM / BITS_PER_WITNESS)
-#define VOLE_MAX_K ((SECURITY_PARAM + BITS_PER_WITNESS - 1) / BITS_PER_WITNESS)
-
 // Given 2**k PRG keys and the chosen VOLE input u, generate the VOLE correlation v and a correction
 // c to send to the receiver. u and c must be VOLE_ROWS bits long. v is stored in column-major
 // order, with columns packed tightly (after being padded to a whole number of vole_blocks).
