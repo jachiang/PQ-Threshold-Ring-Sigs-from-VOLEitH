@@ -102,7 +102,7 @@ all : $(2)
 
 # https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 $$($(2)_depfiles):
-include $$(wildecard $$($(2)_depfiles))
+include $$(wildcard $$($(2)_depfiles))
 endef
 
 #$(foreach setting,$(settings),\
