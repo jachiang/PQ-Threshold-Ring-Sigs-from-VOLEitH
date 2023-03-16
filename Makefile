@@ -52,7 +52,7 @@ settings = \
 			$(foreach prg,$(ciphers),\
 				$(foreach tree_prg,$(tree_prgs),\
 					$(foreach tau,$(taus_$(security_param)),\
-						$(if $(and $(findstring 192,security_param),$(findstring RIJNDAEL,prg)),,\
+						$(if $(and $(findstring 192,$(security_param)),$(findstring RIJNDAEL,$(prg)$(tree_prg))),,\
 							sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(tau)\
 						)\
 					)\
