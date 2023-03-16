@@ -78,8 +78,9 @@ endef
 
 define full-recipe
 $(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
+$(2)_asm_objects = $$(foreach source,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
-$(2)_targets = $$($(2)_objects) $$($(2)_headers)
+$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers)
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
 
 $$(foreach src,$$($(1)_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
@@ -95,7 +96,7 @@ $(3)/:
 $(3)/%/:
 	$$(MKDIR_P) $$@
 
-all : $$($(2)_objects)
+all : $$($(2)_targets)
 
 # https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 $$($(2)_depfiles):
