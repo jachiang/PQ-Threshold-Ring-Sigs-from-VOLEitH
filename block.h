@@ -19,6 +19,15 @@ inline block192 block192_xor(block192 x, block192 y)
 	return out;
 }
 
+inline block192 block192_and(block192 x, block192 y)
+{
+	block192 out;
+	out.data[0] = x.data[0] & y.data[0];
+	out.data[1] = x.data[1] & y.data[1];
+	out.data[2] = x.data[2] & y.data[2];
+	return out;
+}
+
 inline block192 block192_set_low64(uint64_t x)
 {
 	block192 out = {x, 0, 0};
@@ -59,10 +68,21 @@ static_assert(sizeof(block256) == 32, "Padding in block256.");
 inline block128 block128_xor(block128 x, block128 y);
 inline block256 block256_xor(block256 x, block256 y);
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y);
+inline vole_block vole_block_xor(vole_block x, vole_block y);
+
+inline block128 block128_and(block128 x, block128 y);
+inline block256 block256_and(block256 x, block256 y);
+inline block_secpar block_secpar_and(block_secpar x, block_secpar y);
+inline vole_block vole_block_and(vole_block x, vole_block y);
+
+inline block128 block128_set_all_8(uint8_t x);
+inline block256 block256_set_all_8(uint8_t x);
+inline vole_block vole_block_set_all_8(uint8_t x);
 
 inline block128 block128_set_low64(uint64_t x);
 inline block256 block256_set_low64(uint64_t x);
 inline block_secpar block_secpar_set_low64(uint64_t x);
+inline vole_block vole_block_set_low64(uint64_t x);
 
 inline block256 block256_set_128(block128 x0, block128 x1);
 

@@ -31,10 +31,10 @@
 #define AES_VECTOR_WIDTH (1 << AES_VECTOR_WIDTH_SHIFT)
 
 // Run AES key schedule on VOLE_WIDTH blocks, then generate VOLE_BLOCK blocks of output from each.
-inline void aes_keygen_encrypt_vole(aes_round_keys* aeses, const block128* keys, block128* output);
+inline void aes_keygen_encrypt_vole(aes_round_keys* aeses, const block128* keys, const block128* input, block128* output);
 
 // Given VOLE_WIDTH AES keys, generate VOLE_BLOCK blocks of output from each.
-inline void aes_encrypt_vole(aes_round_keys* aeses, const block128* input, block128* output);
+inline void aes_encrypt_vole(const aes_round_keys* aeses, const block128* input, block128* output);
 
 inline void rijndael192_keygen(rijndael192_round_keys* rijndael, block192 key);
 inline void rijndael256_keygen(rijndael256_round_keys* rijndael, block256 key);

@@ -7,14 +7,14 @@
 // Block of the cipher used for the small field VOLE.
 #define VOLE_CIPHER_BLOCK_SHIFT 0
 typedef block128 vole_cipher_block;
-typedef aes_round_keys cipher_round_keys;
+typedef aes_round_keys vole_cipher_round_keys;
 inline vole_cipher_block vole_cipher_block_xor(vole_cipher_block x, vole_cipher_block y) { return block128_xor(x, y); }
 inline vole_cipher_block vole_cipher_block_set_low64(uint64_t x) { return block128_set_low64(x); }
 
 #elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
 #define VOLE_CIPHER_BLOCK_SHIFT 1
 typedef block_secpar vole_cipher_block;
-typedef rijndael_round_keys cipher_round_keys;
+typedef rijndael_round_keys vole_cipher_round_keys;
 inline vole_cipher_block vole_cipher_block_xor(vole_cipher_block x, vole_cipher_block y) { return block_secpar_xor(x, y); }
 inline vole_cipher_block vole_cipher_block_set_low64(uint64_t x) { return block_secpar_set_low64(x); }
 
