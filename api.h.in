@@ -2,7 +2,7 @@
 #define CRYPTO_PUBLICKEYBYTES (2 * SECURITY_PARAM / 8)
 #define FAEST_SIGNATURE_BYTES 0 /* TODO */
 
-#define CRYPTO_ALGNAME "FAEST_%NAME%"
+#define CRYPTO_ALGNAME "FAEST_%VERSION%"
 
 // TODO: need to build this file automatically, once for each setting.
 
