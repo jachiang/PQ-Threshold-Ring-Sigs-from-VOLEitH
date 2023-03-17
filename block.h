@@ -85,6 +85,7 @@ inline block256 block256_set_128(block128 x0, block128 x1);
 
 #if SECURITY_PARAM == 128
 #define BLOCK_SECPAR_LEN_SHIFT 0
+#define BLOCK_2SECPAR_LEN 2
 typedef block128 block_secpar;
 typedef block256 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block128_xor(x, y); }
@@ -94,6 +95,7 @@ inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { retur
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block256_and(x, y); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
 #elif SECURITY_PARAM == 192
+#define BLOCK_2SECPAR_LEN 3
 typedef block192 block_secpar;
 typedef block384 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block192_xor(x, y); }
@@ -104,6 +106,7 @@ inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { retur
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block384_set_low64(x); }
 #elif SECURITY_PARAM == 256
 #define BLOCK_SECPAR_LEN_SHIFT 1
+#define BLOCK_2SECPAR_LEN 4
 typedef block256 block_secpar;
 typedef block512 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block256_xor(x, y); }

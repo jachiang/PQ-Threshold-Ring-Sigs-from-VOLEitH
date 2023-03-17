@@ -74,12 +74,12 @@ static ALWAYS_INLINE void prg_eval(
 	for (size_t l = 0; l < VOLE_WIDTH; ++l)
 		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
 			input[l * VOLE_CIPHER_BLOCKS + m] =
-				block_secpar_xor(input[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
+				vole_cipher_block_xor(input[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
 	rijndael_encrypt_fixed_key_vole(fixed_key, input, output);
 	for (size_t l = 0; l < VOLE_WIDTH; ++l)
 		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
 			output[l * VOLE_CIPHER_BLOCKS + m] =
-				block_secpar_xor(output[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
+				vole_cipher_block_xor(output[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
 #endif
 }
 
@@ -139,7 +139,8 @@ have_cipher_output_i0:
 		vole_cipher_block cipher_output[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
 		size_t j = 0;
 
-		size_t output_col = (i + VOLE_WIDTH >= (1 << k)) ? k - 1 : _tzcnt_u64(i + VOLE_WIDTH);
+		// Bitwise or is to make output_col be k - 1 when i + VOLE_WIDTH = 2**k, rather than k.
+		unsigned int output_col = tzcnt((i + VOLE_WIDTH) | (1 << (k - 1)));
 
 		if (prg_keygen(round_keys, &keys[i], cipher_output))
 			goto have_cipher_output;

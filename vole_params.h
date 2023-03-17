@@ -41,7 +41,7 @@ inline vole_cipher_block vole_cipher_block_set_low64(uint64_t x) { return block_
 // Number of block128s in a vole_cipher_block.
 #define VOLE_CIPHER_BLOCK (1 << VOLE_CIPHER_BLOCK_SHIFT)
 
-// Number of vole_cipher_blocks in a vole_block.
+// Number of vole_cipher_block in a vole_block.
 #define VOLE_CIPHER_BLOCKS (1 << VOLE_CIPHER_BLOCKS_SHIFT)
 #define VOLE_CIPHER_BLOCKS_SHIFT (VOLE_BLOCK_SHIFT - VOLE_CIPHER_BLOCK_SHIFT)
 
