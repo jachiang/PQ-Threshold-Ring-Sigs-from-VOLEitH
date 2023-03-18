@@ -17,10 +17,10 @@ void vole_sender(
 
 // Given 2**k PRG keys, the secret delta, and the correction string c, generate the VOLE correlation
 // q. c must be VOLE_ROWS bits long. q is stored in column-major order, with columns packed tightly
-// (after being padded to a whole number of vole_blocks). A k-bit delta is represented as k bytes,
-// with each byte being either 0 or 0xff. k must be at least VOLE_WIDTH_SHIFT. fixed_key is only
-// used for PRGs based on fixed-key Rijndael. Input must by permuted by XOR with Delta, and then
-// with vole_permute_key_index.
+// (after being padded to a whole number of vole_blocks). A k-bit delta is represented as k bytes in
+// little endian, with each byte being either 0 or 0xff. k must be at least VOLE_WIDTH_SHIFT.
+// fixed_key is only used for PRGs based on fixed-key Rijndael. Input must by permuted by XOR with
+// Delta, and then with vole_permute_key_index.
 void vole_receiver(
 	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,

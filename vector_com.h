@@ -21,17 +21,19 @@ void vector_commit(
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
-// Using decommitment data from vector_commit, open at delta. opening must be VECTCOM_OPEN_SIZE
-// bytes long.
+// Using decommitment data from vector_commit, open at delta. delta is represented as SECURITY_PARAM
+// bytes, each 0 or 0xff, with each segment (corresponding to a single VOLE) ordered in little
+// endian. opening must be VECTCOM_OPEN_SIZE bytes long.
 void vector_open(
 	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
-	block_secpar delta, unsigned char* restrict opening);
+	const unsigned char* restrict delta, unsigned char* restrict opening);
 
 // Given an opening, get all but one of the leaves and all of the hashed leaves. The hashed_leaves
 // must be verified against the output from vector_commit. leaves will be permuted according to
 // TODO. fixed_key is only used for PRGs based on fixed-key Rijndael.
 void vector_verify(
 	const unsigned char* restrict opening, const rijndael_round_keys* restrict fixed_key,
-	block_secpar delta, block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
+	const unsigned char* restrict delta,
+	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
 
 #endif

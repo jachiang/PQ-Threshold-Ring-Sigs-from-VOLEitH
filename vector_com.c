@@ -321,3 +321,31 @@ void vector_commit(
 		hashed_leaves += (1 << depth);
 	}
 }
+
+void vector_open(
+	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
+	const unsigned char* restrict delta, unsigned char* restrict opening)
+{
+	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
+	{
+		unsigned int depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
+		size_t node = 2 * i;
+		size_t leaf_idx = 0;
+		for (unsigned int d = 0; d < depth; ++d)
+		{
+			unsigned int hole = delta[depth - 1 - d] & 1;
+			leaf_idx = 2*leaf_idx + hole;
+
+			node = node + hole;
+			memcpy(opening, &forest[node ^ 1], sizeof(block_secpar));
+			opening += sizeof(block_secpar);
+			node = FIRST_CHILD(node);
+		}
+
+		memcpy(opening, &hashed_leaves[leaf_idx], sizeof(block_2secpar));
+		opening += sizeof(block_2secpar);
+
+		delta += depth;
+		hashed_leaves += (1 << depth);
+	}
+}
