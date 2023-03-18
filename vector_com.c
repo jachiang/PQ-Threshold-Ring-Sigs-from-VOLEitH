@@ -278,12 +278,17 @@ static void expand_tree(
 				block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
 				expand_chunk_leaf_n_leaf_chunk_size(fixed_key, &forest[starting_node + j], prg_output);
 
-				for (size_t k = 0; k < LEAF_CHUNK_SIZE; ++k)
+				for (size_t k = 0; k < LEAF_CHUNK_SIZE; k += VOLE_WIDTH)
 				{
+					// Simplest to compute permuted_leaf_idx in each iteration, but it's equivalent
+					// to increment it normally, except on VOLE_WIDTH boundaries.
 					size_t leaf_idx = starting_leaf_idx + j + k;
 					size_t permuted_leaf_idx = vole_permute_key_index(leaf_idx);
-					leaves[permuted_leaf_idx] = prg_output[3 * k];
-					memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * k + 1], sizeof(block_2secpar));
+					for (size_t l = 0; l < VOLE_WIDTH && l < LEAF_CHUNK_SIZE; l++)
+					{
+						leaves[permuted_leaf_idx++] = prg_output[3 * (k + l)];
+						memcpy(&hashed_leaves[leaf_idx++], &prg_output[3 * (k + l) + 1], sizeof(block_2secpar));
+					}
 				}
 			}
 		}
