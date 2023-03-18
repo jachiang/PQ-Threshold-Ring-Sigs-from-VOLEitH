@@ -38,7 +38,7 @@ static ALWAYS_INLINE bool tree_prg_keygen(
 	tree_cipher_block* restrict output)
 {
 #if defined(TREE_PRG_AES_CTR)
-	aes_keygen_ctr_vole(round_keys, keys, 0, output);
+	aes_keygen_ctr_x2(round_keys, keys, 0, output);
 	return true;
 #else
 	return false;
@@ -74,7 +74,7 @@ static ALWAYS_INLINE bool leaf_prg_keygen(
 	leaf_cipher_block* restrict output)
 {
 #if defined(LEAF_PRG_AES_CTR)
-	aes_keygen_ctr_vole(round_keys, keys, 0, output);
+	aes_keygen_ctr_x2(round_keys, keys, 0, output);
 	return true;
 #else
 	return false;
@@ -244,7 +244,8 @@ EXPAND_ROOTS_RECURSION(3, expand_roots_4)
 EXPAND_ROOTS_RECURSION(2, expand_roots_3)
 EXPAND_ROOTS_RECURSION(1, expand_roots_2)
 
-static void expand_tree(
+static ALWAYS_INLINE void expand_tree(
+	bool verifier,
 	const rijndael_round_keys* restrict fixed_key, block_secpar* restrict forest,
 	unsigned int levels_to_expand, size_t index,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
@@ -257,7 +258,7 @@ static void expand_tree(
 
 		size_t ancestor =
 			BITS_PER_WITNESS * ((CHUNK_SIZE << ancestor_level) - 2) +
-			CHUNK_SIZE * (leaf >> generations_from_ancestor);
+			CHUNK_SIZE * ((leaf >> generations_from_ancestor) + (index << ancestor_level));
 
 		for (int i = generations_from_ancestor - 1; i >= 0; --i)
 		{
@@ -265,10 +266,10 @@ static void expand_tree(
 			expand_chunk_n_chunk_size(fixed_key, &forest[ancestor], &forest[child]);
 			ancestor = child;
 		}
-		size_t leaf_node = ancestor;
 
 		// If this ends a block of size at least LEAF_CHUNK_SIZE, then apply the leaf prgs and write
 		// to leaves and hashed_leaves.
+		size_t leaf_node = ancestor;
 		if (LEAF_CHUNK_SIZE <= CHUNK_SIZE || (leaf + 1) % (LEAF_CHUNK_SIZE / CHUNK_SIZE) == 0)
 		{
 			size_t starting_node = leaf_node + CHUNK_SIZE - MAX_CHUNK_SIZE;
@@ -321,8 +322,7 @@ void vector_commit(
 	{
 		// First VOLES_MAX_K trees are 1 depth bigger.
 		unsigned int depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
-		expand_tree(fixed_key, forest, depth - current_depth,
-		            first_node + i * CHUNK_SIZE, leaves, hashed_leaves);
+		expand_tree(false, fixed_key, forest, depth - current_depth, i, leaves, hashed_leaves);
 		leaves += (1 << depth);
 		hashed_leaves += (1 << depth);
 	}
@@ -354,4 +354,12 @@ void vector_open(
 		delta += depth;
 		hashed_leaves += (1 << depth);
 	}
+}
+
+void vector_verify(
+	const unsigned char* restrict opening, const rijndael_round_keys* restrict fixed_key,
+	const unsigned char* restrict delta,
+	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
+{
+	block_secpar forest[VECTOR_COMMIT_NODES];
 }
