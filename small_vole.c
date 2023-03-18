@@ -6,14 +6,16 @@
 
 #define COL_LEN (VOLE_ROWS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK)
 
+// TODO: probably can ditch most of the "restrict"s in inlined functions.
+
 // Two different methods for efficiently reducing the PRG outputs to a single value:
 //
 // - Divide and conquer algorithm.
-// - Straight-line method based on Gray's codes. (TODO: figure out what paper I got this from.)
+// - Straight-line method based on Gray's code. (TODO: figure out what paper I got this from.)
 //
 // This implementation combines these two methods. Divide and conquer is used at the lowest level,
 // as it is inherently parallel and has a fixed access pattern when unrolled. Above it, the Gray's
-// codes method is used, as it needs very little temporary storage.
+// code method is used, as it needs very little temporary storage.
 
 // Output: v (or q) in in_out[1, ..., depth], and u in in_out[0].
 static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
@@ -44,12 +46,7 @@ static ALWAYS_INLINE bool prg_keygen(
 	vole_cipher_round_keys* round_keys, const block_secpar* restrict keys, vole_cipher_block* output)
 {
 #if defined(PRG_AES_CTR)
-	vole_cipher_block input[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
-	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-		// TODO: should it start counting from a random value instead of 0?
-		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-			input[l * VOLE_CIPHER_BLOCKS + m] = vole_cipher_block_set_low64(m);
-	aes_keygen_encrypt_vole(round_keys, keys, input, output);
+	aes_keygen_ctr_vole(round_keys, keys, 0, output);
 	return true;
 #else
 	return false;
@@ -61,30 +58,15 @@ static ALWAYS_INLINE void prg_eval(
 	const rijndael_round_keys* restrict fixed_key, const block_secpar* keys,
 	vole_cipher_block* output)
 {
-	vole_cipher_block input[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
-	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-			input[l * VOLE_CIPHER_BLOCKS + m] =
-				vole_cipher_block_set_low64(counter * VOLE_CIPHER_BLOCKS + m);
-
 #if defined(PRG_AES_CTR)
-	aes_encrypt_vole(round_keys, input, output);
-
+	aes_ctr_vole(round_keys, counter * VOLE_CIPHER_BLOCKS, output);
 #elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
-	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-			input[l * VOLE_CIPHER_BLOCKS + m] =
-				vole_cipher_block_xor(input[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
-	rijndael_encrypt_fixed_key_vole(fixed_key, input, output);
-	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-			output[l * VOLE_CIPHER_BLOCKS + m] =
-				vole_cipher_block_xor(output[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
+	rijndael_ctr_fixed_key_vole(fixed_key, keys, counter * VOLE_CIPHER_BLOCKS, output);
 #endif
 }
 
 // Sender and receiver merged together, since they share most of the same code.
-static ALWAYS_INLINE void generate_vole(
+static ALWAYS_INLINE void vole(
 	bool receiver, unsigned int k,
 	const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
 	const vole_block* restrict u_or_c_in, vole_block* restrict vq, vole_block* restrict c_out,
@@ -170,17 +152,17 @@ have_cipher_output:
 			c_out[j] = vole_block_xor(u_or_c_in[j], accum[j]);
 }
 
-void generate_sender(
+void vole_sender(
 	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
 	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c)
 {
-	generate_vole(false, k, keys, fixed_key, u, v, c, NULL);
+	vole(false, k, keys, fixed_key, u, v, c, NULL);
 }
 
-void generate_receiver(
+void vole_receiver(
 	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
 	const unsigned char* restrict delta)
 {
-	generate_vole(true, k, keys, fixed_key, c, q, NULL, delta);
+	vole(true, k, keys, fixed_key, c, q, NULL, delta);
 }

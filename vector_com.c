@@ -3,161 +3,219 @@
 #include <stdbool.h>
 
 #include "util.h"
+#include "small_vole.h"
+
+// TODO: probably can ditch most of the "restrict"s in inlined functions.
 
 #if defined(TREE_PRG_AES_CTR)
-typedef aes_round_keys ggm_cipher_round_keys;
-typedef block128 ggm_cipher_block;
-inline ggm_cipher_block ggm_cipher_block_xor(ggm_cipher_block x, ggm_cipher_block y) { return block128_xor(x, y); }
-inline ggm_cipher_block ggm_cipher_block_set_low64(uint64_t x) { return block128_set_low64(x); }
+typedef aes_round_keys tree_cipher_round_keys;
+typedef block128 tree_cipher_block;
 #define CHUNK_SIZE AES_PREFERRED_WIDTH
 #elif defined(TREE_PRG_RIJNDAEL_EVEN_MANSOUR)
-typedef rijndael_round_keys ggm_cipher_round_keys;
-typedef block_secpar ggm_cipher_block;
-inline ggm_cipher_block ggm_cipher_block_xor(ggm_cipher_block x, ggm_cipher_block y) { return block_secpar_xor(x, y); }
-inline ggm_cipher_block ggm_cipher_block_set_low64(uint64_t x) { return block_secpar_set_low64(x); }
+typedef rijndael_round_keys tree_cipher_round_keys;
+typedef block_secpar tree_cipher_block;
 #define CHUNK_SIZE FIXED_KEY_PREFERRED_WIDTH
 #endif
+
+#if defined(LEAF_PRG_AES_CTR)
+typedef aes_round_keys leaf_cipher_round_keys;
+typedef block128 leaf_cipher_block;
+#define LEAF_CHUNK_SIZE AES_PREFERRED_WIDTH
+#elif defined(LEAF_PRG_RIJNDAEL_EVEN_MANSOUR)
+typedef rijndael_round_keys leaf_cipher_round_keys;
+typedef block_secpar leaf_cipher_block;
+#define LEAF_CHUNK_SIZE FIXED_KEY_PREFERRED_WIDTH
+#endif
+
+#define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > CHUNK_SIZE ? LEAF_CHUNK_SIZE : CHUNK_SIZE)
 
 #define PARENT(x) (((x) - 2 * BITS_PER_WITNESS) / 2)
 #define FIRST_CHILD(x) (2 * (x) + 2 * BITS_PER_WITNESS)
 
 // Returns true if output was generated along with the key.
-static ALWAYS_INLINE bool prg_keygen(
-	ggm_cipher_round_keys* restrict round_keys, const block_secpar* restrict keys,
-	ggm_cipher_block* restrict output)
+static ALWAYS_INLINE bool tree_prg_keygen(
+	tree_cipher_round_keys* restrict round_keys, const block_secpar* restrict keys,
+	tree_cipher_block* restrict output)
 {
 #if defined(TREE_PRG_AES_CTR)
-	ggm_cipher_block input[CHUNK_SIZE];
-	for (size_t l = 0; l < CHUNK_SIZE/2; ++l)
-		// TODO: should it start counting from a random value instead of 0?
-		for (size_t m = 0; m < 2; ++m)
-			input[l * 2 + m] = ggm_cipher_block_set_low64(m);
-	aes_keygen_encrypt_x2(round_keys, keys, input, output);
+	aes_keygen_ctr_vole(round_keys, keys, 0, output);
 	return true;
 #else
 	return false;
 #endif
 }
 
-static ALWAYS_INLINE void prg_eval_x2(
-	size_t counter, const ggm_cipher_round_keys* restrict round_keys,
+static ALWAYS_INLINE void tree_prg_eval(
+	size_t counter, const tree_cipher_round_keys* restrict round_keys,
 	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
-	ggm_cipher_block* restrict output)
+	tree_cipher_block* restrict output)
 {
-	ggm_cipher_block input[CHUNK_SIZE];
-	for (size_t l = 0; l < CHUNK_SIZE / 2; ++l)
-		for (size_t m = 0; m < 2; ++m)
-			input[l * 2 + m] = ggm_cipher_block_set_low64(counter + m);
-
 #if defined(TREE_PRG_AES_CTR)
-	aes_encrypt_x2(round_keys, input, output);
-
+	aes_ctr_x1(round_keys, counter, output);
 #elif defined(TREE_PRG_RIJNDAEL_EVEN_MANSOUR)
-	for (size_t l = 0; l < CHUNK_SIZE / 2; ++l)
-		for (size_t m = 0; m < 2; ++m)
-			input[l * 2 + m] = ggm_cipher_block_xor(input[l * 2 + m], keys[l]);
-	rijndael_encrypt_fixed_key(fixed_key, input, output);
-	for (size_t l = 0; l < CHUNK_SIZE / 2; ++l)
-		for (size_t m = 0; m < 2; ++m)
-			output[l * 2 + m] = ggm_cipher_block_xor(output[l * 2 + m], keys[l]);
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, counter, output);
 #endif
 }
 
-static ALWAYS_INLINE void prg_eval(
-	size_t counter, const ggm_cipher_round_keys* restrict round_keys,
+static ALWAYS_INLINE void tree_prg_eval_x2(
+	size_t counter, const tree_cipher_round_keys* restrict round_keys,
 	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
-	ggm_cipher_block* restrict output)
+	tree_cipher_block* restrict output)
 {
-	ggm_cipher_block input[CHUNK_SIZE];
-	for (size_t l = 0; l < CHUNK_SIZE; ++l)
-		input[l] = ggm_cipher_block_set_low64(counter);
-
 #if defined(TREE_PRG_AES_CTR)
-	aes_encrypt(round_keys, input, output);
-
+	aes_ctr_x2(round_keys, counter, output);
 #elif defined(TREE_PRG_RIJNDAEL_EVEN_MANSOUR)
-	for (size_t l = 0; l < CHUNK_SIZE / 2; ++l)
-		input[l] = ggm_cipher_block_xor(input[l], keys[l]);
-	rijndael_encrypt_fixed_key(fixed_key, input, output);
-	for (size_t l = 0; l < CHUNK_SIZE / 2; ++l)
-		output[l] = ggm_cipher_block_xor(output[l], keys[l]);
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, counter, output);
+#endif
+}
+
+static ALWAYS_INLINE bool leaf_prg_keygen(
+	leaf_cipher_round_keys* restrict round_keys, const block_secpar* restrict keys,
+	leaf_cipher_block* restrict output)
+{
+#if defined(LEAF_PRG_AES_CTR)
+	aes_keygen_ctr_vole(round_keys, keys, 0, output);
+	return true;
+#else
+	return false;
+#endif
+}
+
+static ALWAYS_INLINE void leaf_prg_eval(
+	size_t counter, const leaf_cipher_round_keys* restrict round_keys,
+	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
+	leaf_cipher_block* restrict output)
+{
+#if defined(LEAF_PRG_AES_CTR)
+	aes_ctr_x1(round_keys, counter, output);
+#elif defined(LEAF_PRG_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, counter, output);
+#endif
+}
+
+static ALWAYS_INLINE void leaf_prg_eval_x2(
+	size_t counter, const leaf_cipher_round_keys* restrict round_keys,
+	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
+	leaf_cipher_block* restrict output)
+{
+#if defined(LEAF_PRG_AES_CTR)
+	aes_ctr_x2(round_keys, counter, output);
+#elif defined(LEAF_PRG_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, counter, output);
 #endif
 }
 
 static ALWAYS_INLINE void expand_partial_chunk(
-	size_t n,
-	const rijndael_round_keys* restrict fixed_key, ggm_cipher_round_keys* restrict round_keys,
-	const block_secpar* restrict prev_level, block_secpar* restrict next_level)
+	bool leaf, size_t n,
+	const rijndael_round_keys* restrict fixed_key,
+	tree_cipher_round_keys* restrict round_keys_tree,
+	leaf_cipher_round_keys* restrict round_keys_leaf,
+	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	block_secpar keys[CHUNK_SIZE / 2];
-	ggm_cipher_block cipher_output[CHUNK_SIZE];
+	block_secpar keys[MAX_CHUNK_SIZE / 2];
+	tree_cipher_block cipher_output_tree[CHUNK_SIZE];
+	leaf_cipher_block cipher_output_leaf[LEAF_CHUNK_SIZE];
 
 	// Pad input to avoid using uninitialized memory.
-	memcpy(keys, prev_level, n * sizeof(block_secpar));
-	memset(keys + n, 0, (CHUNK_SIZE / 2 - n) * sizeof(block_secpar));
+	memcpy(keys, input, n * sizeof(block_secpar));
+	memset(keys + n, 0, (MAX_CHUNK_SIZE / 2 - n) * sizeof(block_secpar));
 
 	size_t j = 0;
-	if (prg_keygen(round_keys, keys, cipher_output))
-		goto have_cipher_output;
-
-	for (; (j + 2) <= (2 * sizeof(block_secpar)) / sizeof(ggm_cipher_block); j += 2)
+	if (!leaf)
 	{
-		prg_eval_x2(j, round_keys, fixed_key, keys, cipher_output);
+		if (tree_prg_keygen(round_keys_tree, keys, cipher_output_tree))
+			goto have_cipher_output;
+	}
+	else
+	{
+		if (leaf_prg_keygen(round_keys_leaf, keys, cipher_output_leaf))
+			goto have_cipher_output;
+	}
+
+	size_t outputs_per_key = !leaf ? 2 : 3;
+	size_t j_inc = !leaf ? 2 * sizeof(tree_cipher_block) : 2 * sizeof(leaf_cipher_block);
+	for (; (j + j_inc) <= outputs_per_key * sizeof(block_secpar); j += j_inc)
+	{
+		if (!leaf)
+			tree_prg_eval_x2(2 * j / j_inc, round_keys_tree, fixed_key, keys, cipher_output_tree);
+		else
+			leaf_prg_eval_x2(2 * j / j_inc, round_keys_leaf, fixed_key, keys, cipher_output_leaf);
 
 have_cipher_output:
 		for (size_t k = 0; k < n; ++k)
-			memcpy(((ggm_cipher_block*) &next_level[2 * k]) + j,
-			       &cipher_output[2 * k], 2 * sizeof(ggm_cipher_block));
+			memcpy(((unsigned char*) &output[outputs_per_key * k]) + j,
+			       !leaf ? &cipher_output_tree[2 * k] : &cipher_output_leaf[2 * k], j_inc);
 	}
 }
 
-// Takes each block from prev_level and expands it into two adjacent blocks in next_level. fixed_key
-// is only used for PRGs based on fixed-key Rijndael. Works for n <= CHUNK_SIZE.
-// TODO: Parameterize based on expansion factor.
-static ALWAYS_INLINE void expand_level(
-	size_t n, const rijndael_round_keys* restrict fixed_key,
-	const block_secpar* restrict prev_level, block_secpar* restrict next_level)
+// Takes each block from input and expands it into 2 adjacent blocks in output. If leaf, this
+// becomes 3 adjacent blocks. fixed_key is only used for PRGs based on fixed-key Rijndael. Works
+// for n <= CHUNK_SIZE (or LEAF_CHUNK_SIZE if leaf).
+static ALWAYS_INLINE void expand_chunk(
+	bool leaf, size_t n, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	ggm_cipher_round_keys round_keys[CHUNK_SIZE];
+	tree_cipher_round_keys round_keys_tree[CHUNK_SIZE];
+	leaf_cipher_round_keys round_keys_leaf[LEAF_CHUNK_SIZE];
 
-	size_t first_part = (n < CHUNK_SIZE / 2) ? n : CHUNK_SIZE / 2;
-	expand_partial_chunk(first_part, fixed_key, &round_keys[0], &prev_level[0], &next_level[0]);
+	size_t chunk_size = leaf ? CHUNK_SIZE : LEAF_CHUNK_SIZE;
+
+	size_t first_part = (n < chunk_size / 2) ? n : chunk_size / 2;
+	expand_partial_chunk(
+		leaf, first_part, fixed_key, &round_keys_tree[0], &round_keys_leaf[0], &input[0], &output[0]);
 	size_t second_part = n - first_part;
 
 	if (second_part > 0)
-		expand_partial_chunk(second_part, fixed_key, &round_keys[first_part],
-		                     &prev_level[first_part], &next_level[2 * first_part]);
+		expand_partial_chunk(
+			leaf, second_part, fixed_key, &round_keys_tree[first_part], &round_keys_leaf[first_part],
+			&input[first_part], &output[2 * first_part]);
 
-	static_assert((2 * sizeof(block_secpar)) % sizeof(ggm_cipher_block) == 0);
-	if (sizeof(block_secpar) % sizeof(ggm_cipher_block) != 0)
+	static_assert((2 * sizeof(block_secpar)) % (2 * sizeof(tree_cipher_block)) <= sizeof(tree_cipher_block));
+	static_assert((3 * sizeof(block_secpar)) % (2 * sizeof(leaf_cipher_block)) <= sizeof(leaf_cipher_block));
+
+	size_t outputs_per_key = !leaf ? 2 : 3;
+	size_t j_inc = !leaf ? 2 * sizeof(tree_cipher_block) : 2 * sizeof(leaf_cipher_block);
+	size_t j_remaining = (outputs_per_key * sizeof(block_secpar)) % j_inc;
+	if (j_remaining != 0)
 	{
-		// Get last block of output from both parts.
+		// Combine the 2 parts when geting the last block of output for all key.
 
-		ggm_cipher_block cipher_output[CHUNK_SIZE];
-		block_secpar keys[CHUNK_SIZE];
-		memcpy(keys, prev_level, n * sizeof(block_secpar));
-		memset(keys + n, 0, (CHUNK_SIZE - n) * sizeof(block_secpar));
+		tree_cipher_block cipher_output_tree[CHUNK_SIZE];
+		leaf_cipher_block cipher_output_leaf[LEAF_CHUNK_SIZE];
+		block_secpar keys[MAX_CHUNK_SIZE];
+		memcpy(keys, input, n * sizeof(block_secpar));
+		memset(keys + n, 0, (MAX_CHUNK_SIZE - n) * sizeof(block_secpar));
 
-		size_t j = (2 * sizeof(block_secpar)) / sizeof(ggm_cipher_block) - 1;
-		prg_eval(j, round_keys, fixed_key, keys, cipher_output);
-		for (size_t k = 0; k < CHUNK_SIZE; ++k)
-			memcpy(((ggm_cipher_block*) &next_level[2 * k]) + j,
-			       &cipher_output[k], sizeof(ggm_cipher_block));
+		size_t j = (outputs_per_key * sizeof(block_secpar)) - j_remaining;
+		if (!leaf)
+			tree_prg_eval(2 * j / j_inc, round_keys_tree, fixed_key, keys, cipher_output_tree);
+		else
+			leaf_prg_eval(2 * j / j_inc, round_keys_leaf, fixed_key, keys, cipher_output_leaf);
+		for (size_t k = 0; k < n; ++k)
+			memcpy(((unsigned char*) &output[outputs_per_key * k]) + j,
+			       !leaf ? &cipher_output_tree[k] : &cipher_output_leaf[k], j_remaining);
 	}
 }
 
-// Allow n to be hardcoded by the compiler into expand_level:
-static void expand_level_n_chunk_size(
+// Allow n to be hardcoded by the compiler into expand_chunk:
+static void expand_chunk_n_chunk_size(
 	const rijndael_round_keys* restrict fixed_key,
-	const block_secpar* restrict prev_level, block_secpar* restrict next_level)
+	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	expand_level(CHUNK_SIZE, fixed_key, prev_level, next_level);
+	expand_chunk(false, CHUNK_SIZE, fixed_key, input, output);
 }
-static void expand_level_n_remainder(
+static void expand_chunk_n_remainder(
 	const rijndael_round_keys* restrict fixed_key,
-	const block_secpar* restrict prev_level, block_secpar* restrict next_level)
+	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	expand_level((2 * BITS_PER_WITNESS) % CHUNK_SIZE, fixed_key, prev_level, next_level);
+	expand_chunk(false, (2 * BITS_PER_WITNESS) % CHUNK_SIZE, fixed_key, input, output);
+}
+
+static void expand_chunk_leaf_n_leaf_chunk_size(
+	const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict input, block_secpar* restrict output)
+{
+	expand_chunk(true, LEAF_CHUNK_SIZE, fixed_key, input, output);
 }
 
 // Duplicate the same function many times for recursion, so that it will all get inlined.
@@ -169,9 +227,9 @@ static void expand_level_n_remainder(
 		if ((1 << n) >= CHUNK_SIZE) \
 			return; \
 		if (partial) \
-			expand_level_n_remainder(fixed_key, &forest[i], &forest[FIRST_CHILD(i)]); \
+			expand_chunk_n_remainder(fixed_key, &forest[i], &forest[FIRST_CHILD(i)]); \
 		else \
-			expand_level_n_chunk_size(fixed_key, &forest[i], &forest[FIRST_CHILD(i)]); \
+			expand_chunk_n_chunk_size(fixed_key, &forest[i], &forest[FIRST_CHILD(i)]); \
 		size_t this_chunk_size = partial ? (2 * BITS_PER_WITNESS) % CHUNK_SIZE : CHUNK_SIZE; \
 		next(partial, fixed_key, forest, FIRST_CHILD(i)); \
 		next(partial, fixed_key, forest, FIRST_CHILD(i) + this_chunk_size); \
@@ -202,8 +260,30 @@ static void expand_tree(
 		for (int i = generations_from_ancestor - 1; i >= 0; --i)
 		{
 			size_t child = FIRST_CHILD(ancestor) + CHUNK_SIZE * ((leaf >> i) & 1);
-			expand_level_n_chunk_size(fixed_key, &forest[ancestor], &forest[child]);
+			expand_chunk_n_chunk_size(fixed_key, &forest[ancestor], &forest[child]);
 			ancestor = child;
+		}
+		size_t leaf_node = ancestor;
+
+		// If this ends a block of size at least LEAF_CHUNK_SIZE, then apply the leaf prgs and write
+		// to leaves and hashed_leaves.
+		if (LEAF_CHUNK_SIZE <= CHUNK_SIZE || (leaf + 1) % (LEAF_CHUNK_SIZE / CHUNK_SIZE) == 0)
+		{
+			size_t starting_node = leaf_node + CHUNK_SIZE - MAX_CHUNK_SIZE;
+			size_t starting_leaf_idx = (leaf + 1) * CHUNK_SIZE - MAX_CHUNK_SIZE;
+			for (size_t j = 0; j < MAX_CHUNK_SIZE; j += LEAF_CHUNK_SIZE)
+			{
+				block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
+				expand_chunk_leaf_n_leaf_chunk_size(fixed_key, &forest[starting_node + j], prg_output);
+
+				for (size_t k = 0; k < LEAF_CHUNK_SIZE; ++k)
+				{
+					size_t leaf_idx = starting_leaf_idx + j + k;
+					size_t permuted_leaf_idx = vole_permute_key_index(leaf_idx);
+					leaves[permuted_leaf_idx] = prg_output[3 * k];
+					memcpy(&hashed_leaves[leaf_idx + 1], &prg_output[3 * k + 1], sizeof(block_2secpar));
+				}
+			}
 		}
 	}
 }

@@ -5,6 +5,7 @@
 #define OWF_%OWF%
 #define PRG_%PRG%
 #define TREE_PRG_%TREE_PRG%
+#define LEAF_PRG_%LEAF_PRG%
 #define BITS_PER_WITNESS %TAU%
 
 // SHA3 is currently the only option.

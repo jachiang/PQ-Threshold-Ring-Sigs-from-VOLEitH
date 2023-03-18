@@ -35,8 +35,8 @@ taus_256 = 20 22 24 26 28 30 32 34 36 38 40 44 48 52 56 60 64
 # Format: long name (for macro definition), single letter name.
 ciphers = AES_CTR,c RIJNDAEL_EVEN_MANSOUR,e
 tree_prgs = $(ciphers)
+leaf_prgs = $(ciphers)
 # TODO: Add back RO,s
-# TODO: Maybe separate for bottom level tree PRG?
 
 comma=,
 define first
@@ -46,15 +46,17 @@ define second
 $(word 2,$(subst $(comma), ,$(1)))
 endef
 
-# Format: name,security_param,owf,prg,tree_prg,tau
+# Format: name,security_param,owf,prg,tree_prg,leaf_prg,tau
 settings = \
 	$(foreach security_param,$(security_params),\
 		$(foreach owf,$(ciphers),\
 			$(foreach prg,$(ciphers),\
 				$(foreach tree_prg,$(tree_prgs),\
-					$(foreach tau,$(taus_$(security_param)),\
-						$(if $(and $(findstring 192,$(security_param)),$(findstring RIJNDAEL,$(prg)$(tree_prg))),,\
-							sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(tau)\
+					$(foreach leaf_prg,$(leaf_prgs),\
+						$(foreach tau,$(taus_$(security_param)),\
+							$(if $(and $(findstring 192,$(security_param)),$(findstring RIJNDAEL,$(prg)$(tree_prg)$(leaf_prg))),,\
+								sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))$(call second,$(leaf_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(call first,$(leaf_prg)),$(tau)\
+							)\
 						)\
 					)\
 				)\
@@ -70,8 +72,8 @@ endef
 
 define config-recipe
 $(1)/% : %.in | $(1)/
-	$(let name security_param owf prg tree_prg tau,$(subst $(comma), ,$(2)),\
-	sed $(foreach substitution,"%VERSION%/$(name)" "%SECURITY_PARAM%/$(security_param)" "%OWF%/$(owf)" "%PRG%/$(prg)" "%TREE_PRG%/$(tree_prg)" "%TAU%/$(tau)",\
+	$(let name security_param owf prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
+	sed $(foreach substitution,"%VERSION%/$(name)" "%SECURITY_PARAM%/$(security_param)" "%OWF%/$(owf)" "%PRG%/$(prg)" "%TREE_PRG%/$(tree_prg)" "%LEAF_PRG%/$(leaf_prg)" "%TAU%/$(tau)",\
 		-e "s/"$(substitution)"/g" \
 	) $$< > $$@ \
 	)

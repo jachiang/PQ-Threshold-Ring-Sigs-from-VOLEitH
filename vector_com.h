@@ -13,15 +13,16 @@
 #define VECTOR_OPEN_SIZE (VECTCOM_OPEN_BITS / 8)
 
 // roots is a random vector of 2 * BITS_PER_WITNESS blocks. leaves and hashed_leaves must each be
-// VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves will be
-// permuted according to TODO. fixed_key is only used for PRGs based on fixed-key Rijndael.
+// VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves (but not
+// hashed_leaves) will be permuted according to vole_permute_key_index. fixed_key is only used for
+// PRGs based on fixed-key Rijndael.
 void vector_commit(
 	const block_secpar* restrict roots, const rijndael_round_keys* restrict fixed_key,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
 // Using decommitment data from vector_commit, open at delta. opening must be VECTCOM_OPEN_SIZE
-// bytes long. leaves will be permuted according to TODO.
+// bytes long.
 void vector_open(
 	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
 	block_secpar delta, unsigned char* restrict opening);
