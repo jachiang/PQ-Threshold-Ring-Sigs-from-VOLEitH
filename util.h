@@ -3,6 +3,10 @@
 
 #include <inttypes.h>
 
+#ifdef _MSC_VER
+#include "intrin.h"
+#endif
+
 #if defined(__GNUC__)
 #define ALWAYS_INLINE inline __attribute__ ((__always_inline__))
 #elif defined(_MSC_VER)
@@ -11,10 +15,20 @@
 #define ALWAYS_INLINE inline
 #endif
 
-#include "util_impl.h"
+inline unsigned int count_trailing_zeros(uint64_t x)
+{
+#if defined(__GNUC__) || defined(__clang__)
+	return __builtin_ctzll(x);
+#elif defined(_MSC_VER)
+	unsigned long result;
+	_BitScanForward64(&result, x);
+	return result;
+#endif
 
-// Interface defined by util_impl.h
-
-inline uint64_t tzcnt(uint64_t x);
+	for (unsigned int i = 0; i < 64; ++i, x >>= 1)
+		if (x & 1)
+			return i;
+	return 64;
+}
 
 #endif

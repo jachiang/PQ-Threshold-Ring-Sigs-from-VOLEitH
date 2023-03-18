@@ -122,7 +122,7 @@ have_cipher_output_i0:
 		size_t j = 0;
 
 		// Bitwise or is to make output_col be k - 1 when i + VOLE_WIDTH = 2**k, rather than k.
-		unsigned int output_col = tzcnt((i + VOLE_WIDTH) | (1 << (k - 1)));
+		unsigned int output_col = count_trailing_zeros((i + VOLE_WIDTH) | (1 << (k - 1)));
 
 		if (prg_keygen(round_keys, &keys[i], cipher_output))
 			goto have_cipher_output;

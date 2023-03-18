@@ -250,7 +250,8 @@ static void expand_tree(
 {
 	for (size_t leaf = 0; leaf < (1 << levels_to_expand); ++leaf)
 	{
-		unsigned int generations_from_ancestor = tzcnt(leaf | (1 << (levels_to_expand - 1))) + 1;
+		unsigned int generations_from_ancestor =
+			count_trailing_zeros(leaf | (1 << (levels_to_expand - 1))) + 1;
 		unsigned int ancestor_level = levels_to_expand - generations_from_ancestor;
 
 		size_t ancestor =
