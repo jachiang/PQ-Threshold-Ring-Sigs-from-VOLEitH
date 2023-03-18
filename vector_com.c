@@ -121,6 +121,9 @@ static ALWAYS_INLINE void expand_partial_chunk(
 	memset(keys + n, 0, (MAX_CHUNK_SIZE / 2 - n) * sizeof(block_secpar));
 
 	size_t j = 0;
+	size_t outputs_per_key = !leaf ? 2 : 3;
+	size_t j_inc = !leaf ? 2 * sizeof(tree_cipher_block) : 2 * sizeof(leaf_cipher_block);
+
 	if (!leaf)
 	{
 		if (tree_prg_keygen(round_keys_tree, keys, cipher_output_tree))
@@ -132,8 +135,6 @@ static ALWAYS_INLINE void expand_partial_chunk(
 			goto have_cipher_output;
 	}
 
-	size_t outputs_per_key = !leaf ? 2 : 3;
-	size_t j_inc = !leaf ? 2 * sizeof(tree_cipher_block) : 2 * sizeof(leaf_cipher_block);
 	for (; (j + j_inc) <= outputs_per_key * sizeof(block_secpar); j += j_inc)
 	{
 		if (!leaf)
@@ -282,7 +283,7 @@ static void expand_tree(
 					size_t leaf_idx = starting_leaf_idx + j + k;
 					size_t permuted_leaf_idx = vole_permute_key_index(leaf_idx);
 					leaves[permuted_leaf_idx] = prg_output[3 * k];
-					memcpy(&hashed_leaves[leaf_idx + 1], &prg_output[3 * k + 1], sizeof(block_2secpar));
+					memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * k + 1], sizeof(block_2secpar));
 				}
 			}
 		}

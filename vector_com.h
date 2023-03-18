@@ -30,7 +30,8 @@ void vector_open(
 
 // Given an opening, get all but one of the leaves and all of the hashed leaves. The hashed_leaves
 // must be verified against the output from vector_commit. leaves will be permuted according to
-// TODO. fixed_key is only used for PRGs based on fixed-key Rijndael.
+// delta first, then vole_permute_key_index. fixed_key is only used for PRGs based on fixed-key
+// Rijndael.
 void vector_verify(
 	const unsigned char* restrict opening, const rijndael_round_keys* restrict fixed_key,
 	const unsigned char* restrict delta,
