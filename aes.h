@@ -64,7 +64,7 @@ inline void aes_ctr_x2(const aes_round_keys* aeses, size_t counter, block128* ou
 // Given VOLE_WIDTH Even-Mansour keys, generate VOLE_BLOCK * 128 bits of output from each in CTR
 // mode, starting at counter.
 inline void aes_ctr_fixed_key_vole(const aes_round_keys* fixed_key, const block128* keys, size_t counter, block128* output);
-inline void rijndael256_ctr_fixed_key_vole(const rijndael256_round_keys* fixed_key, const block256* keys, size_t counter, block128* output);
+inline void rijndael256_ctr_fixed_key_vole(const rijndael256_round_keys* fixed_key, const block256* keys, size_t counter, block256* output);
 
 // Given AES_PREFERRED_WIDTH or RIJNDAEL256_PREFERRED_WIDTH Even-Mansour keys, generate 1 block of
 // output from each in CTR mode, starting at counter.
