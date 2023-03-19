@@ -158,7 +158,7 @@ static ALWAYS_INLINE void expand_chunk(
 	tree_cipher_round_keys round_keys_tree[CHUNK_SIZE];
 	leaf_cipher_round_keys round_keys_leaf[LEAF_CHUNK_SIZE];
 
-	size_t chunk_size = leaf ? CHUNK_SIZE : LEAF_CHUNK_SIZE;
+	size_t chunk_size = !leaf ? CHUNK_SIZE : LEAF_CHUNK_SIZE;
 
 	size_t first_part = (n < chunk_size / 2) ? n : chunk_size / 2;
 	expand_partial_chunk(
