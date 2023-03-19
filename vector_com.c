@@ -144,7 +144,7 @@ static ALWAYS_INLINE void expand_partial_chunk(
 have_cipher_output:
 		for (size_t k = 0; k < n; ++k)
 			memcpy(((unsigned char*) &output[outputs_per_key * k]) + j,
-			       !leaf ? &cipher_output_tree[2 * k] : &cipher_output_leaf[2 * k], j_inc);
+			       !leaf ? (void*) &cipher_output_tree[2 * k] : (void*) &cipher_output_leaf[2 * k], j_inc);
 	}
 }
 
@@ -193,7 +193,7 @@ static ALWAYS_INLINE void expand_chunk(
 			leaf_prg_eval(2 * j / j_inc, round_keys_leaf, fixed_key, keys, cipher_output_leaf);
 		for (size_t k = 0; k < n; ++k)
 			memcpy(((unsigned char*) &output[outputs_per_key * k]) + j,
-			       !leaf ? &cipher_output_tree[k] : &cipher_output_leaf[k], j_remaining);
+			       !leaf ? (void*) &cipher_output_tree[k] : (void*) &cipher_output_leaf[k], j_remaining);
 	}
 }
 
