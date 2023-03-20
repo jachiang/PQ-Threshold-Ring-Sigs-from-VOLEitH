@@ -41,15 +41,15 @@ static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
 	}
 }
 
-// Returns true if output was generated along with the key
-static ALWAYS_INLINE bool prg_keygen(
-	vole_cipher_round_keys* round_keys, const block_secpar* restrict keys, vole_cipher_block* output)
+// Generates output along with the key.
+static ALWAYS_INLINE void prg_keygen(
+	vole_cipher_round_keys* round_keys, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict keys, vole_cipher_block* output)
 {
 #if defined(PRG_AES_CTR)
 	aes_keygen_ctr_vole(round_keys, keys, 0, output);
-	return true;
 #else
-	return false;
+	rijndael_ctr_fixed_key_vole(fixed_key, keys, 0, output);
 #endif
 }
 
@@ -92,16 +92,13 @@ static ALWAYS_INLINE void vole(
 		// compiler will notice that it's unused and remove the corresponding code.
 		vole_cipher_round_keys round_keys[VOLE_WIDTH];
 		vole_cipher_block cipher_output[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
-		size_t j = 0;
 
-		if (prg_keygen(round_keys, &keys[0], cipher_output))
-			goto have_cipher_output_i0;
-
-		for (; j < COL_LEN; ++j)
+		prg_keygen(round_keys, fixed_key, &keys[0], cipher_output);
+		for (size_t j = 0; j < COL_LEN; ++j)
 		{
-			prg_eval(j, round_keys, fixed_key, &keys[0], cipher_output);
+			if (j)
+				prg_eval(j, round_keys, fixed_key, &keys[0], cipher_output);
 
-have_cipher_output_i0:
 			vole_block prg_output[VOLE_WIDTH];
 			memcpy(prg_output, cipher_output, sizeof(prg_output));
 
@@ -119,19 +116,16 @@ have_cipher_output_i0:
 	{
 		vole_cipher_round_keys round_keys[VOLE_WIDTH];
 		vole_cipher_block cipher_output[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
-		size_t j = 0;
 
 		// Bitwise or is to make output_col be k - 1 when i + VOLE_WIDTH = 2**k, rather than k.
 		unsigned int output_col = count_trailing_zeros((i + VOLE_WIDTH) | (1 << (k - 1)));
 
-		if (prg_keygen(round_keys, &keys[i], cipher_output))
-			goto have_cipher_output;
-
-		for (; j < COL_LEN; ++j)
+		prg_keygen(round_keys, fixed_key, &keys[i], cipher_output);
+		for (size_t j = 0; j < COL_LEN; ++j)
 		{
-			prg_eval(j, round_keys, fixed_key, &keys[i], cipher_output);
+			if (j)
+				prg_eval(j, round_keys, fixed_key, &keys[i], cipher_output);
 
-have_cipher_output:
 			vole_block prg_output[VOLE_WIDTH];
 			memcpy(prg_output, cipher_output, sizeof(prg_output));
 

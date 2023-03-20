@@ -31,16 +31,15 @@ typedef block_secpar leaf_cipher_block;
 
 #define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > CHUNK_SIZE ? LEAF_CHUNK_SIZE : CHUNK_SIZE)
 
-// Returns true if output was generated along with the key.
-static ALWAYS_INLINE bool tree_prg_keygen(
-	tree_cipher_round_keys* restrict round_keys, const block_secpar* restrict keys,
-	tree_cipher_block* restrict output)
+// Output is generated along with the key.
+static ALWAYS_INLINE void tree_prg_keygen(
+	tree_cipher_round_keys* restrict round_keys, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict keys, tree_cipher_block* restrict output)
 {
 #if defined(TREE_PRG_AES_CTR)
 	aes_keygen_ctr_x2(round_keys, keys, 0, output);
-	return true;
 #else
-	return false;
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, 0, output);
 #endif
 }
 
@@ -68,15 +67,14 @@ static ALWAYS_INLINE void tree_prg_eval_x2(
 #endif
 }
 
-static ALWAYS_INLINE bool leaf_prg_keygen(
-	leaf_cipher_round_keys* restrict round_keys, const block_secpar* restrict keys,
-	leaf_cipher_block* restrict output)
+static ALWAYS_INLINE void leaf_prg_keygen(
+	leaf_cipher_round_keys* restrict round_keys, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict keys, leaf_cipher_block* restrict output)
 {
 #if defined(LEAF_PRG_AES_CTR)
 	aes_keygen_ctr_x2(round_keys, keys, 0, output);
-	return true;
 #else
-	return false;
+	rijndael_ctr_fixed_key_x2(fixed_key, keys, 0, output);
 #endif
 }
 
@@ -119,29 +117,21 @@ static ALWAYS_INLINE void expand_partial_chunk(
 	memcpy(keys, input, n * sizeof(block_secpar));
 	memset(keys + n, 0, (MAX_CHUNK_SIZE / 2 - n) * sizeof(block_secpar));
 
-	size_t j = 0;
+	if (!leaf)
+		tree_prg_keygen(round_keys_tree, fixed_key, keys, cipher_output_tree);
+	else
+		leaf_prg_keygen(round_keys_leaf, fixed_key, keys, cipher_output_leaf);
+
 	size_t outputs_per_key = !leaf ? 2 : 3;
 	size_t j_inc = !leaf ? 2 * sizeof(tree_cipher_block) : 2 * sizeof(leaf_cipher_block);
-
-	if (!leaf)
+	for (size_t j = 0; (j + j_inc) <= outputs_per_key * sizeof(block_secpar); j += j_inc)
 	{
-		if (tree_prg_keygen(round_keys_tree, keys, cipher_output_tree))
-			goto have_cipher_output;
-	}
-	else
-	{
-		if (leaf_prg_keygen(round_keys_leaf, keys, cipher_output_leaf))
-			goto have_cipher_output;
-	}
+		if (j)
+			if (!leaf)
+				tree_prg_eval_x2(2 * j / j_inc, round_keys_tree, fixed_key, keys, cipher_output_tree);
+			else
+				leaf_prg_eval_x2(2 * j / j_inc, round_keys_leaf, fixed_key, keys, cipher_output_leaf);
 
-	for (; (j + j_inc) <= outputs_per_key * sizeof(block_secpar); j += j_inc)
-	{
-		if (!leaf)
-			tree_prg_eval_x2(2 * j / j_inc, round_keys_tree, fixed_key, keys, cipher_output_tree);
-		else
-			leaf_prg_eval_x2(2 * j / j_inc, round_keys_leaf, fixed_key, keys, cipher_output_leaf);
-
-have_cipher_output:
 		for (size_t k = 0; k < n; ++k)
 			memcpy(((unsigned char*) &output[outputs_per_key * k]) + j,
 			       !leaf ? (void*) &cipher_output_tree[2 * k] : (void*) &cipher_output_leaf[2 * k], j_inc);
