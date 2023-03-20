@@ -14,24 +14,10 @@
 
 #define VOLE_ROWS 1600 // TODO
 
-
-#if defined(PRG_AES_CTR)
-// Block of the cipher used for the small field VOLE.
-#define VOLE_CIPHER_BLOCK_SHIFT 0
-typedef block128 vole_cipher_block;
-typedef aes_round_keys vole_cipher_round_keys;
-
-#elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
+#if defined(PRG_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 256
 #define VOLE_CIPHER_BLOCK_SHIFT 1
-typedef block_secpar vole_cipher_block;
-typedef rijndael_round_keys vole_cipher_round_keys;
-
-#if SECURITY_PARAM == 192
-#error Unsupported PRG configuration.
-#endif
-
 #else
-#error PRG for small field VOLE is unspecified.
+#define VOLE_CIPHER_BLOCK_SHIFT 0
 #endif
 
 // Number of block128s in a vole_cipher_block.
@@ -45,5 +31,26 @@ typedef rijndael_round_keys vole_cipher_round_keys;
 // vole_block.
 #define VOLE_WIDTH (1 << VOLE_WIDTH_SHIFT)
 #define VOLE_WIDTH_SHIFT (AES_PREFERRED_WIDTH_SHIFT - VOLE_CIPHER_BLOCKS_SHIFT)
+
+// Everything aes.h needs from vole_params.h comes before.
+#include "aes.h"
+
+
+#if defined(PRG_AES_CTR)
+// Block of the cipher used for the small field VOLE.
+typedef block128 vole_cipher_block;
+typedef aes_round_keys vole_cipher_round_keys;
+
+#elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
+typedef block_secpar vole_cipher_block;
+typedef rijndael_round_keys vole_cipher_round_keys;
+
+#if SECURITY_PARAM == 192
+#error Unsupported PRG configuration.
+#endif
+
+#else
+#error PRG for small field VOLE is unspecified.
+#endif
 
 #endif

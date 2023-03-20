@@ -1,8 +1,10 @@
+// Outside header guard to handle mutual inclusion.
+#include "vole_params.h"
+
 #ifndef AES_H
 #define AES_H
 
 #include "block.h"
-
 #if SECURITY_PARAM == 128
 #define AES_ROUNDS 10
 #elif SECURITY_PARAM == 192
@@ -13,6 +15,14 @@
 
 #define RIJNDAEL192_ROUNDS 12
 #define RIJNDAEL256_ROUNDS 14
+
+// Number of AES blocks to run in parallel, for maximum performance.
+#define AES_PREFERRED_WIDTH (1 << AES_PREFERRED_WIDTH_SHIFT)
+
+// Number of Rijndael256 blocks to run in parallel, for maximum performance.
+#define RIJNDAEL256_PREFERRED_WIDTH (1 << RIJNDAEL256_PREFERRED_WIDTH_SHIFT)
+
+#define FIXED_KEY_PREFERRED_WIDTH (1 << FIXED_KEY_PREFERRED_WIDTH_SHIFT)
 
 #include "aes_impl.h"
 
@@ -25,21 +35,19 @@
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
-// Number of AES blocks to run in parallel, for maximum performance.
-#define AES_PREFERRED_WIDTH (1 << AES_PREFERRED_WIDTH_SHIFT)
-
-// Number of Rijndael256 blocks to run in parallel, for maximum performance.
-#define RIJNDAEL256_PREFERRED_WIDTH (1 << RIJNDAEL256_PREFERRED_WIDTH_SHIFT)
-
-#define FIXED_KEY_PREFERRED_WIDTH (1 << FIXED_KEY_PREFERRED_WIDTH_SHIFT)
-
 inline void aes_keygen(aes_round_keys* aes, block_secpar key);
 inline void rijndael192_keygen(rijndael192_round_keys* rijndael, block192 key);
 inline void rijndael256_keygen(rijndael256_round_keys* rijndael, block256 key);
 
+// Apply 1 round of the cipher, writing the state after the SBox into after_sbox, and writing the
+// new state back into state. round is the index of the round key to use, so it should start from
+// one.
 inline void aes_round_function(const aes_round_keys* aes, block128* state, block128* after_sbox, int round);
 inline void rijndael192_round_function(const rijndael192_round_keys* aes, block192* state, block192* after_sbox, int round);
 inline void rijndael256_round_function(const rijndael256_round_keys* aes, block256* state, block256* after_sbox, int round);
+
+// TODO: Should probably make the interface more general (i.e., take # of keys and # of outputs per
+// keys as inputs), since the implementation seems to be general enough for it.
 
 // Run AES key schedule on VOLE_WIDTH keys, then generate VOLE_BLOCK block128s of output from each in
 // CTR mode, starting at counter.

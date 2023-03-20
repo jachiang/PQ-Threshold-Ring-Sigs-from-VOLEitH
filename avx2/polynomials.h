@@ -12,6 +12,33 @@
 // TODO: should probably separate out most of the declarations in common between all
 // implementations.
 
+//typedef __m128i poly64_vec;
+//typedef __m256i poly128_vec;
+//typedef struct
+//{
+//	__m256 data[2];
+//} poly256_vec;
+//
+//#define POLY_VEC_LEN 2
+//
+//inline poly64_vec load_poly64_vec(const void*);
+//inline poly128_vec load_poly128_vec(const void*);
+//inline poly256_vec load_poly256_vec(const void*);
+//inline void store_poly64_vec(void*, poly64_vec);
+//inline void store_poly128_vec(void*, poly128_vec);
+//inline void store_poly256_vec(void*, poly256_vec);
+//
+//inline poly64_vec add_poly64_vec(poly64_vec x, poly64_vec y)
+//{
+//	return _mm_xor_si128(x, y);
+//}
+//
+//inline poly128_vec mul_poly64_vec(poly64_vec x, poly64_vec y)
+//{
+//	// TODO: _mm_clmulepi64_si128
+//}
+
+
 typedef uint64_t poly64;
 typedef __m128i poly128;
 typedef __m256i poly256; // TODO: probably better as just an array of two __m128i values.
