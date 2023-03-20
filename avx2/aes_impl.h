@@ -260,8 +260,12 @@ inline void aes_ctr_x2(const aes_round_keys* aeses, size_t counter, block128* ou
 		for (size_t m = 0; m < 2; ++m)
 			state[l * 2 + m] = block128_set_low64(counter + m);
 
-	for (int round = 0; round <= AES_ROUNDS; ++round)
+	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
+	// aren't asking it to unwind the whole loop.)
+	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, 0);
+	for (int round = 1; round < AES_ROUNDS; ++round)
 		aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round);
+	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, AES_ROUNDS);
 
 	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
 }
@@ -272,8 +276,10 @@ inline void aes_ctr_x1(const aes_round_keys* aeses, size_t counter, block128* ou
 	for (size_t l = 0; l < AES_PREFERRED_WIDTH; ++l)
 		state[l] = block128_set_low64(counter);
 
-	for (int round = 0; round <= AES_ROUNDS; ++round)
+	aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, 0);
+	for (int round = 1; round < AES_ROUNDS; ++round)
 		aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, round);
+	aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, AES_ROUNDS);
 
 	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
 }

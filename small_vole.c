@@ -99,6 +99,8 @@ static ALWAYS_INLINE void vole(
 			if (j)
 				prg_eval(j, round_keys, fixed_key, &keys[0], cipher_output);
 
+			// TODO: How to convert from block128 to block256 without letting the compiler spill to
+			// stack?
 			vole_block prg_output[VOLE_WIDTH];
 			memcpy(prg_output, cipher_output, sizeof(prg_output));
 
