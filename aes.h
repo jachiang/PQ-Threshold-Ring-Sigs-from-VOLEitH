@@ -1,4 +1,5 @@
 // Outside header guard to handle mutual inclusion.
+#include "config.h"
 #include "vole_params.h"
 
 #ifndef AES_H
@@ -24,6 +25,8 @@
 
 #define FIXED_KEY_PREFERRED_WIDTH (1 << FIXED_KEY_PREFERRED_WIDTH_SHIFT)
 
+extern unsigned char aes_round_constants[];
+
 #include "aes_impl.h"
 
 // Interface defined by aes_impl.h
@@ -47,7 +50,8 @@ inline void rijndael192_round_function(const rijndael192_round_keys* aes, block1
 inline void rijndael256_round_function(const rijndael256_round_keys* aes, block256* state, block256* after_sbox, int round);
 
 // TODO: Should probably make the interface more general (i.e., take # of keys and # of outputs per
-// keys as inputs), since the implementation seems to be general enough for it.
+// keys as inputs), since the implementation seems to be general enough for it. This would help for
+// ditching the some of the even/odd chunk annoyances from vector_com.c
 
 // Run AES key schedule on VOLE_WIDTH keys, then generate VOLE_BLOCK block128s of output from each in
 // CTR mode, starting at counter.

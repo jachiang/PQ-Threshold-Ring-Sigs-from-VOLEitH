@@ -176,19 +176,29 @@ ALWAYS_INLINE void aes_keygen_round(
 
 	for (size_t i = 0; i < num_keys / 4; ++i, aeses += 4, ++keygen_state)
 	{
-		// Undo ShiftRows operation, then apply RotWord.
-		block128 inv_shift_rows =
-			_mm_setr_epi8( 0, 13, 10,  7,  4,  1, 14, 11,  8,  5,  2, 15, 12,  9,  6,  3);
-		block128 inv_shift_rows_then_rot_word =
-			_mm_setr_epi8(13, 10,  7,  0,  1, 14, 11,  4,  5,  2, 15,  8,  9,  6,  3, 12);
-		block128 perm = (SECURITY_PARAM == 256 && round % 2 == 1) ? inv_shift_rows : inv_shift_rows_then_rot_word;
-
 		if (SECURITY_PARAM != 192 || round % 3 < 2)
 		{
-			block128 sbox_out = _mm_aesenclast_si128(
-				_mm_shuffle_epi8(keygen_state->next_sbox, perm), _mm_setzero_si128());
+			// Undo ShiftRows operation, then apply RotWord.
+			block128 inv_shift_rows =
+				_mm_setr_epi8( 0, 13, 10,  7,  4,  1, 14, 11,  8,  5,  2, 15, 12,  9,  6,  3);
+			block128 inv_shift_rows_then_rot_word =
+				_mm_setr_epi8(13, 10,  7,  0,  1, 14, 11,  4,  5,  2, 15,  8,  9,  6,  3, 12);
 
-			// TODO: XOR in the round constants.
+			block128 perm, round_constant;
+			if (SECURITY_PARAM == 256 && round % 2 == 1)
+			{
+				perm = inv_shift_rows;
+				round_constant = _mm_setzero_si128();
+			}
+			else
+			{
+				perm = inv_shift_rows_then_rot_word;
+				int idx = (2 * round + 1) / (SECURITY_PARAM / 64);
+				round_constant = _mm_set1_epi32(aes_round_constants[idx - 1]);
+			}
+
+			block128 sbox_out = _mm_aesenclast_si128(
+				_mm_shuffle_epi8(keygen_state->next_sbox, perm), round_constant);
 
 			size_t range_start = (SECURITY_PARAM == 192 && round % 3 == 1) ? 2 : 0;
 			size_t range_end = (SECURITY_PARAM == 192) ? 6 : 4;
@@ -225,6 +235,8 @@ ALWAYS_INLINE void aes_keygen_round(
 }
 
 // TODO: should we start counting from a random value instead of 0?
+// TODO: I think this can go into a .c file. It's already doing lots of memory writes to the round
+// keys, so it's not much more to have the output also go to the stack.
 inline void aes_keygen_ctr_x2(aes_round_keys* aeses, const block_secpar* keys, size_t counter, block128* output)
 {
 	block128 state[AES_PREFERRED_WIDTH];
@@ -234,10 +246,55 @@ inline void aes_keygen_ctr_x2(aes_round_keys* aeses, const block_secpar* keys, s
 
 	aes_keygen_state keygen_state[AES_PREFERRED_WIDTH / 8];
 	aes_keygen_init(keygen_state, aeses, keys, AES_PREFERRED_WIDTH / 2);
-	for (int round = 0; round <= AES_ROUNDS; ++round)
+
+#if SECURITY_PARAM == 128
+	size_t round_start = 1;
+	size_t round_end = AES_ROUNDS - 1;
+	size_t unroll_rounds = 1;
+#elif SECURITY_PARAM == 192
+	size_t round_start = 1;
+	size_t round_end = AES_ROUNDS - 1;
+	size_t unroll_rounds = 3;
+#elif SECURITY_PARAM == 256
+	size_t round_start = 2;
+	size_t round_end = AES_ROUNDS - 2;
+	size_t unroll_rounds = 2;
+#endif
+
+	// Separate out the first and last rounds, as they work differently.
+	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, 0);
+	if (round_start > 1)
+		aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, 1);
+
+	for (int round = round_start; round <= round_end; round += unroll_rounds)
 	{
+		// Unroll the loop, as the key generation follows a pattern that repeats every unroll_rounds
+		// iterations.
+
 		aes_keygen_round(keygen_state, aeses, AES_PREFERRED_WIDTH / 2, round);
 		aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round);
+		if (unroll_rounds > 1)
+		{
+			if (round_end < round + 1)
+				break;
+			aes_keygen_round(keygen_state, aeses, AES_PREFERRED_WIDTH / 2, round + 1);
+			aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round + 1);
+		}
+		if (unroll_rounds > 2)
+		{
+			if (round_end < round + 2)
+				break;
+			aes_keygen_round(keygen_state, aeses, AES_PREFERRED_WIDTH / 2, round + 2);
+			aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round + 2);
+		}
+	}
+
+	aes_keygen_round(keygen_state, aeses, AES_PREFERRED_WIDTH / 2, round_end + 1);
+	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round_end + 1);
+	if (round_end + 2 <= AES_ROUNDS)
+	{
+		aes_keygen_round(keygen_state, aeses, AES_PREFERRED_WIDTH / 2, round_end + 2);
+		aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round_end + 2);
 	}
 
 	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
