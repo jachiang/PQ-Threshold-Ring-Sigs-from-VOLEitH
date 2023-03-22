@@ -2,122 +2,220 @@
 #define POLYNOMIALS_H
 
 #include <inttypes.h>
-
+#include <string.h>
 #include <immintrin.h>
 #include <wmmintrin.h>
 
-// Polys: 64, 128, 256, 512.
-// TODO: What about 192 and 384?
+#include "transpose.h"
+
+#define POLY_VEC_LEN (1 << POLY_VEC_LEN_SHIFT)
+
+// TODO: Do we need 192 and 384 bit polynomials?
 
 // TODO: should probably separate out most of the declarations in common between all
 // implementations.
 
-//typedef __m128i poly64_vec;
-//typedef __m256i poly128_vec;
-//typedef struct
-//{
-//	__m256 data[2];
-//} poly256_vec;
-//
-//#define POLY_VEC_LEN 2
-//
-//inline poly64_vec load_poly64_vec(const void*);
-//inline poly128_vec load_poly128_vec(const void*);
-//inline poly256_vec load_poly256_vec(const void*);
-//inline void store_poly64_vec(void*, poly64_vec);
-//inline void store_poly128_vec(void*, poly128_vec);
-//inline void store_poly256_vec(void*, poly256_vec);
-//
-//inline poly64_vec add_poly64_vec(poly64_vec x, poly64_vec y)
-//{
-//	return _mm_xor_si128(x, y);
-//}
-//
-//inline poly128_vec mul_poly64_vec(poly64_vec x, poly64_vec y)
-//{
-//	// TODO: _mm_clmulepi64_si128
-//}
+// This is twice as long as it needs to be. It is treated as a poly128_vec, with the high half of
+// each 128-bit polynomial assumed to be all zeroes.
+typedef clmul_block poly64_vec;
 
+typedef clmul_block poly128_vec;
+typedef struct
+{
+	clmul_block data[2];
+} poly256_vec;
+typedef struct
+{
+	clmul_block data[4];
+} poly512_vec;
 
-typedef uint64_t poly64;
-typedef __m128i poly128;
-typedef __m256i poly256; // TODO: probably better as just an array of two __m128i values.
-typedef struct {
-	__m256i l;
-	__m256i h;
-} poly512;
+inline poly64_vec poly64_vec_load(const void* s)
+{
+#if POLY_VEC_LEN == 1
+	uint64_t in;
+#elif POLY_VEC_LEN == 2
+	block128 in;
+#endif
+	memcpy(&in, s, sizeof(in));
 
-inline poly64 xor64(poly64 x, poly64 y)
-{
-	return x ^ y;
-}
-inline poly128 xor128(poly128 x, poly128 y)
-{
-	return _mm_xor_si128(x, y);
-}
-inline poly256 xor256(poly256 x, poly256 y)
-{
-	return _mm256_xor_si256(x, y);
-}
-inline poly512 xor512(poly512 x, poly512 y)
-{
-	poly512 out;
-	out.l = _mm256_xor_si256(x.l, y.l);
-	out.h = _mm256_xor_si256(x.h, y.h);
+	poly64_vec out;
+#if POLY_VEC_LEN == 1
+	out = _mm_cvtsi64_si128(in);
+#elif POLY_VEC_LEN == 2
+	out = _mm256_inserti128_si256(_mm256_setzero_si256(), in, 0);
+	out = transpose2x2_64(out);
+#endif
+
 	return out;
 }
 
-inline poly128 mul64(poly64 x, poly64 y)
+inline poly128_vec poly128_vec_load(const void* s)
 {
-	return _mm_clmulepi64_si128(_mm_set_epi64x(0, x), _mm_set_epi64x(0, y), 0x00);
+	poly128_vec out;
+	memcpy(&out, s, sizeof(out));
+	return out;
 }
 
-__attribute__((always_inline)) inline void
-karatsuba128(__m128i x, __m128i y, int select, __m128i* x0y0, __m128i* x1y1, __m128i* x0y1_x1y0)
+inline poly256_vec poly256_vec_load(const void* s)
 {
+	poly256_vec out;
+
+#if POLY_VEC_LEN == 1
+	memcpy(&out, s, sizeof(out));
+
+#elif POLY_VEC_LEN == 2
+	block256 in[2];
+	memcpy(&in[0], s, sizeof(in));
+	transpose2x2_128(&out.data[0], in[0], in[1]);
+#endif
+
+	return out;
 }
 
-inline poly256 mul128(poly128 x, poly128 y)
+inline poly512_vec poly512_vec_load(const void* s)
+{
+	poly512_vec out;
+
+#if POLY_VEC_LEN == 1
+	memcpy(&out, s, sizeof(out));
+
+#elif POLY_VEC_LEN == 2
+	block256 in[4];
+	memcpy(&in[0], s, sizeof(in));
+	transpose2x2_128(&out.data[0], in[0], in[2]);
+	transpose2x2_128(&out.data[2], in[1], in[3]);
+#endif
+
+	return out;
+}
+
+inline void poly64_vec_store(void* d, poly64_vec s)
+{
+#if POLY_VEC_LEN == 1
+	uint64_t out = _mm_cvtsi128_si64(s);
+#elif POLY_VEC_LEN == 2
+	__m128i out = _mm256_castsi256_si128(transpose2x2_64(s));
+#endif
+
+	memcpy(d, &out, sizeof(out));
+}
+
+inline void poly128_vec_store(void* d, poly128_vec s)
+{
+	memcpy(d, &s, sizeof(s));
+}
+
+inline void poly256_vec_store(void* d, poly256_vec s)
+{
+#if POLY_VEC_LEN == 1
+	memcpy(d, &s, sizeof(s));
+
+#elif POLY_VEC_LEN == 2
+	block256 out[2];
+	transpose2x2_128(&out[0], s.data[0], s.data[1]);
+	memcpy(d, &out[0], sizeof(out));
+#endif
+}
+
+inline void poly512_vec_store(void* d, poly512_vec s)
+{
+#if POLY_VEC_LEN == 1
+	memcpy(d, &s, sizeof(s));
+
+#elif POLY_VEC_LEN == 2
+	block256 out[4];
+	transpose2x2_128(&out[0], s.data[0], s.data[1]);
+	block256 tmp = out[1];
+	out[1] = out[2];
+	out[2] = tmp;
+	memcpy(d, &out[0], sizeof(out));
+#endif
+}
+
+inline poly64_vec poly64_vec_add(poly64_vec x, poly64_vec y)
+{
+#if POLY_VEC_LEN == 1
+	return x ^ y;
+#elif POLY_VEC_LEN == 2
+	return block128_xor(x, y);
+#endif
+}
+inline poly128_vec poly128_vec_add(poly128_vec x, poly128_vec y)
+{
+	return clmul_block_xor(x, y);
+}
+inline poly256_vec poly256_vec_add(poly256_vec x, poly256_vec y)
+{
+	poly256_vec out;
+	for (size_t i = 0; i < 2; ++i)
+		out.data[i] = clmul_block_xor(x.data[i], y.data[i]);
+	return out;
+}
+inline poly512_vec poly512_vec_add(poly512_vec x, poly512_vec y)
+{
+	poly512_vec out;
+	for (size_t i = 0; i < 4; ++i)
+		out.data[i] = clmul_block_xor(x.data[i], y.data[i]);
+	return out;
+}
+
+inline poly128_vec poly64_vec_mul(poly64_vec x, poly64_vec y)
+{
+	return clmul_block_clmul_ll(x, y);
+}
+
+inline poly256_vec poly128_vec_mul(poly128_vec x, poly128_vec y)
 {
 	// Karatsuba multiplication.
-	__m128i x0y0 = _mm_clmulepi64_si128(x, y, 0x00);
-	__m128i x1y1 = _mm_clmulepi64_si128(x, y, 0x11);
-	__m128i x1_cat_y0 = _mm_alignr_epi8(y, x, 8);
-	__m128i x0_xor_x1 = _mm_xor_si128(x, x1_cat_y0); // Result in [0].
-	__m128i y0_xor_y1 = _mm_xor_si128(y, x1_cat_y0); // Result in [1].
-	__m128i x0_xor_x1_y0_xor_y1 = _mm_clmulepi64_si128(x0_xor_x1, y0_xor_y1, 0x10);
-	__m128i x0y1_xor_x1y0 = _mm_xor_si128(_mm_xor_si128(x0y0, x1y1), x0_xor_x1_y0_xor_y1);
+	clmul_block x0y0 = clmul_block_clmul_ll(x, y);
+	clmul_block x1y1 = clmul_block_clmul_hh(x, y);
+	clmul_block x1_cat_y0 = clmul_block_mix_64(y, x);
+	clmul_block x0_plus_x1 = poly128_vec_add(x, x1_cat_y0); // Result in low.
+	clmul_block y0_plus_y1 = poly128_vec_add(y, x1_cat_y0); // Result in high.
+	clmul_block x0_plus_x1_y0_plus_y1 = clmul_block_clmul_lh(x0_plus_x1, y0_plus_y1);
+	clmul_block x0y1_plus_x1y0 = poly128_vec_add(poly128_vec_add(x0y0, x1y1), x0_plus_x1_y0_plus_y1);
 
-	// Combine into one 256 bit polynomial.
-	// TODO: These are slow shuffles, particularly _mm256_permute4x64_epi64.
-	__m256i x0y0_cat_x1y1 = _mm256_setr_m128i(x0y0, x1y1);
-	__m256i x0y1_xor_x1y0_shift_64 =
-		_mm256_permute4x64_epi64(_mm256_castsi128_si256(x0y1_xor_x1y0), 0x50);
-	__m256i result = _mm256_xor_si256(x0y0_cat_x1y1, x0y1_xor_x1y0_shift_64);
-	result = _mm256_blend_epi32(x0y0_cat_x1y1, result, 0x3c);
-	return result;
+	// TODO: Is there a way to combine the left and right shifts?
+
+	poly256_vec out;
+	out.data[0] = poly128_vec_add(x0y0, clmul_block_shift_left_64(x0y1_plus_x1y0));
+	out.data[1] = poly128_vec_add(x1y1, clmul_block_shift_right_64(x0y1_plus_x1y0));
+	return out;
 }
 
-inline poly512 mul256(poly256 x, poly256 y)
+inline poly512_vec poly256_vec_mul(poly256_vec x, poly256_vec y)
 {
 	// Karatsuba multiplication.
-	__m256i x1_cat_y0 = _mm256_permute2f128_si256(x, y, 0x21);
-	__m256i x0_xor_x1 = _mm256_xor_si256(x, x1_cat_y0); // Result in [0].
-	__m256i y0_xor_y1 = _mm256_xor_si256(y, x1_cat_y0); // Result in [1].
+	poly256_vec x0y0 = poly128_vec_mul(x.data[0], y.data[0]);
+	poly256_vec x1y1 = poly128_vec_mul(x.data[1], y.data[1]);
+	poly128_vec x0_plus_y0 = poly128_vec_add(x.data[0], y.data[0]);
+	poly128_vec x1_plus_y1 = poly128_vec_add(x.data[1], y.data[1]);
+	poly256_vec x0_plus_x1_y0_plus_y1 = poly128_vec_mul(x.data[1], y.data[1]);
+	poly256_vec x0y1_plus_x1y0 = poly256_vec_add(poly256_vec_add(x0y0, x1y1), x0_plus_x1_y0_plus_y1);
 
-	// TODO
+	// TODO: Is there a way to combine the left and right shifts?
+
+	poly512_vec out;
+	out.data[0] = x0y0.data[0];
+	out.data[1] = poly128_vec_add(x0y0.data[1], x0y1_plus_x1y0.data[0]);
+	out.data[2] = poly128_vec_add(x1y1.data[0], x0y1_plus_x1y0.data[1]);
+	out.data[3] = x1y1.data[1];
+	return out;
 }
+
+// Modulus for GF(2^n), without the x^n term.
+const extern block128 gf64_modulus;  // degree = 4
+const extern block128 gf128_modulus; // degree = 7
+const extern block128 gf256_modulus; // degree = 10
+
+// TODO: May be cheaper to keep gf*_modulus in uint32_ts, then load with a broadcast and blend with
+// zero.
+
+// TODO: Maybe have getmodulus functions instead.
 
 // Reduction for implementing GF(2**n).
-inline poly64 reduce128_64(poly128 x);
-inline poly128 reduce256_128(poly256 x);
-inline poly256 reduce512_256(poly512 x);
-
-const extern poly64 gf64_modulus;
-const extern poly128 gf128_modulus;
-const extern poly256 gf256_modulus;
-
-// TODO: Is it faster to try to combine multiplication and reduction for all GF(2**n)
-// multiplications, somehow?
+inline poly64_vec poly128_vec_reduce64(poly128_vec x);
+inline poly128_vec poly256_vec_reduce128(poly256_vec x);
+inline poly256_vec poly512_vec_reduce256(poly512_vec x);
 
 #endif

@@ -1,7 +1,8 @@
-#ifndef BLOCK_IMPL_H
-#define BLOCK_IMPL_H
+#ifndef BLOCK_IMPL_AVX2_H
+#define BLOCK_IMPL_AVX2_H
 
 #include <immintrin.h>
+#include <wmmintrin.h>
 
 typedef __m128i block128;
 typedef __m256i block256;
@@ -91,5 +92,80 @@ inline vole_block vole_block_xor(vole_block x, vole_block y) { return block256_x
 inline vole_block vole_block_and(vole_block x, vole_block y) { return block256_and(x, y); }
 inline vole_block vole_block_set_all_8(uint8_t x) { return block256_set_all_8(x); }
 inline vole_block vole_block_set_low64(uint64_t x) { return block256_set_low64(x); }
+
+#ifndef HAVE_VCLMUL
+#define POLY_VEC_LEN_SHIFT 0
+typedef block128 clmul_block;
+inline clmul_block clmul_block_xor(clmul_block x, clmul_block y) { return block128_xor(x, y); }
+inline clmul_block clmul_block_and(clmul_block x, clmul_block y) { return block128_and(x, y); }
+inline clmul_block clmul_block_set_all_8(uint8_t x) { return block128_set_all_8(x); }
+
+inline clmul_block clmul_block_clmul_ll(clmul_block x, clmul_block y)
+{
+	return _mm_clmulepi64_si128(x, y, 0x00);
+}
+inline clmul_block clmul_block_clmul_lh(clmul_block x, clmul_block y)
+{
+	return _mm_clmulepi64_si128(x, y, 0x10);
+}
+inline clmul_block clmul_block_clmul_hl(clmul_block x, clmul_block y)
+{
+	return _mm_clmulepi64_si128(x, y, 0x01);
+}
+inline clmul_block clmul_block_clmul_hh(clmul_block x, clmul_block y)
+{
+	return _mm_clmulepi64_si128(x, y, 0x11);
+}
+
+inline clmul_block clmul_block_shift_left_64(clmul_block x)
+{
+	return _mm_slli_si128(x, 8);
+}
+inline clmul_block clmul_block_shift_right_64(clmul_block x)
+{
+	return _mm_srli_si128(x, 8);
+}
+inline clmul_block clmul_block_mix_64(clmul_block x, clmul_block y) // output = y high, x low.
+{
+	return _mm_alignr_epi8(x, y, 8);
+}
+
+#else
+#define POLY_VEC_LEN_SHIFT 1
+typedef block256 clmul_block;
+inline clmul_block clmul_block_xor(clmul_block x, clmul_block y) { return block256_xor(x, y); }
+inline clmul_block clmul_block_and(clmul_block x, clmul_block y) { return block256_and(x, y); }
+inline clmul_block clmul_block_set_all_8(uint8_t x) { return block256_set_all_8(x); }
+
+inline clmul_block clmul_block_clmul_ll(clmul_block x, clmul_block y)
+{
+	return _mm256_clmulepi64_epi128(x, y, 0x00);
+}
+inline clmul_block clmul_block_clmul_lh(clmul_block x, clmul_block y)
+{
+	return _mm256_clmulepi64_epi128(x, y, 0x10);
+}
+inline clmul_block clmul_block_clmul_hl(clmul_block x, clmul_block y)
+{
+	return _mm256_clmulepi64_epi128(x, y, 0x01);
+}
+inline clmul_block clmul_block_clmul_hh(clmul_block x, clmul_block y)
+{
+	return _mm256_clmulepi64_epi128(x, y, 0x11);
+}
+
+inline clmul_block clmul_block_shift_left_64(clmul_block x)
+{
+	return _mm256_slli_si256(x, 8);
+}
+inline clmul_block clmul_block_shift_right_64(clmul_block x)
+{
+	return _mm256_srli_si256(x, 8);
+}
+inline clmul_block clmul_block_mix_64(clmul_block x, clmul_block y) // output = y high, x low.
+{
+	return _mm256_alignr_epi8(x, y, 8);
+}
+#endif
 
 #endif
