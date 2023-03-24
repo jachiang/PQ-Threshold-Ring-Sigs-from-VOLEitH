@@ -29,7 +29,7 @@ extern unsigned char aes_round_constants[];
 
 #include "aes_impl.h"
 
-// Interface defined by aes_impl.h
+// Interface defined by aes_impl.h:
 
 // typedef /**/ aes_round_keys;
 // typedef /**/ rijndael192_round_keys;

@@ -1,5 +1,5 @@
-#ifndef POLYNOMIALS_H
-#define POLYNOMIALS_H
+#ifndef POLYNOMIALS_IMPL_H
+#define POLYNOMIALS_IMPL_H
 
 #include <inttypes.h>
 #include <string.h>
@@ -7,8 +7,6 @@
 #include <wmmintrin.h>
 
 #include "transpose.h"
-
-#define POLY_VEC_LEN (1 << POLY_VEC_LEN_SHIFT)
 
 // TODO: Do we need 192 and 384 bit polynomials?
 
@@ -22,7 +20,7 @@ typedef clmul_block poly64_vec;
 typedef clmul_block poly128_vec;
 typedef struct
 {
-	clmul_block data[2];
+	clmul_block data[2]; // Striped in 128-bit chunks.
 } poly256_vec;
 typedef struct
 {
@@ -204,14 +202,39 @@ inline poly512_vec poly256_vec_mul(poly256_vec x, poly256_vec y)
 }
 
 // Modulus for GF(2^n), without the x^n term.
-const extern block128 gf64_modulus;  // degree = 4
-const extern block128 gf128_modulus; // degree = 7
-const extern block128 gf256_modulus; // degree = 10
+const extern uint32_t gf64_modulus;  // degree = 4
+const extern uint32_t gf128_modulus; // degree = 7
+const extern uint32_t gf256_modulus; // degree = 10
 
 // TODO: May be cheaper to keep gf*_modulus in uint32_ts, then load with a broadcast and blend with
 // zero.
 
-// TODO: Maybe have getmodulus functions instead.
+inline clmul_block load_u32_into_vector(uint32_t x)
+{
+#if POLY_VEC_LEN == 1
+	return _mm_cvtsi32_si128(x);
+#elif POLY_VEC_LEN == 2
+	return _mm256_blend_epi32(_mm256_setzero_si256(), _mm256_set1_epi32(x), 0x11);
+#endif
+}
+
+inline poly64_vec get_gf64_modulus()
+{
+	return load_u32_into_vector(gf64_modulus);
+}
+
+inline poly128_vec get_gf128_modulus()
+{
+	return load_u32_into_vector(gf128_modulus);
+}
+
+inline poly256_vec get_gf256_modulus()
+{
+	poly256_vec out;
+	out.data[0] = load_u32_into_vector(gf128_modulus);
+	out.data[1] = clmul_block_set_all_8(0);
+	return out;
+}
 
 // Reduction for implementing GF(2**n).
 inline poly64_vec poly128_vec_reduce64(poly128_vec x);
