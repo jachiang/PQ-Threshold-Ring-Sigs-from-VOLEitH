@@ -15,6 +15,14 @@ typedef struct
 	block256 data[2];
 } block512;
 
+// Unfortunately, there's no alternative version of these that works on integers.
+#define shuffle_2x4xepi32(x, y, i) \
+	_mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(x), _mm_castsi128_ps(y), i))
+#define permute_8xepi32(x, i) \
+	_mm256_castps_si256(_mm256_permute_ps(_mm256_castsi256_ps(x), i))
+#define shuffle_2x4xepi64(x, y, i) \
+	_mm256_castpd_si256(_mm256_shuffle_pd(_mm256_castsi256_pd(x), _mm256_castsi256_pd(y), i))
+
 inline block128 block128_xor(block128 x, block128 y) { return _mm_xor_si128(x, y); }
 inline block256 block256_xor(block256 x, block256 y) { return _mm256_xor_si256(x, y); }
 inline block128 block128_and(block128 x, block128 y) { return _mm_and_si128(x, y); }
@@ -24,6 +32,11 @@ inline block256 block256_set_all_8(uint8_t x) { return _mm256_set1_epi8(x); }
 inline block128 block128_set_low64(uint64_t x) { return _mm_set_epi64x(0, x); }
 inline block256 block256_set_low64(uint64_t x) { return _mm256_setr_epi64x(x, 0, 0, 0); }
 inline block256 block256_set_128(block128 x0, block128 x1) { return _mm256_setr_m128i(x0, x1); }
+
+inline block256 block256_set_low128(block128 x)
+{
+	return _mm256_inserti128_si256(_mm256_setzero_si256(), x, 0);
+}
 
 inline block384 block384_xor(block384 x, block384 y)
 {
@@ -129,6 +142,10 @@ inline clmul_block clmul_block_mix_64(clmul_block x, clmul_block y) // output = 
 {
 	return _mm_alignr_epi8(x, y, 8);
 }
+inline clmul_block clmul_block_broadcast_low64(clmul_block x)
+{
+	return _mm_broadcastq_epi64(x);
+}
 
 #else
 #define POLY_VEC_LEN_SHIFT 1
@@ -165,6 +182,10 @@ inline clmul_block clmul_block_shift_right_64(clmul_block x)
 inline clmul_block clmul_block_mix_64(clmul_block x, clmul_block y) // output = y high, x low.
 {
 	return _mm256_alignr_epi8(x, y, 8);
+}
+inline clmul_block clmul_block_broadcast_low64(clmul_block x)
+{
+	return _mm256_shuffle_epi32(x, 0x44);
 }
 #endif
 

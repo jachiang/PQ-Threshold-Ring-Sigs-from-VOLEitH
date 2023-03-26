@@ -15,16 +15,12 @@ ALWAYS_INLINE void transpose4x4_32(block128* output, const block128* input)
 	output[3] = _mm_unpackhi_epi64(a2b2a3b3, c2d2c3d3); // output[3] = a3b3c3d3
 }
 
-// Unfortunately, there's no alternative version of shufps that works on integers.
-#define shuffle_2xepi32(x, y, i) \
-	_mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(x), _mm_castsi128_ps(y), i))
-
 // Transpose a 4x2 (row manjor) matrix to get a 2x4 matrix. input0 contains the first two rows,
 // and input1 has the other two rows.
 ALWAYS_INLINE void transpose4x2_32(block128* output, block128 input0, block128 input1)
 {
-	output[0] = shuffle_2xepi32(input0, input1, 0x88); // output[0] = a0b0c0d0
-	output[1] = shuffle_2xepi32(input0, input1, 0xdd); // output[1] = a1b1c1d1
+	output[0] = shuffle_2x4xepi32(input0, input1, 0x88); // output[0] = a0b0c0d0
+	output[1] = shuffle_2x4xepi32(input0, input1, 0xdd); // output[1] = a1b1c1d1
 }
 
 ALWAYS_INLINE block256 transpose2x2_64(block256 input)

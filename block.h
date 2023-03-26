@@ -82,6 +82,7 @@ inline block512 block512_set_low64(uint64_t x);
 inline vole_block vole_block_set_low64(uint64_t x);
 
 inline block256 block256_set_128(block128 x0, block128 x1);
+inline block256 block256_set_low128(block128 x);
 
 #if SECURITY_PARAM == 128
 #define BLOCK_SECPAR_LEN_SHIFT 0

@@ -101,6 +101,9 @@ static ALWAYS_INLINE void vole(
 
 			// TODO: How to convert from block128 to block256 without letting the compiler spill to
 			// stack?
+			// I think the issue is that this conversion is shared between prg_keygen and prg_eval,
+			// so GCC thinks the input from both should be on the stack so that they match. Need to
+			// duplicate instead.
 			vole_block prg_output[VOLE_WIDTH];
 			memcpy(prg_output, cipher_output, sizeof(prg_output));
 

@@ -8,26 +8,33 @@
 
 #include "transpose.h"
 
-// TODO: Do we need 192 and 384 bit polynomials?
-
-// TODO: should probably separate out most of the declarations in common between all
-// implementations.
-
 // This is twice as long as it needs to be. It is treated as a poly128_vec, with the high half of
-// each 128-bit polynomial assumed to be all zeroes.
+// each 128-bit polynomial ignored.
 typedef clmul_block poly64_vec;
 
 typedef clmul_block poly128_vec;
 typedef struct
 {
-	clmul_block data[2]; // Striped in 128-bit chunks.
+	poly128_vec data[2]; // Striped in 128-bit chunks. Highest 64 bits of each poly are unused.
+} poly192_vec;
+typedef struct
+{
+	poly128_vec data[2]; // Striped in 128-bit chunks.
 } poly256_vec;
 typedef struct
 {
-	clmul_block data[4];
+	poly128_vec data[3]; // Striped in 128-bit chunks. Highest 64 bits of each poly are unused.
+} poly320_vec;
+typedef struct
+{
+	poly128_vec data[3]; // Striped in 128-bit chunks.
+} poly384_vec;
+typedef struct
+{
+	poly128_vec data[4]; // Striped in 128-bit chunks.
 } poly512_vec;
 
-inline poly64_vec poly64_vec_load(const void* s)
+inline poly64_vec poly64_load(const void* s)
 {
 #if POLY_VEC_LEN == 1
 	uint64_t in;
@@ -47,14 +54,39 @@ inline poly64_vec poly64_vec_load(const void* s)
 	return out;
 }
 
-inline poly128_vec poly128_vec_load(const void* s)
+inline poly128_vec poly128_load(const void* s)
 {
 	poly128_vec out;
 	memcpy(&out, s, sizeof(out));
 	return out;
 }
 
-inline poly256_vec poly256_vec_load(const void* s)
+inline poly192_vec poly192_load(const void* s)
+{
+	poly192_vec out;
+
+#if POLY_VEC_LEN == 1
+	memcpy(&out.data[0], s, sizeof(block128));
+	out.data[1] = _mm_loadu_si64(((char*) s) + sizeof(block128));
+
+#elif POLY_VEC_LEN == 2
+	block256 a0a1a2b0;
+	block128 b1b2;
+	memcpy(&a0a1a2b0, p, sizeof(block256));
+	memcpy(&b1b2, ((unsigned char*) p) + sizeof(block256), sizeof(block128));
+
+	block256 b1b2a2b0 = _mm256_blend_epi32(a0a1a2b0, block256_set_low128(b1b2), 0x0f);
+	block256 a2b0b2b1 = _mm256_permute4x64_epi64(b1b2a2b0, 0x1e);
+	block256 a0a2b0b1 = shuffle_2x4xepi64(a0a1a2b0, a2b0b2b1, 0x0c);
+	block256 a0a1b0b1 = _mm256_blend_epi32(a0a1a2b0, a0a2b0b1, 0xf0);
+	out.data[0] = a0a1b0b1;
+	out.data[1] = a2b0b2b1;
+#endif
+
+	return out;
+}
+
+inline poly256_vec poly256_load(const void* s)
 {
 	poly256_vec out;
 
@@ -70,7 +102,7 @@ inline poly256_vec poly256_vec_load(const void* s)
 	return out;
 }
 
-inline poly512_vec poly512_vec_load(const void* s)
+inline poly512_vec poly512_load(const void* s)
 {
 	poly512_vec out;
 
@@ -87,7 +119,7 @@ inline poly512_vec poly512_vec_load(const void* s)
 	return out;
 }
 
-inline void poly64_vec_store(void* d, poly64_vec s)
+inline void poly64_store(void* d, poly64_vec s)
 {
 #if POLY_VEC_LEN == 1
 	uint64_t out = _mm_cvtsi128_si64(s);
@@ -98,12 +130,29 @@ inline void poly64_vec_store(void* d, poly64_vec s)
 	memcpy(d, &out, sizeof(out));
 }
 
-inline void poly128_vec_store(void* d, poly128_vec s)
+inline void poly128_store(void* d, poly128_vec s)
 {
 	memcpy(d, &s, sizeof(s));
 }
 
-inline void poly256_vec_store(void* d, poly256_vec s)
+inline void poly192_store(void* d, poly192_vec s)
+{
+#if POLY_VEC_LEN == 1
+	memcpy(d, &s, sizeof(poly192_vec));
+
+#elif POLY_VEC_LEN == 2
+	// s.data[0] = a0a1b0b1
+	// s.data[1] = a2  b2
+	block256 a0b0b1b1 = _mm256_permute4x64_epi64(s.data[0], 0xf8);
+	block256 a2a2b2b2 = permute_8xepi32(s.data[1], 0x44);
+	block256 a2b0b1b2 = _mm256_blend_epi32(a0b0b1b1, a2a2b2b2, 0xc3);
+
+	memcpy(p, &s.data[0], sizeof(block128));
+	memcpy(((unsigned char*) p) + sizeof(block128), &a2b0b1b2, sizoef(block256));
+#endif
+}
+
+inline void poly256_store(void* d, poly256_vec s)
 {
 #if POLY_VEC_LEN == 1
 	memcpy(d, &s, sizeof(s));
@@ -115,7 +164,7 @@ inline void poly256_vec_store(void* d, poly256_vec s)
 #endif
 }
 
-inline void poly512_vec_store(void* d, poly512_vec s)
+inline void poly512_store(void* d, poly512_vec s)
 {
 #if POLY_VEC_LEN == 1
 	memcpy(d, &s, sizeof(s));
@@ -130,84 +179,212 @@ inline void poly512_vec_store(void* d, poly512_vec s)
 #endif
 }
 
-inline poly64_vec poly64_vec_add(poly64_vec x, poly64_vec y)
+inline void add_clmul_block_vectors(clmul_block* x, const clmul_block* y, size_t n)
 {
-#if POLY_VEC_LEN == 1
-	return x ^ y;
-#elif POLY_VEC_LEN == 2
-	return block128_xor(x, y);
-#endif
+	for (size_t i = 0; i < n; ++i)
+		x[i] = clmul_block_xor(x[i], y[i]);
 }
-inline poly128_vec poly128_vec_add(poly128_vec x, poly128_vec y)
+
+inline poly64_vec poly64_add(poly64_vec x, poly64_vec y)
 {
 	return clmul_block_xor(x, y);
 }
-inline poly256_vec poly256_vec_add(poly256_vec x, poly256_vec y)
+inline poly128_vec poly128_add(poly128_vec x, poly128_vec y)
 {
-	poly256_vec out;
-	for (size_t i = 0; i < 2; ++i)
-		out.data[i] = clmul_block_xor(x.data[i], y.data[i]);
-	return out;
+	return clmul_block_xor(x, y);
 }
-inline poly512_vec poly512_vec_add(poly512_vec x, poly512_vec y)
+inline poly192_vec poly192_add(poly192_vec x, poly192_vec y)
 {
-	poly512_vec out;
-	for (size_t i = 0; i < 4; ++i)
-		out.data[i] = clmul_block_xor(x.data[i], y.data[i]);
-	return out;
+	add_clmul_block_vectors(&x.data[0], &y.data[0], 2);
+	return x;
+}
+inline poly256_vec poly256_add(poly256_vec x, poly256_vec y)
+{
+	add_clmul_block_vectors(&x.data[0], &y.data[0], 2);
+	return x;
+}
+inline poly320_vec poly320_add(poly320_vec x, poly320_vec y)
+{
+	add_clmul_block_vectors(&x.data[0], &y.data[0], 3);
+	return x;
+}
+inline poly384_vec poly384_add(poly384_vec x, poly384_vec y)
+{
+	add_clmul_block_vectors(&x.data[0], &y.data[0], 3);
+	return x;
+}
+inline poly512_vec poly512_add(poly512_vec x, poly512_vec y)
+{
+	add_clmul_block_vectors(&x.data[0], &y.data[0], 4);
+	return x;
 }
 
-inline poly128_vec poly64_vec_mul(poly64_vec x, poly64_vec y)
+inline poly128_vec poly64_mul(poly64_vec x, poly64_vec y)
 {
 	return clmul_block_clmul_ll(x, y);
 }
 
-inline poly256_vec poly128_vec_mul(poly128_vec x, poly128_vec y)
+// Karatsuba multiplication, but end right after the multiplications, and use a different pair of
+// vectors as the inputs for the sum of x and the sum of y.
+inline void karatsuba_mul_128_uninterpolated_other_sum(
+	poly128_vec x, poly128_vec y, poly128_vec x_for_sum, poly128_vec y_for_sum, poly128_vec* out)
 {
-	// Karatsuba multiplication.
-	clmul_block x0y0 = clmul_block_clmul_ll(x, y);
-	clmul_block x1y1 = clmul_block_clmul_hh(x, y);
-	clmul_block x1_cat_y0 = clmul_block_mix_64(y, x);
-	clmul_block x0_plus_x1 = poly128_vec_add(x, x1_cat_y0); // Result in low.
-	clmul_block y0_plus_y1 = poly128_vec_add(y, x1_cat_y0); // Result in high.
-	clmul_block x0_plus_x1_y0_plus_y1 = clmul_block_clmul_lh(x0_plus_x1, y0_plus_y1);
-	clmul_block x0y1_plus_x1y0 = poly128_vec_add(poly128_vec_add(x0y0, x1y1), x0_plus_x1_y0_plus_y1);
+	poly128_vec x0y0 = clmul_block_clmul_ll(x, y);
+	poly128_vec x1y1 = clmul_block_clmul_hh(x, y);
+	clmul_block x1_cat_y0 = clmul_block_mix_64(y_for_sum, x_for_sum);
+	clmul_block xsum = clmul_block_xor(x_for_sum, x1_cat_y0); // Result in low.
+	clmul_block ysum = clmul_block_xor(y_for_sum, x1_cat_y0); // Result in high.
+	poly128_vec xsum_ysum = clmul_block_clmul_lh(xsum, ysum);
 
-	// TODO: Is there a way to combine the left and right shifts?
+	out[0] = x0y0;
+	out[1] = xsum_ysum;
+	out[2] = x1y1;
+}
+
+// Karatsuba multiplication, but end right after the multiplications.
+inline void karatsuba_mul_128_uninterpolated(poly128_vec x, poly128_vec y, poly128_vec* out)
+{
+	karatsuba_mul_128_uninterpolated_other_sum(x, y, x, y, out);
+}
+
+// Karatsuba multiplication, but don't combine the 3 128-bit polynomials into a 256-bit polynomial.
+void karatsuba_mul_128_uncombined(poly128_vec x, poly128_vec y, poly128_vec* out)
+{
+	karatsuba_mul_128_uninterpolated(x, y, out);
+	out[1] = poly128_add(poly128_add(out[0], out[2]), out[1]);
+}
+
+// Given a sequence of n (for n >= 2) 128-bit polynomials p_i, compute the sum of x^(64*i) p_i as a
+// sequence of n / 2 + 1 128-bit polynomials.
+void combine_poly128s(poly128_vec* out, const poly128_vec* in, size_t n)
+{
+	out[0] = poly128_add(in[0], clmul_block_shift_left_64(in[1]));
+	for (size_t i = 1; i < n / 2; ++i)
+		out[i] = poly128_add(in[2*i], clmul_block_mix_64(in[2*i + 1], in[2*i - 1]));
+	if (n % 2)
+		out[n / 2] = poly128_add(in[n - 1], clmul_block_shift_right_64(in[n - 2]));
+	else
+		out[n / 2] = clmul_block_shift_right_64(in[n - 1]);
+}
+
+inline poly256_vec poly128_mul(poly128_vec x, poly128_vec y)
+{
+	poly128_vec karatsuba_out[3];
+	karatsuba_mul_128_uncombined(x, y, &karatsuba_out[0]);
 
 	poly256_vec out;
-	out.data[0] = poly128_vec_add(x0y0, clmul_block_shift_left_64(x0y1_plus_x1y0));
-	out.data[1] = poly128_vec_add(x1y1, clmul_block_shift_right_64(x0y1_plus_x1y0));
+	combine_poly128s(&out.data[0], &karatsuba_out[0], 3);
 	return out;
 }
 
-inline poly512_vec poly256_vec_mul(poly256_vec x, poly256_vec y)
+inline poly384_vec poly192_mul(poly192_vec x, poly192_vec y)
+{
+	// Something like Toom-Cook.
+
+	// Evaluate at 0.
+	poly128_vec xlow_ylow = clmul_block_clmul_ll(x.data[0], y.data[0]);
+
+	// Evaluate at infinity.
+	poly128_vec xhigh_yhigh = clmul_block_clmul_ll(x.data[1], y.data[1]);
+
+	// Evaluate at 1.
+	clmul_block x1_cat_y0_plus_y2 =
+		clmul_block_mix_64(clmul_block_xor(y.data[0], y.data[1]), x.data[0]);
+	clmul_block xsum =
+		clmul_block_xor(clmul_block_xor(x.data[0], x.data[1]), x1_cat_y0_plus_y2); // Result in low.
+	clmul_block ysum = clmul_block_xor(y.data[0], x1_cat_y0_plus_y2); // Result in high.
+	poly128_vec xsum_ysum = clmul_block_clmul_lh(xsum, ysum);
+
+	// Evaluate at the root of a^2 + a + 1.
+	poly128_vec xa = poly128_add(x.data[0], clmul_block_broadcast_low64(x.data[1]));
+	poly128_vec ya = poly128_add(y.data[0], clmul_block_broadcast_low64(y.data[1]));
+	// Karatsuba multiplication of two degree 1 polynomials (with deg <64 polynomial coefficients).
+	poly128_vec karatsuba_out[3];
+	karatsuba_mul_128_uninterpolated_other_sum(xa, ya, x.data[0], y.data[0], &karatsuba_out[0]);
+	poly128_vec xya0 = poly128_add(karatsuba_out[0], karatsuba_out[2]);
+	poly128_vec xya1 = poly128_add(karatsuba_out[0], karatsuba_out[1]);
+
+	// Interpolate through the 4 evaluation points.
+	poly128_vec xya0_plus_xsum_ysum = poly128_add(xya0, xsum_ysum);
+	poly128_vec interp[5];
+	interp[0] = xlow_ylow;
+	interp[1] = poly128_add(xya0_plus_xsum_ysum, xhigh_yhigh);
+	interp[2] = poly128_add(xya0_plus_xsum_ysum, xya1);
+	interp[3] = poly128_add(poly128_add(xlow_ylow, xsum_ysum), xya1);
+	interp[4] = xhigh_yhigh;
+
+	// Combine overlapping 128-bit chunks.
+	poly384_vec out;
+	combine_poly128s(&out.data[0], &interp[0], 5);
+	return out;
+}
+
+inline poly512_vec poly256_mul(poly256_vec x, poly256_vec y)
 {
 	// Karatsuba multiplication.
-	poly256_vec x0y0 = poly128_vec_mul(x.data[0], y.data[0]);
-	poly256_vec x1y1 = poly128_vec_mul(x.data[1], y.data[1]);
-	poly128_vec x0_plus_y0 = poly128_vec_add(x.data[0], y.data[0]);
-	poly128_vec x1_plus_y1 = poly128_vec_add(x.data[1], y.data[1]);
-	poly256_vec x0_plus_x1_y0_plus_y1 = poly128_vec_mul(x.data[1], y.data[1]);
-	poly256_vec x0y1_plus_x1y0 = poly256_vec_add(poly256_vec_add(x0y0, x1y1), x0_plus_x1_y0_plus_y1);
+	poly128_vec x0y0[3], x1y1[3], xsum_ysum[3];
+	karatsuba_mul_128_uncombined(x.data[0], y.data[0], &x0y0[0]);
+	karatsuba_mul_128_uncombined(x.data[1], y.data[1], &x1y1[0]);
+	poly128_vec xsum = poly128_add(x.data[0], y.data[0]);
+	poly128_vec ysum = poly128_add(x.data[1], y.data[1]);
+	karatsuba_mul_128_uncombined(xsum, ysum, &xsum_ysum[0]);
 
-	// TODO: Is there a way to combine the left and right shifts?
+	poly128_vec combined[7];
+	combined[0] = x0y0[0];
+	combined[1] = x0y0[1];
+	combined[2] = poly128_add(x0y0[2], xsum_ysum[0]);
+	combined[3] = xsum_ysum[1];
+	combined[4] = poly128_add(x1y1[0], xsum_ysum[2]);
+	combined[5] = x1y1[1];
+	combined[6] = x1y1[2];
 
 	poly512_vec out;
-	out.data[0] = x0y0.data[0];
-	out.data[1] = poly128_vec_add(x0y0.data[1], x0y1_plus_x1y0.data[0]);
-	out.data[2] = poly128_vec_add(x1y1.data[0], x0y1_plus_x1y0.data[1]);
-	out.data[3] = x1y1.data[1];
+	combine_poly128s(&out.data[0], &combined[0], 7);
+	return out;
+}
+
+// High 64 of output will be zero.
+inline poly192_vec poly64x128_mul(poly64_vec x, poly128_vec y)
+{
+	clmul_block xy[2];
+	xy[0] = clmul_block_clmul_ll(x, y);
+	xy[1] = clmul_block_clmul_lh(x, y);
+
+	poly192_vec out;
+	combine_poly128s(&out.data[0], &xy[0], 2);
+	return out;
+}
+
+inline poly256_vec poly64x192_mul(poly64_vec x, poly192_vec y)
+{
+	clmul_block xy[3];
+	xy[0] = clmul_block_clmul_ll(x, y.data[0]);
+	xy[1] = clmul_block_clmul_lh(x, y.data[0]);
+	xy[2] = clmul_block_clmul_ll(x, y.data[1]);
+
+	poly256_vec out;
+	combine_poly128s(&out.data[0], &xy[0], 3);
+	return out;
+}
+
+inline poly320_vec poly64x256_mul(poly64_vec x, poly256_vec y)
+{
+	clmul_block xy[4];
+	xy[0] = clmul_block_clmul_ll(x, y.data[0]);
+	xy[1] = clmul_block_clmul_lh(x, y.data[0]);
+	xy[2] = clmul_block_clmul_ll(x, y.data[1]);
+	xy[3] = clmul_block_clmul_lh(x, y.data[1]);
+
+	poly320_vec out;
+	combine_poly128s(&out.data[0], &xy[0], 4);
 	return out;
 }
 
 // Modulus for GF(2^n), without the x^n term.
 const extern uint32_t gf64_modulus;  // degree = 4
 const extern uint32_t gf128_modulus; // degree = 7
+const extern uint32_t gf192_modulus; // degree = 7
 const extern uint32_t gf256_modulus; // degree = 10
-
-// TODO: May be cheaper to keep gf*_modulus in uint32_ts, then load with a broadcast and blend with
-// zero.
 
 inline clmul_block load_u32_into_vector(uint32_t x)
 {
@@ -222,23 +399,71 @@ inline poly64_vec get_gf64_modulus()
 {
 	return load_u32_into_vector(gf64_modulus);
 }
-
-inline poly128_vec get_gf128_modulus()
+inline poly64_vec get_gf128_modulus()
 {
 	return load_u32_into_vector(gf128_modulus);
 }
-
-inline poly256_vec get_gf256_modulus()
+inline poly64_vec get_gf192_modulus()
 {
-	poly256_vec out;
-	out.data[0] = load_u32_into_vector(gf128_modulus);
-	out.data[1] = clmul_block_set_all_8(0);
+	return load_u32_into_vector(gf192_modulus);
+}
+inline poly64_vec get_gf256_modulus()
+{
+	return load_u32_into_vector(gf256_modulus);
+}
+
+inline poly64_vec poly128_reduce64(poly128_vec x)
+{
+	poly64_vec modulus = get_gf64_modulus();
+	poly128_vec high = clmul_block_clmul_lh(modulus, x); // Degree < 64 + 4
+	poly128_vec high_high = clmul_block_clmul_lh(modulus, high); // Degree < 4 + 4
+
+	// Only low 64 bits are correct, but the high 64 will be ignored anyway.
+	return poly128_add(poly128_add(x, high), high_high);
+}
+
+inline poly128_vec poly256_reduce128(poly256_vec x)
+{
+	poly64_vec modulus = get_gf128_modulus();
+	poly128_vec reduced_192 = clmul_block_clmul_lh(modulus, x.data[1]);
+	x.data[0] = poly128_add(x.data[0], clmul_block_shift_left_64(reduced_192));
+	x.data[1] = poly128_add(x.data[1], clmul_block_shift_right_64(reduced_192));
+	x.data[0] = poly128_add(x.data[0], clmul_block_clmul_ll(modulus, x.data[1]));
+	return x.data[0];
+}
+
+inline poly192_vec poly384_reduce192(poly384_vec x)
+{
+	poly64_vec modulus = get_gf192_modulus();
+	poly128_vec reduced_320 = clmul_block_clmul_lh(modulus, x.data[2]);
+	poly128_vec reduced_256 = clmul_block_clmul_ll(modulus, x.data[2]);
+	poly192_vec out;
+	out.data[1] = poly128_add(x.data[1], reduced_320);
+	out.data[0] = poly128_add(x.data[0], clmul_block_shift_left_64(reduced_256));
+	out.data[0] = poly128_add(out.data[0], clmul_block_clmul_lh(modulus, out.data[1]));
+	out.data[1] = poly128_add(out.data[1], clmul_block_shift_right_64(reduced_256));
 	return out;
 }
 
-// Reduction for implementing GF(2**n).
-inline poly64_vec poly128_vec_reduce64(poly128_vec x);
-inline poly128_vec poly256_vec_reduce128(poly256_vec x);
-inline poly256_vec poly512_vec_reduce256(poly512_vec x);
+inline poly256_vec poly512_reduce256(poly512_vec x)
+{
+	poly64_vec modulus = get_gf256_modulus();
+	clmul_block xmod[4];
+	xmod[0] = clmul_block_set_all_8(0);
+	xmod[1] = clmul_block_clmul_lh(modulus, x.data[2]);
+	xmod[2] = clmul_block_clmul_ll(modulus, x.data[3]);
+	xmod[3] = clmul_block_clmul_lh(modulus, x.data[3]);
+
+	clmul_block xmod_combined[3];
+	combine_poly128s(&xmod_combined[0], &xmod[0], 4);
+	for (size_t i = 0; i < 3; ++i)
+		xmod_combined[i] = poly128_add(xmod_combined[i], x.data[i]);
+	xmod_combined[0] = poly128_add(xmod_combined[0], clmul_block_clmul_ll(modulus, xmod_combined[2]));
+
+	poly256_vec out;
+	for (size_t i = 0; i < 2; ++i)
+		out.data[i] = xmod_combined[i];
+	return out;
+}
 
 #endif
