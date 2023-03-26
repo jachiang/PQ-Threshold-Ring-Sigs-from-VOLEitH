@@ -15,7 +15,7 @@ typedef clmul_block poly64_vec;
 typedef clmul_block poly128_vec;
 typedef struct
 {
-	poly128_vec data[2]; // Striped in 128-bit chunks. Highest 64 bits of each poly are unused.
+	poly128_vec data[2]; // Striped in 128-bit chunks. Highest 64 bits of each poly are ignored.
 } poly192_vec;
 typedef struct
 {
@@ -23,7 +23,7 @@ typedef struct
 } poly256_vec;
 typedef struct
 {
-	poly128_vec data[3]; // Striped in 128-bit chunks. Highest 64 bits of each poly are unused.
+	poly128_vec data[3]; // Striped in 128-bit chunks. Highest 64 bits of each poly are ignored.
 } poly320_vec;
 typedef struct
 {
@@ -463,6 +463,30 @@ inline poly256_vec poly512_reduce256(poly512_vec x)
 	poly256_vec out;
 	for (size_t i = 0; i < 2; ++i)
 		out.data[i] = xmod_combined[i];
+	return out;
+}
+
+inline poly128_vec poly192_reduce128(poly192_vec x)
+{
+	poly64_vec modulus = get_gf128_modulus();
+	return poly128_add(x.data[0], clmul_block_clmul_ll(modulus, x.data[1]));
+}
+
+inline poly192_vec poly256_reduce192(poly256_vec x)
+{
+	poly64_vec modulus = get_gf192_modulus();
+	poly192_vec out;
+	out.data[1] = x.data[1];
+	out.data[0] = poly128_add(x.data[0], clmul_block_clmul_lh(modulus, out.data[1]));
+	return out;
+}
+
+inline poly256_vec poly320_reduce256(poly320_vec x)
+{
+	poly64_vec modulus = get_gf256_modulus();
+	poly256_vec out;
+	out.data[1] = x.data[1];
+	out.data[0] = poly128_add(x.data[0], clmul_block_clmul_ll(modulus, x.data[2]));
 	return out;
 }
 

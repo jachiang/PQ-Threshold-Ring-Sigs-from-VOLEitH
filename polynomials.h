@@ -59,8 +59,139 @@ inline poly64_vec get_gf256_modulus();
 
 // Reduce modulo the modulus for GF(2**n).
 inline poly64_vec poly128_reduce64(poly128_vec x);
+inline poly128_vec poly192_reduce128(poly192_vec x);
 inline poly128_vec poly256_reduce128(poly256_vec x);
+inline poly192_vec poly256_reduce192(poly256_vec x);
 inline poly192_vec poly384_reduce192(poly384_vec x);
+inline poly256_vec poly320_reduce256(poly320_vec x);
 inline poly256_vec poly512_reduce256(poly512_vec x);
+
+#if SECURITY_PARAM == 128
+typedef poly128_vec poly_secpar_vec;
+typedef poly192_vec poly_secpar_plus_64_vec;
+typedef poly256_vec poly_2secpar_vec;
+
+inline poly_secpar_vec poly_secpar_load(const void* s)
+{
+	return poly128_load(s);
+}
+inline void poly_secpar_store(void* d, poly_secpar_vec s)
+{
+	poly128_store(d, s);
+}
+inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly128_add(x, y);
+}
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_add(poly_secpar_plus_64_vec x, poly_secpar_plus_64_vec y)
+{
+	return poly192_add(x, y);
+}
+inline poly_2secpar_vec poly_2secpar_add(poly_2secpar_vec x, poly_2secpar_vec y)
+{
+	return poly256_add(x, y);
+}
+inline poly_2secpar_vec poly_secpar_mul(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly128_mul(x, y);
+}
+inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y)
+{
+	return poly64x128_mul(x, y);
+}
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+{
+	return poly256_reduce128(x);
+}
+inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x)
+{
+	return poly192_reduce128(x);
+}
+
+#elif SECURITY_PARAM == 192
+typedef poly192_vec poly_secpar_vec;
+typedef poly256_vec poly_secpar_plus_64_vec;
+typedef poly384_vec poly_2secpar_vec;
+
+inline poly_secpar_vec poly_secpar_load(const void* s)
+{
+	return poly192_load(s);
+}
+inline void poly_secpar_store(void* d, poly_secpar_vec s)
+{
+	poly192_store(d, s);
+}
+inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly192_add(x, y);
+}
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_add(poly_secpar_plus_64_vec x, poly_secpar_plus_64_vec y)
+{
+	return poly256_add(x, y);
+}
+inline poly_2secpar_vec poly_2secpar_add(poly_2secpar_vec x, poly_2secpar_vec y)
+{
+	return poly384_add(x, y);
+}
+inline poly_2secpar_vec poly_secpar_mul(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly192_mul(x, y);
+}
+inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y)
+{
+	return poly64x192_mul(x, y);
+}
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+{
+	return poly384_reduce192(x);
+}
+inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x)
+{
+	return poly256_reduce192(x);
+}
+
+#elif SECURITY_PARAM == 256
+typedef poly256_vec poly_secpar_vec;
+typedef poly320_vec poly_secpar_plus_64_vec;
+typedef poly512_vec poly_2secpar_vec;
+
+inline poly_secpar_vec poly_secpar_load(const void* s)
+{
+	return poly256_load(s);
+}
+inline void poly_secpar_store(void* d, poly_secpar_vec s)
+{
+	poly256_store(d, s);
+}
+inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly256_add(x, y);
+}
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_add(poly_secpar_plus_64_vec x, poly_secpar_plus_64_vec y)
+{
+	return poly320_add(x, y);
+}
+inline poly_2secpar_vec poly_2secpar_add(poly_2secpar_vec x, poly_2secpar_vec y)
+{
+	return poly512_add(x, y);
+}
+inline poly_2secpar_vec poly_secpar_mul(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly256_mul(x, y);
+}
+inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y)
+{
+	return poly64x256_mul(x, y);
+}
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+{
+	return poly512_reduce256(x);
+}
+inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x)
+{
+	return poly320_reduce256(x);
+}
+
+#endif
 
 #endif
