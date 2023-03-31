@@ -99,7 +99,7 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x128_mul(x, y);
 }
-inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly256_reduce128(x);
 }
@@ -141,7 +141,7 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x192_mul(x, y);
 }
-inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly384_reduce192(x);
 }
@@ -183,7 +183,7 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x256_mul(x, y);
 }
-inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar x)
+inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly512_reduce256(x);
 }

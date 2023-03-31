@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <stddef.h>
 #include <inttypes.h>
 
 #ifdef _MSC_VER
@@ -14,6 +15,11 @@
 #else
 #define ALWAYS_INLINE inline
 #endif
+
+#define STRINGIZE_NO_EXPAND(x) #x
+#define STRINGIZE(x) STRINGIZE_NO_EXPAND(x)
+
+// TODO: Macro for unwinding with pragma?
 
 inline unsigned int count_trailing_zeros(uint64_t x)
 {

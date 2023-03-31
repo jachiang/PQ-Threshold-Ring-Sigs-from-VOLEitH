@@ -4,7 +4,7 @@
 
 #include "util.h"
 
-#define COL_LEN (VOLE_ROWS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK)
+#define COL_LEN VOLE_COL_BLOCKS
 
 // TODO: probably can ditch most of the "restrict"s in inlined functions.
 

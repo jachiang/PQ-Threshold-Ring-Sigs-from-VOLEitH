@@ -2,7 +2,9 @@
 #define BLOCK_H
 
 #include <assert.h>
-#include "inttypes.h"
+#include <inttypes.h>
+
+#include "config.h"
 
 typedef struct
 {
