@@ -1,5 +1,5 @@
 CPPFLAGS += -MMD -MP -MF $*.d
-CFLAGS ?= -O2 -march=native -mtune=native
+CFLAGS ?= -std=c11 -pedantic-errors -O2 -march=native -mtune=native
 
 CP_L = cp -l
 MKDIR_P = mkdir -p
