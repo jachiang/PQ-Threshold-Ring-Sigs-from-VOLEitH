@@ -114,6 +114,7 @@ typedef block128 clmul_block;
 inline clmul_block clmul_block_xor(clmul_block x, clmul_block y) { return block128_xor(x, y); }
 inline clmul_block clmul_block_and(clmul_block x, clmul_block y) { return block128_and(x, y); }
 inline clmul_block clmul_block_set_all_8(uint8_t x) { return block128_set_all_8(x); }
+inline clmul_block clmul_block_set_zero() { return block128_set_zero(); }
 
 inline clmul_block clmul_block_clmul_ll(clmul_block x, clmul_block y)
 {
@@ -155,6 +156,7 @@ typedef block256 clmul_block;
 inline clmul_block clmul_block_xor(clmul_block x, clmul_block y) { return block256_xor(x, y); }
 inline clmul_block clmul_block_and(clmul_block x, clmul_block y) { return block256_and(x, y); }
 inline clmul_block clmul_block_set_all_8(uint8_t x) { return block256_set_all_8(x); }
+inline clmul_block clmul_block_set_zero() { return block256_set_zero(); }
 
 inline clmul_block clmul_block_clmul_ll(clmul_block x, clmul_block y)
 {

@@ -16,10 +16,10 @@
 	((2 * sizeof(block_secpar) + sizeof(prg_tree_block) - 1) / sizeof(prg_tree_block))
 #define LEAF_BLOCKS_PER_KEY \
 	((3 * sizeof(block_secpar) + sizeof(prg_leaf_block) - 1) / sizeof(prg_leaf_block))
-#define TREE_EXCESS_BYTES_PER_KEY \
-	(TREE_BLOCKS_PER_KEY * sizeof(prg_tree_block) - 2 * sizeof(block_secpar))
-#define LEAF_EXCESS_BYTES_PER_KEY \
-	(LEAF_BLOCKS_PER_KEY * sizeof(prg_leaf_block) - 3 * sizeof(block_secpar))
+#define TREE_BYTES_PER_KEY_REMAINDER \
+	((2 * sizeof(block_secpar)) % sizeof(prg_tree_block))
+#define LEAF_BYTES_PER_KEY_REMAINDER \
+	((3 * sizeof(block_secpar)) % sizeof(prg_leaf_block))
 
 #define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > TREE_CHUNK_SIZE ? LEAF_CHUNK_SIZE : TREE_CHUNK_SIZE)
 
@@ -63,7 +63,7 @@ static ALWAYS_INLINE void expand_chunk(
 
 	size_t prg_block_size = !leaf ? sizeof(prg_tree_block) : sizeof(prg_leaf_block);
 	uint32_t blocks_per_key = !leaf ? TREE_BLOCKS_PER_KEY : LEAF_BLOCKS_PER_KEY;
-	size_t excess_bytes_per_key = !leaf ? TREE_EXCESS_BYTES_PER_KEY : LEAF_EXCESS_BYTES_PER_KEY;
+	size_t bytes_per_key_remainder = !leaf ? TREE_BYTES_PER_KEY_REMAINDER : LEAF_BYTES_PER_KEY_REMAINDER;
 	static_assert(TREE_BLOCKS_PER_KEY >= 2);
 	static_assert(LEAF_BLOCKS_PER_KEY >= 2);
 
@@ -75,12 +75,9 @@ static ALWAYS_INLINE void expand_chunk(
 		prg_leaf_init(&prgs_leaf[0], fixed_key_leaf, &keys[0], &ivs_leaf[0],
 		              n, num_blocks, 0, &prg_output_leaf[0]);
 
-	if (blocks_per_key > num_blocks || excess_bytes_per_key == 0)
-		copy_prg_output(leaf, n, 0, num_blocks, num_blocks * prg_block_size,
-		                prg_output_tree, prg_output_leaf, output);
-	else
-		copy_prg_output(leaf, n, 0, num_blocks, num_blocks * prg_block_size - excess_bytes_per_key,
-		                prg_output_tree, prg_output_leaf, output);
+	assert(blocks_per_key > num_blocks || bytes_per_key_remainder == 0);
+	copy_prg_output(leaf, n, 0, num_blocks, num_blocks * prg_block_size,
+	                prg_output_tree, prg_output_leaf, output);
 
 	for (uint32_t j = num_blocks; j < blocks_per_key; j += num_blocks)
 	{
@@ -90,11 +87,11 @@ static ALWAYS_INLINE void expand_chunk(
 		else
 			prg_leaf_gen(&prgs_leaf[0], fixed_key_leaf, n, num_blocks, j, &prg_output_leaf[0]);
 
-		if (j + num_blocks < blocks_per_key || excess_bytes_per_key == 0)
+		if (j + num_blocks < blocks_per_key || bytes_per_key_remainder == 0)
 			copy_prg_output(leaf, n, j, num_blocks, num_blocks * prg_block_size,
 			                prg_output_tree, prg_output_leaf, output);
 		else
-			copy_prg_output(leaf, n, j, num_blocks, num_blocks * prg_block_size - excess_bytes_per_key,
+			copy_prg_output(leaf, n, j, num_blocks, bytes_per_key_remainder,
 			                prg_output_tree, prg_output_leaf, output);
 
 	}

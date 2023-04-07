@@ -38,9 +38,10 @@ extern unsigned char aes_round_constants[];
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
-inline void aes_keygen(aes_round_keys* aes, block_secpar key) {}
-inline void rijndael192_keygen(rijndael192_round_keys* rijndael, block192 key) {}
-inline void rijndael256_keygen(rijndael256_round_keys* rijndael, block256 key) {}
+void aes_keygen(aes_round_keys* aes, block_secpar key);
+void rijndael192_keygen(rijndael192_round_keys* rijndael, block192 key) {}
+void rijndael256_keygen(rijndael256_round_keys* rijndael, block256 key) {}
+// TODO
 
 // Apply 1 round of the cipher, writing the state after the SBox into after_sbox, and writing the
 // new state back into state. round is the index of the round key to use, so it should start from
@@ -53,28 +54,27 @@ inline void rijndael256_round_function(const rijndael256_round_keys* aes, block2
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
 // Each key has it's own iv, which gets baked into the round keys. Outputs from the same key are
 // grouped together in output.
-inline void aes_keygen_ctr(
-	aes_round_keys* aeses, const block_secpar* keys, const block128* ivs,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output) {}
-// TODO
+ALWAYS_INLINE void aes_keygen_ctr(
+	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys AES keys, generate num_blocks block128s of output from each, starting at
 // counter. Outputs from the same key are grouped together in output.
 inline void aes_ctr(
-	const aes_round_keys* aeses,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output);
+	const aes_round_keys* restrict aeses,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys Even-Mansour keys, generate num_blocks block_secpars of output from each in CTR
 // mode, starting at counter.
 inline void aes_fixed_key_ctr(
-	const aes_round_keys* fixed_key, const block128* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output) {}
+	const aes_round_keys* restrict fixed_key, const block128* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output) {}
 inline void rijndael192_fixed_key_ctr(
-	const rijndael192_round_keys* fixed_key, const block192* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block192* output) {}
+	const rijndael192_round_keys* restrict fixed_key, const block192* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block192* restrict output) {}
 inline void rijndael256_fixed_key_ctr(
-	const rijndael256_round_keys* fixed_key, const block256* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* output) {}
+	const rijndael256_round_keys* restrict fixed_key, const block256* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* restrict output) {}
 // TODO
 
 // Same, but for block size = security parameter.
@@ -87,8 +87,8 @@ inline void rijndael_keygen(rijndael_round_keys* round_keys, block_secpar key)
 	aes_keygen(round_keys, key);
 }
 inline void rijndael_fixed_key_ctr(
-	const rijndael_round_keys* fixed_key, const block_secpar* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* output)
+	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* restrict output)
 {
 	aes_fixed_key_ctr(fixed_key, keys, num_keys, num_blocks, counter, output);
 }
@@ -101,8 +101,8 @@ inline void rijndael_keygen(rijndael_round_keys* round_keys, block_secpar key)
 	rijndael192_keygen(round_keys, key);
 }
 inline void rijndael_fixed_key_ctr(
-	const rijndael_round_keys* fixed_key, const block_secpar* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* output)
+	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* restrict output)
 {
 	rijndael192_fixed_key_ctr(fixed_key, keys, num_keys, num_blocks, counter, output);
 }
@@ -116,8 +116,8 @@ inline void rijndael_keygen(rijndael_round_keys* round_keys, block_secpar key)
 	rijndael256_keygen(round_keys, key);
 }
 inline void rijndael_fixed_key_ctr(
-	const rijndael_round_keys* fixed_key, const block_secpar* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* output)
+	const rijndael_round_keys* restrict fixed_key, const block_secpar* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block_secpar* restrict output)
 {
 	rijndael256_fixed_key_ctr(fixed_key, keys, num_keys, num_blocks, counter, output);
 }

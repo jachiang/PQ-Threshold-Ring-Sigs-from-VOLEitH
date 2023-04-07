@@ -449,7 +449,7 @@ inline poly256_vec poly512_reduce256(poly512_vec x)
 {
 	poly64_vec modulus = get_gf256_modulus();
 	clmul_block xmod[4];
-	xmod[0] = clmul_block_set_all_8(0);
+	xmod[0] = clmul_block_set_zero();
 	xmod[1] = clmul_block_clmul_lh(modulus, x.data[2]);
 	xmod[2] = clmul_block_clmul_ll(modulus, x.data[3]);
 	xmod[3] = clmul_block_clmul_lh(modulus, x.data[3]);
