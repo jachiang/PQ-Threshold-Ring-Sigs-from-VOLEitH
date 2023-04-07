@@ -298,11 +298,85 @@ DEF_AES_KEYGEN_IMPL_K(30)
 DEF_AES_KEYGEN_IMPL_K(31)
 DEF_AES_KEYGEN_IMPL_K(32)
 
-void aes_keygen(aes_round_keys* aes, block_secpar key)
+void aes_keygen(aes_round_keys* round_keys, block_secpar key)
 {
 	// There are more efficient ways to run the key schedule on a single key, but this function
 	// isn't used much anyway.
 	block128 iv = block128_set_zero();
 	block128 empty_output;
-	aes_keygen_impl(aes, &key, &iv, 1, 0, 0, &empty_output);
+	aes_keygen_impl(round_keys, &key, &iv, 1, 0, 0, &empty_output);
+}
+
+static inline block128 load_high_128(const block256* block)
+{
+	block128 out;
+	memcpy(&out, ((unsigned char*) block) + sizeof(block128), sizeof(out));
+}
+
+static void rijndael256_keygen_helper(
+	const block256* round_key_in, block128 kga, block256* round_key_out)
+{
+	block128 t1, t2, t3, t4;
+
+	memcpy(&t1, round_key_in, sizeof(t1));
+	t3 = load_high_128(round_key_in);
+	t2 = kga;
+
+	t2 = _mm_shuffle_epi32(t2, 0xff);
+	t4 = _mm_slli_si128(t1, 0x4);
+	t1 = _mm_xor_si128(t1, t4);
+	t4 = _mm_slli_si128(t4, 0x4);
+	t1 = _mm_xor_si128(t1, t4);
+	t4 = _mm_slli_si128(t4, 0x4);
+	t1 = _mm_xor_si128(t1, t4);
+	t1 = _mm_xor_si128(t1, t2);
+
+	memcpy(round_key_out, &t1, sizeof(t1));
+
+	t4 = _mm_aeskeygenassist_si128(t1, 0x00);
+	t2 = _mm_shuffle_epi32(t4, 0xaa);
+	t4 = _mm_slli_si128(t3, 0x4);
+	t3 = _mm_xor_si128(t3, t4);
+	t4 = _mm_slli_si128(t4, 0x4);
+	t3 = _mm_xor_si128(t3, t4);
+	t4 = _mm_slli_si128(t4, 0x4);
+	t3 = _mm_xor_si128(t3, t4);
+	t3 = _mm_xor_si128(t3, t2);
+
+	memcpy(((unsigned char*) round_key_out) + sizeof(t1), &t3, sizeof(t3));
+}
+
+void rijndael256_keygen(rijndael256_round_keys* round_keys, block256 key)
+{
+	round_keys->keys[0] = key;
+
+	block128 kga;
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[0]), 0x01);
+	rijndael256_keygen_helper(&round_keys->keys[0], kga, &round_keys->keys[1]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[1]), 0x02);
+	rijndael256_keygen_helper(&round_keys->keys[1], kga, &round_keys->keys[2]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[2]), 0x04);
+	rijndael256_keygen_helper(&round_keys->keys[2], kga, &round_keys->keys[3]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[3]), 0x08);
+	rijndael256_keygen_helper(&round_keys->keys[3], kga, &round_keys->keys[4]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[4]), 0x10);
+	rijndael256_keygen_helper(&round_keys->keys[4], kga, &round_keys->keys[5]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[5]), 0x20);
+	rijndael256_keygen_helper(&round_keys->keys[5], kga, &round_keys->keys[6]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[6]), 0x40);
+	rijndael256_keygen_helper(&round_keys->keys[6], kga, &round_keys->keys[7]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[7]), 0x80);
+	rijndael256_keygen_helper(&round_keys->keys[7], kga, &round_keys->keys[8]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[8]), 0x1B);
+	rijndael256_keygen_helper(&round_keys->keys[8], kga, &round_keys->keys[9]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[9]), 0x36);
+	rijndael256_keygen_helper(&round_keys->keys[9], kga, &round_keys->keys[10]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[10]), 0x6C);
+	rijndael256_keygen_helper(&round_keys->keys[10], kga, &round_keys->keys[11]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[11]), 0xD8);
+	rijndael256_keygen_helper(&round_keys->keys[11], kga, &round_keys->keys[12]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[12]), 0xAB);
+	rijndael256_keygen_helper(&round_keys->keys[12], kga, &round_keys->keys[13]);
+	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[13]), 0x4D);
+	rijndael256_keygen_helper(&round_keys->keys[13], kga, &round_keys->keys[14]);
 }

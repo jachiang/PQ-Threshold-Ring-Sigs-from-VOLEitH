@@ -38,9 +38,9 @@ extern unsigned char aes_round_constants[];
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
-void aes_keygen(aes_round_keys* aes, block_secpar key);
-void rijndael192_keygen(rijndael192_round_keys* rijndael, block192 key) {}
-void rijndael256_keygen(rijndael256_round_keys* rijndael, block256 key) {}
+void aes_keygen(aes_round_keys* round_keys, block_secpar key);
+void rijndael192_keygen(rijndael192_round_keys* round_keys, block192 key) {}
+void rijndael256_keygen(rijndael256_round_keys* round_keys, block256 key);
 // TODO
 
 // Apply 1 round of the cipher, writing the state after the SBox into after_sbox, and writing the
@@ -74,7 +74,7 @@ inline void rijndael192_fixed_key_ctr(
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block192* restrict output) {}
 inline void rijndael256_fixed_key_ctr(
 	const rijndael256_round_keys* restrict fixed_key, const block256* restrict keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* restrict output) {}
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* restrict output);
 // TODO
 
 // Same, but for block size = security parameter.

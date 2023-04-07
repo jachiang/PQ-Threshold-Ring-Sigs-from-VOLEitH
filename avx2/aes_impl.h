@@ -54,6 +54,67 @@ ALWAYS_INLINE void aes_round(
 			state[i] = _mm_aesenclast_si128(state[i], aeses[i / evals_per_key].keys[round]);
 }
 
+// This implements the rijndael256 RotateRows step, then cancels out the RotateRows of AES so
+// that AES-NI can be used to implement it.
+ALWAYS_INLINE void rijndael256_rotate_rows_undo_128(block128* s)
+{
+	// Swapping bytes between 128-bit halves is equivalent to rotating left overall, then
+	// rotating right within each half.
+	block128 mask = _mm_setr_epi8(
+		0, -1, -1, -1,
+		0,  0, -1, -1,
+		0,  0, -1, -1,
+		0,  0,  0, -1);
+	block128 b0_blended = _mm_blendv_epi8(s[0], s[1], mask);
+	block128 b1_blended = _mm_blendv_epi8(s[1], s[0], mask);
+
+	// The rotations for 128-bit AES are different, so rotate within the halves to
+	// match.
+	block128 perm = _mm_setr_epi8(
+		 0,  1,  6,  7,
+		 4,  5, 10, 11,
+		 8,  9, 14, 15,
+		12, 13,  2,  3);
+	s[0] = _mm_shuffle_epi8(b0_blended, perm);
+	s[1] = _mm_shuffle_epi8(b1_blended, perm);
+}
+
+ALWAYS_INLINE void rijndael256_round(
+	const rijndael256_round_keys* round_keys, block256* state,
+	size_t num_keys, size_t evals_per_key, int round)
+{
+	#ifdef __GNUC__
+	_Pragma(STRINGIZE(GCC unroll (2*RIJNDAEL256_PREFERRED_WIDTH)))
+	#endif
+	for (size_t i = 0; i < num_keys * evals_per_key; ++i)
+	{
+		block128 s[2], round_key[2];
+		memcpy(&s[0], &state[i], sizeof(block256));
+		memcpy(&round_key[0], &round_keys[i / evals_per_key].keys[round], sizeof(block256));
+
+		// Use AES-NI to implement the round function.
+		if (round == 0)
+		{
+			s[0] = _mm_xor_si128(s[0], round_key[0]);
+			s[1] = _mm_xor_si128(s[1], round_key[1]);
+		}
+		else if (round < AES_ROUNDS)
+		{
+			rijndael256_rotate_rows_undo_128(&s[0]);
+			s[0] = _mm_aesenc_si128(s[0], round_key[0]);
+			s[1] = _mm_aesenc_si128(s[1], round_key[1]);
+		}
+		else
+		{
+			rijndael256_rotate_rows_undo_128(&s[0]);
+			s[0] = _mm_aesenclast_si128(s[0], round_key[0]);
+			s[1] = _mm_aesenclast_si128(s[1], round_key[1]);
+		}
+
+		memcpy(&state[i], &s[0], sizeof(block256));
+	}
+}
+
 ALWAYS_INLINE void aes_keygen_ctr(
 	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
@@ -124,8 +185,8 @@ inline void aes_ctr(
 	assert(num_keys * num_blocks <= 8 * AES_PREFERRED_WIDTH);
 	block128 state[8 * AES_PREFERRED_WIDTH];
 	for (size_t l = 0; l < num_keys; ++l)
-		for (size_t m = 0; m < num_blocks; ++m)
-			state[l * num_blocks + m] = block128_set_low64(counter + m);
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			state[l * num_blocks + m] = block128_set_low32(counter + m);
 
 	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
 	// aren't asking it to unwind the whole loop.)
@@ -146,8 +207,8 @@ inline void aes_fixed_key_ctr(
 	block128 state[8 * AES_PREFERRED_WIDTH];
 
 	for (size_t l = 0; l < num_keys; ++l)
-		for (size_t m = 0; m < num_blocks; ++m)
-			state[l * num_blocks + m] = block128_xor(block128_set_low64(counter + m), keys[l]);
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			state[l * num_blocks + m] = block128_xor(block128_set_low32(counter + m), keys[l]);
 
 	aes_round(fixed_key, state, 1, num_keys * num_blocks, 0);
 	for (int round = 1; round < AES_ROUNDS; ++round)
@@ -155,8 +216,30 @@ inline void aes_fixed_key_ctr(
 	aes_round(fixed_key, state, 1, num_keys * num_blocks, AES_ROUNDS);
 
 	for (size_t l = 0; l < num_keys; ++l)
-		for (size_t m = 0; m < num_blocks; ++m)
+		for (uint32_t m = 0; m < num_blocks; ++m)
 			output[l * num_blocks + m] = block128_xor(output[l * num_blocks + m], keys[l]);
+}
+
+inline void rijndael256_fixed_key_ctr(
+	const rijndael256_round_keys* restrict fixed_key, const block256* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* restrict output)
+{
+	// Upper bound just to avoid VLAs.
+	assert(num_keys * num_blocks <= 8 * RIJNDAEL256_PREFERRED_WIDTH);
+	block256 state[8 * RIJNDAEL256_PREFERRED_WIDTH];
+
+	for (size_t l = 0; l < num_keys; ++l)
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			state[l * num_blocks + m] = block256_xor(block256_set_low32(counter + m), keys[l]);
+
+	rijndael256_round(fixed_key, state, 1, num_keys * num_blocks, 0);
+	for (int round = 1; round < RIJNDAEL256_ROUNDS; ++round)
+		rijndael256_round(fixed_key, state, num_keys, num_blocks, round);
+	rijndael256_round(fixed_key, state, 1, num_keys * num_blocks, RIJNDAEL256_ROUNDS);
+
+	for (size_t l = 0; l < num_keys; ++l)
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			output[l * num_blocks + m] = block256_xor(output[l * num_blocks + m], keys[l]);
 }
 
 #endif

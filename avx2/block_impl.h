@@ -31,6 +31,8 @@ inline block128 block128_set_zero() { return _mm_setzero_si128(); }
 inline block256 block256_set_zero() { return _mm256_setzero_si256(); }
 inline block128 block128_set_all_8(uint8_t x) { return _mm_set1_epi8(x); }
 inline block256 block256_set_all_8(uint8_t x) { return _mm256_set1_epi8(x); }
+inline block128 block128_set_low32(uint32_t x) { return _mm_setr_epi32(x, 0, 0, 0); }
+inline block256 block256_set_low32(uint32_t x) { return _mm256_setr_epi32(x, 0, 0, 0, 0, 0, 0, 0); }
 inline block128 block128_set_low64(uint64_t x) { return _mm_set_epi64x(0, x); }
 inline block256 block256_set_low64(uint64_t x) { return _mm256_setr_epi64x(x, 0, 0, 0); }
 inline block256 block256_set_128(block128 x0, block128 x1) { return _mm256_setr_m128i(x0, x1); }
@@ -88,6 +90,18 @@ inline block512 block512_set_all_8(uint8_t x)
 	return out;
 }
 
+inline block384 block384_set_low32(uint32_t x)
+{
+	block384 out;
+	out.data[0] = block128_set_low32(x);
+	return out;
+}
+inline block512 block512_set_low32(uint32_t x)
+{
+	block512 out;
+	out.data[0] = block256_set_low32(x);
+	return out;
+}
 inline block384 block384_set_low64(uint64_t x)
 {
 	block384 out;
@@ -106,6 +120,7 @@ typedef block256 vole_block;
 inline vole_block vole_block_xor(vole_block x, vole_block y) { return block256_xor(x, y); }
 inline vole_block vole_block_and(vole_block x, vole_block y) { return block256_and(x, y); }
 inline vole_block vole_block_set_all_8(uint8_t x) { return block256_set_all_8(x); }
+inline vole_block vole_block_set_low32(uint32_t x) { return block256_set_low32(x); }
 inline vole_block vole_block_set_low64(uint64_t x) { return block256_set_low64(x); }
 
 #ifndef HAVE_VCLMUL
