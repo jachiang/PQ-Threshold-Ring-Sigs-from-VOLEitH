@@ -99,6 +99,7 @@ typedef block256 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block128_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block128_and(x, y); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block128_set_low64(x); }
+inline block_secpar block_secpar_set_zero() { return block128_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block256_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block256_and(x, y); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
@@ -109,6 +110,7 @@ typedef block384 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block192_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block192_and(x, y); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block192_set_low64(x); }
+inline block_secpar block_secpar_set_zero() { return block192_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block384_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block384_and(x, y); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block384_set_low64(x); }
@@ -120,6 +122,7 @@ typedef block512 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block256_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block256_and(x, y); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
+inline block_secpar block_secpar_set_zero() { return block256_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block512_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block512_and(x, y); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block512_set_low64(x); }
