@@ -17,7 +17,8 @@
 // hashed_leaves) will be permuted according to vole_permute_key_index. fixed_key is only used for
 // PRGs based on fixed-key Rijndael.
 void vector_commit(
-	const block_secpar* restrict roots, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict roots,
+	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
@@ -33,7 +34,8 @@ void vector_open(
 // delta first, then vole_permute_key_index. fixed_key is only used for PRGs based on fixed-key
 // Rijndael.
 void vector_verify(
-	const unsigned char* restrict opening, const rijndael_round_keys* restrict fixed_key,
+	const unsigned char* restrict opening,
+	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	const unsigned char* restrict delta,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
 

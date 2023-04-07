@@ -12,7 +12,7 @@
 // k must be at least VOLE_WIDTH_SHIFT. fixed_key is only used for PRGs based on fixed-key
 // Rijndael. Input must by permuted according to vole_permute_key_index.
 void vole_sender(
-	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c);
 
 // Given 2**k PRG keys, the secret delta, and the correction string c, generate the VOLE correlation
@@ -22,7 +22,7 @@ void vole_sender(
 // fixed_key is only used for PRGs based on fixed-key Rijndael. Input must by permuted by XOR with
 // Delta, and then with vole_permute_key_index.
 void vole_receiver(
-	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
 	const unsigned char* restrict delta);
 

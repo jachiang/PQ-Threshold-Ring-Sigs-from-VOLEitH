@@ -274,55 +274,23 @@ inline void aes_keygen_ctr_x2(aes_round_keys* aeses, const block_secpar* keys, s
 	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
 }
 
-inline void aes_keygen_ctr_vole(aes_round_keys* aeses, const block_secpar* keys, size_t counter, block128* output)
+inline void aes_ctr(
+	const aes_round_keys* aeses,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output)
 {
-	// If PRG_AES_CTR is undefined then this function is never used.
-#ifdef PRG_AES_CTR
-	static_assert(VOLE_WIDTH == AES_PREFERRED_WIDTH / 2);
-	static_assert(VOLE_CIPHER_BLOCKS == 2);
-	aes_keygen_ctr_x2(aeses, keys, counter, output);
-#endif
-}
-
-inline void aes_ctr_x2(const aes_round_keys* aeses, size_t counter, block128* output)
-{
-	block128 state[AES_PREFERRED_WIDTH];
-	for (size_t l = 0; l < AES_PREFERRED_WIDTH / 2; ++l)
-		for (size_t m = 0; m < 2; ++m)
-			state[l * 2 + m] = block128_set_low64(counter + m);
+	block128 state[num_keys * num_blocks];
+	for (size_t l = 0; l < num_keys; ++l)
+		for (size_t m = 0; m < num_blocks; ++m)
+			state[l * num_blocks + m] = block128_set_low64(counter + m);
 
 	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
 	// aren't asking it to unwind the whole loop.)
-	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, 0);
+	aes_round(aeses, state, num_keys, num_blocks, 0);
 	for (int round = 1; round < AES_ROUNDS; ++round)
-		aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, round);
-	aes_round(aeses, state, AES_PREFERRED_WIDTH / 2, 2, AES_ROUNDS);
+		aes_round(aeses, state, num_keys, num_blocks, round);
+	aes_round(aeses, state, num_keys, num_blocks, AES_ROUNDS);
 
-	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
-}
-
-inline void aes_ctr_x1(const aes_round_keys* aeses, size_t counter, block128* output)
-{
-	block128 state[AES_PREFERRED_WIDTH];
-	for (size_t l = 0; l < AES_PREFERRED_WIDTH; ++l)
-		state[l] = block128_set_low64(counter);
-
-	aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, 0);
-	for (int round = 1; round < AES_ROUNDS; ++round)
-		aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, round);
-	aes_round(aeses, state, AES_PREFERRED_WIDTH, 1, AES_ROUNDS);
-
-	memcpy(output, state, AES_PREFERRED_WIDTH * sizeof(block128));
-}
-
-inline void aes_ctr_vole(const aes_round_keys* aeses, size_t counter, block128* output)
-{
-	// If PRG_AES_CTR is undefined then this function is never used.
-#ifdef PRG_AES_CTR
-	static_assert(VOLE_WIDTH == AES_PREFERRED_WIDTH / 2);
-	static_assert(VOLE_CIPHER_BLOCKS == 2);
-	aes_ctr_x2(aeses, counter, output);
-#endif
+	memcpy(output, state, num_keys * num_blocks * sizeof(block128));
 }
 
 // For aes_ctr_fixed_key_vole and rijndael256_ctr_fixed_key_vole: (really either block128 or

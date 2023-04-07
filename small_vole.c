@@ -41,34 +41,10 @@ static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
 	}
 }
 
-// Generates output along with the key.
-static ALWAYS_INLINE void prg_keygen(
-	vole_cipher_round_keys* round_keys, const rijndael_round_keys* restrict fixed_key,
-	const block_secpar* restrict keys, vole_cipher_block* output)
-{
-#if defined(PRG_AES_CTR)
-	aes_keygen_ctr_vole(round_keys, keys, 0, output);
-#else
-	rijndael_ctr_fixed_key_vole(fixed_key, keys, 0, output);
-#endif
-}
-
-static ALWAYS_INLINE void prg_eval(
-	size_t counter, const vole_cipher_round_keys* round_keys,
-	const rijndael_round_keys* restrict fixed_key, const block_secpar* keys,
-	vole_cipher_block* output)
-{
-#if defined(PRG_AES_CTR)
-	aes_ctr_vole(round_keys, counter * VOLE_CIPHER_BLOCKS, output);
-#elif defined(PRG_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_ctr_fixed_key_vole(fixed_key, keys, counter * VOLE_CIPHER_BLOCKS, output);
-#endif
-}
-
 // Sender and receiver merged together, since they share most of the same code.
 static ALWAYS_INLINE void vole(
 	bool receiver, unsigned int k,
-	const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
+	const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u_or_c_in, vole_block* restrict vq, vole_block* restrict c_out,
 	const unsigned char* restrict delta)
 {
@@ -90,22 +66,26 @@ static ALWAYS_INLINE void vole(
 	{
 		// Handle first iteration separately, since the 0th PRG key is a dummy. Hopefully the
 		// compiler will notice that it's unused and remove the corresponding code.
-		vole_cipher_round_keys round_keys[VOLE_WIDTH];
-		vole_cipher_block cipher_output[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
+		prg_vole_key prgs[VOLE_WIDTH];
+		prg_vole_iv ivs[VOLE_WIDTH];
+		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
 
-		prg_keygen(round_keys, fixed_key, &keys[0], cipher_output);
+		// TODO
+		memset(&ivs, 0, sizeof(ivs));
+
+		prg_vole_init(prgs, fixed_key, &keys[0], ivs, VOLE_WIDTH, PRG_VOLE_BLOCKS, 0, raw_prg_output);
 		for (size_t j = 0; j < COL_LEN; ++j)
 		{
 			if (j)
-				prg_eval(j, round_keys, fixed_key, &keys[0], cipher_output);
+				prg_vole_gen(prgs, fixed_key, VOLE_WIDTH, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
 
 			// TODO: How to convert from block128 to block256 without letting the compiler spill to
 			// stack?
-			// I think the issue is that this conversion is shared between prg_keygen and prg_eval,
-			// so GCC thinks the input from both should be on the stack so that they match. Need to
-			// duplicate instead.
+			// I think the issue is that this conversion is shared between prg_vole_init and
+			// prg_vole_gen, so GCC thinks the input from both should be on the stack so that they
+			// match. Need to duplicate instead.
 			vole_block prg_output[VOLE_WIDTH];
-			memcpy(prg_output, cipher_output, sizeof(prg_output));
+			memcpy(prg_output, raw_prg_output, sizeof(prg_output));
 
 			xor_reduce(prg_output);
 			for (size_t col = 0; col < VOLE_WIDTH_SHIFT; ++col)
@@ -119,20 +99,24 @@ static ALWAYS_INLINE void vole(
 
 	for (; i < (1 << k); i += VOLE_WIDTH)
 	{
-		vole_cipher_round_keys round_keys[VOLE_WIDTH];
-		vole_cipher_block cipher_output[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
+		prg_vole_key prgs[VOLE_WIDTH];
+		prg_vole_iv ivs[VOLE_WIDTH];
+		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
+
+		// TODO
+		memset(&ivs, 0, sizeof(ivs));
 
 		// Bitwise or is to make output_col be k - 1 when i + VOLE_WIDTH = 2**k, rather than k.
 		unsigned int output_col = count_trailing_zeros((i + VOLE_WIDTH) | (1 << (k - 1)));
 
-		prg_keygen(round_keys, fixed_key, &keys[i], cipher_output);
+		prg_vole_init(prgs, fixed_key, &keys[i], ivs, VOLE_WIDTH, PRG_VOLE_BLOCKS, 0, raw_prg_output);
 		for (size_t j = 0; j < COL_LEN; ++j)
 		{
 			if (j)
-				prg_eval(j, round_keys, fixed_key, &keys[i], cipher_output);
+				prg_vole_gen(prgs, fixed_key, VOLE_WIDTH, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
 
 			vole_block prg_output[VOLE_WIDTH];
-			memcpy(prg_output, cipher_output, sizeof(prg_output));
+			memcpy(prg_output, raw_prg_output, sizeof(prg_output));
 
 			xor_reduce(prg_output);
 
@@ -152,14 +136,14 @@ static ALWAYS_INLINE void vole(
 }
 
 void vole_sender(
-	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c)
 {
 	vole(false, k, keys, fixed_key, u, v, c, NULL);
 }
 
 void vole_receiver(
-	unsigned int k, const block_secpar* restrict keys, const rijndael_round_keys* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
 	const unsigned char* restrict delta)
 {

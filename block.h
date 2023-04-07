@@ -36,6 +36,11 @@ inline block192 block192_set_low64(uint64_t x)
 	return out;
 }
 
+inline block192 block192_set_zero()
+{
+	return block192_set_low64(0);
+}
+
 #include "block_impl.h"
 
 // Interface defined by block_impl.h

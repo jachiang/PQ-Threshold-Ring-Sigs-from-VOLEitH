@@ -27,6 +27,8 @@ inline block128 block128_xor(block128 x, block128 y) { return _mm_xor_si128(x, y
 inline block256 block256_xor(block256 x, block256 y) { return _mm256_xor_si256(x, y); }
 inline block128 block128_and(block128 x, block128 y) { return _mm_and_si128(x, y); }
 inline block256 block256_and(block256 x, block256 y) { return _mm256_and_si256(x, y); }
+inline block128 block128_set_zero() { return _mm_setzero_si128(); }
+inline block256 block256_set_zero() { return _mm256_setzero_si256(); }
 inline block128 block128_set_all_8(uint8_t x) { return _mm_set1_epi8(x); }
 inline block256 block256_set_all_8(uint8_t x) { return _mm256_set1_epi8(x); }
 inline block128 block128_set_low64(uint64_t x) { return _mm_set_epi64x(0, x); }
