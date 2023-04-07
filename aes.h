@@ -68,7 +68,7 @@ inline void aes_ctr(
 // mode, starting at counter.
 inline void aes_fixed_key_ctr(
 	const aes_round_keys* restrict fixed_key, const block128* restrict keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output) {}
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 inline void rijndael192_fixed_key_ctr(
 	const rijndael192_round_keys* restrict fixed_key, const block192* restrict keys,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block192* restrict output) {}

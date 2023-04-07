@@ -137,20 +137,26 @@ inline void aes_ctr(
 	memcpy(output, state, num_keys * num_blocks * sizeof(block128));
 }
 
-// For aes_ctr_fixed_key_vole and rijndael256_ctr_fixed_key_vole: (really either block128 or
-// block256)
-//	block_secpar input[VOLE_WIDTH * VOLE_CIPHER_BLOCKS];
-//	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-//		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-//			input[l * VOLE_CIPHER_BLOCKS + m] = block_secpar_set_low64(counter + m);
-//	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-//		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-//			input[l * VOLE_CIPHER_BLOCKS + m] =
-//				block_secpar_xor(input[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
-//	rijndael_encrypt_fixed_key_vole(fixed_key, input, output);
-//	for (size_t l = 0; l < VOLE_WIDTH; ++l)
-//		for (size_t m = 0; m < VOLE_CIPHER_BLOCKS; ++m)
-//			output[l * VOLE_CIPHER_BLOCKS + m] =
-//				block_secpar_xor(output[l * VOLE_CIPHER_BLOCKS + m], keys[l]);
+inline void aes_fixed_key_ctr(
+	const aes_round_keys* restrict fixed_key, const block128* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
+{
+	// Upper bound just to avoid VLAs.
+	assert(num_keys * num_blocks <= 8 * AES_PREFERRED_WIDTH);
+	block128 state[8 * AES_PREFERRED_WIDTH];
+
+	for (size_t l = 0; l < num_keys; ++l)
+		for (size_t m = 0; m < num_blocks; ++m)
+			state[l * num_blocks + m] = block128_xor(block128_set_low64(counter + m), keys[l]);
+
+	aes_round(fixed_key, state, 1, num_keys * num_blocks, 0);
+	for (int round = 1; round < AES_ROUNDS; ++round)
+		aes_round(fixed_key, state, num_keys, num_blocks, round);
+	aes_round(fixed_key, state, 1, num_keys * num_blocks, AES_ROUNDS);
+
+	for (size_t l = 0; l < num_keys; ++l)
+		for (size_t m = 0; m < num_blocks; ++m)
+			output[l * num_blocks + m] = block128_xor(output[l * num_blocks + m], keys[l]);
+}
 
 #endif
