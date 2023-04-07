@@ -2,8 +2,20 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define FAEST_SECRET_KEY_BYTES (SECURITY_PARAM / 8)
-#define FAEST_PUBLIC_KEY_BYTES (2 * SECURITY_PARAM / 8)
+#if defined(OWF_AES_CTR)
+#define FAEST_IV_BYTES 16
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+#define FAEST_IV_BYTES (SECURITY_PARAM / 8)
+#endif
+
+#define FAEST_SECRET_KEY_BYTES ((SECURITY_PARAM / 8) + FAEST_IV_BYTES)
+
+#if defined(OWF_AES_CTR) && SECURITY_PARAM == 192
+#define FAEST_PUBLIC_KEY_BYTES (32 + FAEST_IV_BYTES)
+#else
+#define FAEST_PUBLIC_KEY_BYTES FAEST_SECRET_KEY_BYTES
+#endif
+
 #define FAEST_SIGNATURE_BYTES 0 /* TODO */
 
 // Random seed can be set to null for deterministic signatures.

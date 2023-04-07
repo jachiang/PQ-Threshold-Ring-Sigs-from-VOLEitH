@@ -73,10 +73,22 @@ endef
 define config-recipe
 $(1)/% : %.in | $(1)/
 	$(let name security_param owf prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
-	sed $(foreach substitution,"%VERSION%/$(name)" "%SECURITY_PARAM%/$(security_param)" "%OWF%/$(owf)" "%PRG%/$(prg)" "%TREE_PRG%/$(tree_prg)" "%LEAF_PRG%/$(leaf_prg)" "%TAU%/$(tau)",\
+	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),128),\
+	$(let sk_bytes,$(shell expr "(" $(security_param) "+" $(iv_bits) ")" "/" 8),\
+	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),48,$(sk_bytes)),\
+	sed $(foreach substitution,\
+		"%VERSION%/$(name)"\
+		"%SECURITY_PARAM%/$(security_param)"\
+		"%OWF%/$(owf)"\
+		"%PRG%/$(prg)"\
+		"%TREE_PRG%/$(tree_prg)"\
+		"%LEAF_PRG%/$(leaf_prg)"
+		"%TAU%/$(tau)"
+		"%SECRETKEYBYTES%/$(sk_bytes)"\
+		"%PUBLICKEYBYTES%/$(pk_bytes)",\
 		-e "s/"$(substitution)"/g" \
 	) $$< > $$@ \
-	)
+	))))
 endef
 
 define full-recipe

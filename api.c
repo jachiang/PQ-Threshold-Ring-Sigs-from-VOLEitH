@@ -1,5 +1,11 @@
+#include "api.h"
 #include "faest.h"
+#include <assert.h>
 #include <string.h>
+
+static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES);
+static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES);
+static_assert(CRYPTO_BYTES == FAEST_SIGNATURE_BYTES);
 
 void randombytes(unsigned char *x, unsigned long long xlen);
 
