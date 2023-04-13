@@ -27,16 +27,19 @@ typedef struct
 	block256 keys[RIJNDAEL256_ROUNDS + 1];
 } rijndael256_round_keys;
 
-inline void aes_round_function(const aes_round_keys* aes, block128* state, block128* after_sbox, int round)
+inline void aes_round_function(
+	const aes_round_keys* restrict round_keys, block128* restrict block,
+	block128* restrict after_sbox, int round)
 {
-	block128 input = *state;
-	block128 state_after_sbox = _mm_aesenclast_si128(input, _mm_setzero_si128());
+	block128 state = *block;
+	block128 state_after_sbox = _mm_aesenclast_si128(state, block128_set_zero());
 	*after_sbox = state_after_sbox;
 
 	if (round < AES_ROUNDS)
-		*state = _mm_aesenc_si128(input, aes->keys[round]);
+		state = _mm_aesenc_si128(state, round_keys->keys[round]);
 	else
-		*state = _mm_xor_si128(state_after_sbox, aes->keys[round]);
+		state = block128_xor(state_after_sbox, round_keys->keys[round]);
+	*block = state;
 }
 
 ALWAYS_INLINE void aes_round(
@@ -47,7 +50,7 @@ ALWAYS_INLINE void aes_round(
 	#endif
 	for (size_t i = 0; i < num_keys * evals_per_key; ++i)
 		if (round == 0)
-			state[i] = _mm_xor_si128(state[i], aeses[i / evals_per_key].keys[round]);
+			state[i] = block128_xor(state[i], aeses[i / evals_per_key].keys[round]);
 		else if (round < AES_ROUNDS)
 			state[i] = _mm_aesenc_si128(state[i], aeses[i / evals_per_key].keys[round]);
 		else
@@ -95,8 +98,8 @@ ALWAYS_INLINE void rijndael256_round(
 		// Use AES-NI to implement the round function.
 		if (round == 0)
 		{
-			s[0] = _mm_xor_si128(s[0], round_key[0]);
-			s[1] = _mm_xor_si128(s[1], round_key[1]);
+			s[0] = block128_xor(s[0], round_key[0]);
+			s[1] = block128_xor(s[1], round_key[1]);
 		}
 		else if (round < AES_ROUNDS)
 		{

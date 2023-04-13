@@ -380,3 +380,31 @@ void rijndael256_keygen(rijndael256_round_keys* round_keys, block256 key)
 	kga = _mm_aeskeygenassist_si128(load_high_128(&round_keys->keys[13]), 0x4D);
 	rijndael256_keygen_helper(&round_keys->keys[13], kga, &round_keys->keys[14]);
 }
+
+void rijndael256_round_function(
+	const rijndael256_round_keys* restrict round_keys, block256* restrict block,
+	block256* restrict after_sbox, int round)
+{
+	block128 state[2], state_after_sbox[2], round_key[2];
+	memcpy(&state[0], block, sizeof(block256));
+	memcpy(&round_key[0], &round_keys->keys[round], sizeof(block256));
+
+	// Use AES-NI to implement the round function.
+	rijndael256_rotate_rows_undo_128(&state[0]);
+	state_after_sbox[0] = _mm_aesenclast_si128(state[0], block128_set_zero());
+	state_after_sbox[1] = _mm_aesenclast_si128(state[1], block128_set_zero());
+
+	if (round < AES_ROUNDS)
+	{
+		state[0] = _mm_aesenc_si128(state[0], round_key[0]);
+		state[1] = _mm_aesenc_si128(state[1], round_key[1]);
+	}
+	else
+	{
+		state[0] = block128_xor(state_after_sbox[0], round_key[0]);
+		state[1] = block128_xor(state_after_sbox[1], round_key[1]);
+	}
+
+	memcpy(after_sbox, &state_after_sbox[0], sizeof(block256));
+	memcpy(block, &state[0], sizeof(block256));
+}

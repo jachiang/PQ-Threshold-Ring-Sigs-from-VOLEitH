@@ -39,17 +39,23 @@ extern unsigned char aes_round_constants[];
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
 void aes_keygen(aes_round_keys* round_keys, block_secpar key);
-void rijndael192_keygen(rijndael192_round_keys* round_keys, block192 key) {}
+void rijndael192_keygen(rijndael192_round_keys* round_keys, block192 key);
 void rijndael256_keygen(rijndael256_round_keys* round_keys, block256 key);
-// TODO
+// TODO: 192
 
 // Apply 1 round of the cipher, writing the state after the SBox into after_sbox, and writing the
 // new state back into state. round is the index of the round key to use, so it should start from
 // one.
-inline void aes_round_function(const aes_round_keys* aes, block128* state, block128* after_sbox, int round);
-inline void rijndael192_round_function(const rijndael192_round_keys* aes, block192* state, block192* after_sbox, int round) {}
-inline void rijndael256_round_function(const rijndael256_round_keys* aes, block256* state, block256* after_sbox, int round) {}
-// TODO
+inline void aes_round_function(
+	const aes_round_keys* restrict round_keys, block128* restrict block,
+	block128* restrict after_sbox, int round);
+void rijndael192_round_function(
+	const rijndael192_round_keys* restrict round_keys, block192* restrict block,
+	block192* restrict after_sbox, int round);
+void rijndael256_round_function(
+	const rijndael256_round_keys* restrict round_keys, block256* restrict block,
+	block256* restrict after_sbox, int round);
+// TODO: 192
 
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
 // Each key has it's own iv, which gets baked into the round keys. Outputs from the same key are
@@ -75,7 +81,7 @@ inline void rijndael192_fixed_key_ctr(
 inline void rijndael256_fixed_key_ctr(
 	const rijndael256_round_keys* restrict fixed_key, const block256* restrict keys,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block256* restrict output);
-// TODO
+// TODO: 192
 
 // Same, but for block size = security parameter.
 #if SECURITY_PARAM == 128
