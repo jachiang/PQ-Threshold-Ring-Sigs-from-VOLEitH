@@ -27,6 +27,9 @@ typedef struct
 	block256 keys[RIJNDAEL256_ROUNDS + 1];
 } rijndael256_round_keys;
 
+void rijndael192_encrypt_block(
+	const rijndael192_round_keys* restrict fixed_key, block192* restrict block);
+
 inline void aes_round_function(
 	const aes_round_keys* restrict round_keys, block128* restrict block,
 	block128* restrict after_sbox, int round)
@@ -58,7 +61,7 @@ ALWAYS_INLINE void aes_round(
 }
 
 // This implements the rijndael256 RotateRows step, then cancels out the RotateRows of AES so
-// that AES-NI can be used to implement it.
+// that AES-NI can be used for the sbox.
 ALWAYS_INLINE void rijndael256_rotate_rows_undo_128(block128* s)
 {
 	// Swapping bytes between 128-bit halves is equivalent to rotating left overall, then
@@ -243,6 +246,21 @@ inline void rijndael256_fixed_key_ctr(
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
 			output[l * num_blocks + m] = block256_xor(output[l * num_blocks + m], keys[l]);
+}
+
+inline void rijndael192_fixed_key_ctr(
+	const rijndael192_round_keys* restrict fixed_key, const block192* restrict keys,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block192* restrict output)
+{
+	for (size_t l = 0; l < num_keys; ++l)
+	{
+		for (uint32_t m = 0; m < num_blocks; ++m)
+		{
+			block192 state = block192_xor(block192_set_low32(counter + m), keys[l]);
+			rijndael192_encrypt_block(fixed_key, &state);
+			output[l * num_blocks + m] = state;
+		}
+	}
 }
 
 #endif
