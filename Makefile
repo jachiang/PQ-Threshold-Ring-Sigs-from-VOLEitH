@@ -91,30 +91,46 @@ $(1)/% : %.in | $(1)/
 	))))
 endef
 
+
+# canned recipe for a variant
+# - arguments:
+# 	$(1): architecture (e.g. "ref", "avx2")
+# 	$(2): setting name (e.g. "sec128_cccc_10_avx2")
+# 	$(3): path (e.g. "Additional_Implementations/sec128_cccc_10_avx2")
+# 	$(4): setting (comma-separated list of the form name,security_param,owf,prg,tree_prg,leaf_prg,tau)
 define full-recipe
+
+# $(1)_sources contains the shared and archtecture-specific source files
+
 $(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_asm_objects = $$(foreach source,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
 $(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers)
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
 
+# hard link all source files into the variant directory
 $$(foreach src,$$($(1)_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
 
+# generate config.h with the setting-specific constants
 $(eval $(call config-recipe,$(3),$(4)))
 
+# object files depend on the headers
 headers-$(2) : $$($(2)_headers)
 .PHONY: headers-$(2)
 $$($(2)_objects)) : | headers-$(2)
 
+# targets to create (sub)directories
 $(3)/:
 	$$(MKDIR_P) $$@
 $(3)/%/:
 	$$(MKDIR_P) $$@
 
+# target for the variant directory
 $(2) : $$($(2)_targets)
 .PHONY : $(2)
 all : $(2)
 
+# magic to generate dependency files
 # https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 $$($(2)_depfiles):
 include $$(wildcard $$($(2)_depfiles))
