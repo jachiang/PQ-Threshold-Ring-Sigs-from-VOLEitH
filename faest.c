@@ -33,3 +33,13 @@ void faest_pubkey(unsigned char* public_key, const unsigned char* secret_key)
 	memcpy(public_key, &iv, sizeof(iv));
 	memcpy(public_key + sizeof(iv), &cipher_output[0], sizeof(cipher_output));
 }
+
+void faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* secret_key, const unsigned char* random_seed)
+{
+    // TODO
+}
+
+bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* public_key)
+{
+    // TODO
+}
