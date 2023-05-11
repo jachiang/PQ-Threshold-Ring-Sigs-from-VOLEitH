@@ -1,5 +1,6 @@
 CPPFLAGS += -MMD -MP -MF $*.d
 CFLAGS ?= -std=c11 -pedantic-errors -O2 -march=native -mtune=native
+LDFLAGS += -lcrypto
 
 CP_L = cp -l
 MKDIR_P = mkdir -p
@@ -17,12 +18,14 @@ keccak_avx2_sources = \
 	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/KeccakP-1600-times4-*)\
 	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/u12/SIMD256-config.h)\
 	$(wildcard XKCP/lib/low/KeccakP-1600-times8/fallback-on4/*)
+catch2_sources = $(wildcard Catch2/extras/catch_amalgamated.*)
 
 shared_sources = $(wildcard *.c *.h *.in) $(keccak_sources)
 #opt_sources = $(wildcard opt/*.c opt/*.h)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
 avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
+test_sources = $(wildcard test/*.cpp) $(catch2_sources)
 
 all:
 .PHONY: all
@@ -105,19 +108,31 @@ define full-recipe
 $(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_asm_objects = $$(foreach source,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
-$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers)
+$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $$($(2)_test_objects) $(3)/$(2)_test
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
+$(2)_test_headers = $$(foreach header,$$(filter %.hpp,$$(test_sources)),$(3)/$$(notdir $$(header)))
+$(2)_test_objects = $$(foreach source,$$(patsubst %.cpp,%.o,$$(filter %.cpp,$$(test_sources))),$(3)/$$(notdir $$(source)))
 
 # hard link all source files into the variant directory
 $$(foreach src,$$($(1)_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
+$$(foreach src,$$(test_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
 
 # generate config.h with the setting-specific constants
 $(eval $(call config-recipe,$(3),$(4)))
 
-# object files depend on the headers
+# object files depend on the headers (build order only)
 headers-$(2) : $$($(2)_headers)
 .PHONY: headers-$(2)
 $$($(2)_objects)) : | headers-$(2)
+
+# same for test files
+test-headers-$(2) : $$($(2)_test_headers)
+.PHONY: test-headers-$(2)
+$$($(2)_test_objects)) : | headers-$(2) test-headers-$(2)
+
+# target for test binary
+$(3)/$(2)_test : $$($(2)_test_objects) $$($(2)_objects) $$($(2)_asm_objects)
+	$(CXX) -o $$@ $(LDFLAGS) $$^ $(LOADLIBES) $(LDLIBS)
 
 # targets to create (sub)directories
 $(3)/:
