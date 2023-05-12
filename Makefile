@@ -1,5 +1,7 @@
 CPPFLAGS += -MMD -MP -MF $*.d
-CFLAGS ?= -std=c11 -pedantic-errors -O2 -march=native -mtune=native
+COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native
+CFLAGS ?= -std=c11 $(COMMON_FLAGS)
+CXXFLAGS ?= -std=c++14 $(COMMON_FLAGS)
 LDFLAGS += -lcrypto
 
 CP_L = cp -l
