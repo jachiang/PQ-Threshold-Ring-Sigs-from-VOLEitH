@@ -110,10 +110,10 @@ define full-recipe
 $(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_asm_objects = $$(foreach source,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
-$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $$($(2)_test_objects) $(3)/$(2)_test
-$(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects))
 $(2)_test_headers = $$(foreach header,$$(filter %.hpp,$$(test_sources)),$(3)/$$(notdir $$(header)))
 $(2)_test_objects = $$(foreach source,$$(patsubst %.cpp,%.o,$$(filter %.cpp,$$(test_sources))),$(3)/$$(notdir $$(source)))
+$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $$($(2)_test_objects) $(3)/$(2)_test
+$(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects)) $$(patsubst %.o,%.d,$$($(2)_test_objects))
 
 # hard link all source files into the variant directory
 $$(foreach src,$$($(1)_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
