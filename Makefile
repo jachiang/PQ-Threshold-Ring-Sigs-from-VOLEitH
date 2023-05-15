@@ -27,7 +27,7 @@ shared_sources = $(wildcard *.c *.h *.in) $(keccak_sources)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
 avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
-test_sources = $(wildcard test/*.cpp) $(catch2_sources)
+test_sources = $(wildcard test/*.cpp test/*.hpp) $(catch2_sources)
 
 all:
 .PHONY: all
