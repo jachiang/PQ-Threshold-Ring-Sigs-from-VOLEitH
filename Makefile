@@ -1,5 +1,5 @@
 CPPFLAGS += -MMD -MP -MF $*.d
-COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native
+COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native -Wall -Wextra
 CFLAGS ?= -std=c11 $(COMMON_FLAGS)
 CXXFLAGS ?= -std=c++14 $(COMMON_FLAGS)
 LDFLAGS += -lcrypto
