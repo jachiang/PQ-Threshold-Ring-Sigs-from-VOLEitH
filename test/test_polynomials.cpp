@@ -3,13 +3,14 @@
 #include <sstream>
 #include <ios>
 
+#include "test.hpp"
+
 extern "C" {
 
 #include "polynomials.h"
 
 }
 
-#include "test.hpp"
 #include "catch_amalgamated.hpp"
 
 const size_t TEST_VEC_LEN = 16;

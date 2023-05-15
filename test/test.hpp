@@ -6,8 +6,11 @@
 #include <iostream>
 #include <string>
 
+extern "C" {
+#include "polynomials.h"
+}
 
-std::string poly_vec_to_string(const uint8_t* buf, size_t poly_size) {
+inline std::string poly_vec_to_string(const uint8_t* buf, size_t poly_size) {
     std::stringstream ss;
     ss << std::hex << "(0x";
     for (size_t i = 0; i < poly_size; ++i) {
@@ -23,37 +26,37 @@ std::string poly_vec_to_string(const uint8_t* buf, size_t poly_size) {
     return ss.str();
 }
 
-std::string poly64_vec_to_string(poly64_vec pv) {
+inline std::string poly64_vec_to_string(poly64_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 8> buf;
     poly64_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 8);
 }
 
-std::string poly128_vec_to_string(poly128_vec pv) {
+inline std::string poly128_vec_to_string(poly128_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 16> buf;
     poly128_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 16);
 }
 
-std::string poly192_vec_to_string(poly192_vec pv) {
+inline std::string poly192_vec_to_string(poly192_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 24> buf;
     poly192_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 24);
 }
 
-std::string poly256_vec_to_string(poly256_vec pv) {
+inline std::string poly256_vec_to_string(poly256_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 32> buf;
     poly256_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 32);
 }
 
-std::string poly384_vec_to_string(poly384_vec pv) {
+inline std::string poly384_vec_to_string(poly384_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 48> buf;
     poly384_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 48);
 }
 
-std::string poly512_vec_to_string(poly512_vec pv) {
+inline std::string poly512_vec_to_string(poly512_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 64> buf;
     poly512_store(buf.data(), pv);
     return poly_vec_to_string(buf.data(), 64);
