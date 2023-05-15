@@ -1,6 +1,8 @@
 #ifndef POLYNOMIALS_H
 #define POLYNOMIALS_H
 
+#include <stdbool.h>
+
 #define POLY_VEC_LEN (1 << POLY_VEC_LEN_SHIFT)
 
 #include "polynomials_impl.h"
@@ -67,6 +69,14 @@ inline poly192_vec poly256_reduce192(poly256_vec x);
 inline poly192_vec poly384_reduce192(poly384_vec x);
 inline poly256_vec poly320_reduce256(poly320_vec x);
 inline poly256_vec poly512_reduce256(poly512_vec x);
+
+// Test two vectors of polynomials for equality
+inline bool poly64_eq(poly64_vec x, poly64_vec y);
+inline bool poly128_eq(poly128_vec x, poly128_vec y);
+inline bool poly192_eq(poly192_vec x, poly192_vec y);
+inline bool poly256_eq(poly256_vec x, poly256_vec y);
+inline bool poly384_eq(poly384_vec x, poly384_vec y);
+inline bool poly512_eq(poly512_vec x, poly512_vec y);
 
 #if SECURITY_PARAM == 128
 typedef poly128_vec poly_secpar_vec;

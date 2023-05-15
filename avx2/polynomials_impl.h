@@ -512,4 +512,86 @@ inline poly256_vec poly320_reduce256(poly320_vec x)
 	return out;
 }
 
+inline bool poly64_eq(poly64_vec x, poly64_vec y)
+{
+#if POLY_VEC_LEN == 1
+	return _mm_cvtsi128_si64(x) == _mm_cvtsi128_si64(y);
+#elif POLY_VEC_LEN == 2
+    __m128i tmp = _mm_xor_si128(_mm256_castsi256_si128(transpose2x2_64(x)), _mm256_castsi256_si128(transpose2x2_64(y)));
+    return _mm_test_all_zeros(tmp, tmp);
+#endif
+}
+
+inline bool poly128_eq(poly128_vec x, poly128_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp = _mm_xor_si128(x, y);
+    return _mm_test_all_zeros(tmp, tmp);
+#elif POLY_VEC_LEN == 2
+    __m256i tmp = _mm256_xor_si256(x, y);
+    return _mm256_test_all_zeros(tmp, tmp);
+#endif
+}
+
+inline bool poly192_eq(poly192_vec x, poly192_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp0 = _mm_xor_si128(x.data[0], y.data[0]);
+	return _mm_test_all_zeros(tmp0, tmp0) && (_mm_cvtsi128_si64(x.data[1]) == _mm_cvtsi128_si64(y.data[1]));
+#elif POLY_VEC_LEN == 2
+    __m256i tmp0 = _mm256_xor_si256(x.data[0], y.data[0]);
+    __m128i tmp1 = _mm_xor_si128(_mm256_castsi256_si128(transpose2x2_64(x.data[1])), _mm256_castsi256_si128(transpose2x2_64(y.data[1])));
+    return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1);
+#endif
+}
+
+inline bool poly256_eq(poly256_vec x, poly256_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp0 = _mm_xor_si128(x.data[0], y.data[0]);
+    __m128i tmp1 = _mm_xor_si128(x.data[1], y.data[1]);
+    return _mm_test_all_zeros(tmp0, tmp0) && _mm_test_all_zeros(tmp1, tmp1);
+#elif POLY_VEC_LEN == 2
+    __m256i tmp0 = _mm256_xor_si256(x.data[0], y.data[0]);
+    __m256i tmp1 = _mm256_xor_si256(x.data[1], y.data[1]);
+    return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1);
+#endif
+}
+
+inline bool poly384_eq(poly384_vec x, poly384_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp0 = _mm_xor_si128(x.data[0], y.data[0]);
+    __m128i tmp1 = _mm_xor_si128(x.data[1], y.data[1]);
+    __m128i tmp2 = _mm_xor_si128(x.data[2], y.data[2]);
+    return _mm_test_all_zeros(tmp0, tmp0) && _mm_test_all_zeros(tmp1, tmp1) && \
+           _mm_test_all_zeros(tmp2, tmp2);
+#elif POLY_VEC_LEN == 2
+    __m256i tmp0 = _mm256_xor_si256(x.data[0], y.data[0]);
+    __m256i tmp1 = _mm256_xor_si256(x.data[1], y.data[1]);
+    __m256i tmp2 = _mm256_xor_si256(x.data[2], y.data[2]);
+    return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1) && \
+           _mm256_test_all_zeros(tmp2, tmp2);
+#endif
+}
+
+inline bool poly512_eq(poly512_vec x, poly512_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp0 = _mm_xor_si128(x.data[0], y.data[0]);
+    __m128i tmp1 = _mm_xor_si128(x.data[1], y.data[1]);
+    __m128i tmp2 = _mm_xor_si128(x.data[2], y.data[2]);
+    __m128i tmp3 = _mm_xor_si128(x.data[3], y.data[3]);
+    return _mm_test_all_zeros(tmp0, tmp0) && _mm_test_all_zeros(tmp1, tmp1) && \
+           _mm_test_all_zeros(tmp2, tmp2) && _mm_test_all_zeros(tmp3, tmp3);
+#elif POLY_VEC_LEN == 2
+    __m256i tmp0 = _mm256_xor_si256(x.data[0], y.data[0]);
+    __m256i tmp1 = _mm256_xor_si256(x.data[1], y.data[1]);
+    __m256i tmp2 = _mm256_xor_si256(x.data[2], y.data[2]);
+    __m256i tmp3 = _mm256_xor_si256(x.data[3], y.data[3]);
+    return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1) && \
+           _mm256_test_all_zeros(tmp2, tmp2) && _mm256_test_all_zeros(tmp3, tmp3);
+#endif
+}
+
 #endif
