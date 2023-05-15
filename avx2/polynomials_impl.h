@@ -248,7 +248,7 @@ inline void karatsuba_mul_128_uninterpolated(poly128_vec x, poly128_vec y, poly1
 }
 
 // Karatsuba multiplication, but don't combine the 3 128-bit polynomials into a 256-bit polynomial.
-void karatsuba_mul_128_uncombined(poly128_vec x, poly128_vec y, poly128_vec* out)
+inline void karatsuba_mul_128_uncombined(poly128_vec x, poly128_vec y, poly128_vec* out)
 {
 	karatsuba_mul_128_uninterpolated(x, y, out);
 	out[1] = poly128_add(poly128_add(out[0], out[2]), out[1]);
@@ -256,7 +256,7 @@ void karatsuba_mul_128_uncombined(poly128_vec x, poly128_vec y, poly128_vec* out
 
 // Given a sequence of n (for n >= 2) 128-bit polynomials p_i, compute the sum of x^(64*i) p_i as a
 // sequence of n / 2 + 1 128-bit polynomials.
-void combine_poly128s(poly128_vec* out, const poly128_vec* in, size_t n)
+inline void combine_poly128s(poly128_vec* out, const poly128_vec* in, size_t n)
 {
 	out[0] = poly128_add(in[0], clmul_block_shift_left_64(in[1]));
 	for (size_t i = 1; i < n / 2; ++i)
