@@ -347,16 +347,19 @@ inline poly512_vec poly256_mul(poly256_vec x, poly256_vec y)
 	poly128_vec x0y0[3], x1y1[3], xsum_ysum[3];
 	karatsuba_mul_128_uncombined(x.data[0], y.data[0], &x0y0[0]);
 	karatsuba_mul_128_uncombined(x.data[1], y.data[1], &x1y1[0]);
-	poly128_vec xsum = poly128_add(x.data[0], y.data[0]);
-	poly128_vec ysum = poly128_add(x.data[1], y.data[1]);
+
+	poly128_vec xsum = poly128_add(x.data[0], x.data[1]);
+	poly128_vec ysum = poly128_add(y.data[0], y.data[1]);
 	karatsuba_mul_128_uncombined(xsum, ysum, &xsum_ysum[0]);
+
+	poly128_vec x0y0_2_plus_x1y1_0 = poly128_add(x0y0[2], x1y1[0]);
 
 	poly128_vec combined[7];
 	combined[0] = x0y0[0];
 	combined[1] = x0y0[1];
-	combined[2] = poly128_add(x0y0[2], xsum_ysum[0]);
-	combined[3] = xsum_ysum[1];
-	combined[4] = poly128_add(x1y1[0], xsum_ysum[2]);
+	combined[2] = poly128_add(xsum_ysum[0], poly128_add(x0y0[0], x0y0_2_plus_x1y1_0));
+	combined[3] = poly128_add(xsum_ysum[1], poly128_add(x0y0[1], x1y1[1]));
+	combined[4] = poly128_add(xsum_ysum[2], poly128_add(x1y1[2], x0y0_2_plus_x1y1_0));
 	combined[5] = x1y1[1];
 	combined[6] = x1y1[2];
 
