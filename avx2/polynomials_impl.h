@@ -150,7 +150,7 @@ inline void poly128_store(void* d, poly128_vec s)
 inline void poly192_store(void* d, poly192_vec s)
 {
 #if POLY_VEC_LEN == 1
-	memcpy(d, &s, sizeof(poly192_vec));
+	memcpy(d, &s, 24);
 
 #elif POLY_VEC_LEN == 2
 	// s.data[0] = a0a1b0b1
