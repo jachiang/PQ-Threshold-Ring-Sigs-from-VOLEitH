@@ -23,6 +23,7 @@ inline poly64_vec poly64_load(const void* s);
 inline poly128_vec poly128_load(const void* s);
 inline poly192_vec poly192_load(const void* s);
 inline poly256_vec poly256_load(const void* s);
+inline poly384_vec poly384_load(const void* s);
 inline poly512_vec poly512_load(const void* s);
 
 // Store a vector of POLY_VEC_LEN polynomials in a packed format.
@@ -30,6 +31,7 @@ inline void poly64_store(void* d, poly64_vec s);
 inline void poly128_store(void* d, poly128_vec s);
 inline void poly192_store(void* d, poly192_vec s);
 inline void poly256_store(void* d, poly256_vec s);
+inline void poly384_store(void* d, poly384_vec s);
 inline void poly512_store(void* d, poly512_vec s);
 
 // Add two vectors of POLY_VEC_LEN polynomials.

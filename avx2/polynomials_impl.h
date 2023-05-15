@@ -102,6 +102,18 @@ inline poly256_vec poly256_load(const void* s)
 	return out;
 }
 
+inline poly384_vec poly384_load(const void* s)
+{
+	poly384_vec out;
+
+#if POLY_VEC_LEN == 1
+	memcpy(&out, s, sizeof(out));
+	return out;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
 inline poly512_vec poly512_load(const void* s)
 {
 	poly512_vec out;
@@ -161,6 +173,16 @@ inline void poly256_store(void* d, poly256_vec s)
 	block256 out[2];
 	transpose2x2_128(&out[0], s.data[0], s.data[1]);
 	memcpy(d, &out[0], sizeof(out));
+#endif
+}
+
+
+inline void poly384_store(void* d, poly384_vec s)
+{
+#if POLY_VEC_LEN == 1
+	memcpy(d, &s, sizeof(s));
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
 #endif
 }
 
