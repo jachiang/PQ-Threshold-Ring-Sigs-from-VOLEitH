@@ -24,14 +24,15 @@ keccak_avx2_sources = \
 	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/KeccakP-1600-times4-*)\
 	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/u12/SIMD256-config.h)\
 	$(wildcard XKCP/lib/low/KeccakP-1600-times8/fallback-on4/*)
-catch2_sources = $(wildcard Catch2/extras/catch_amalgamated.*)
+common_headers = Catch2/extras/catch_amalgamated.hpp
+common_sources = $(common_headers) Catch2/extras/catch_amalgamated.cpp
 
 shared_sources = $(wildcard *.c *.h *.in) $(keccak_sources)
 #opt_sources = $(wildcard opt/*.c opt/*.h)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
 avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
-test_sources = $(wildcard test/*.cpp test/*.hpp) $(catch2_sources)
+test_sources = $(wildcard test/*.cpp test/*.hpp) $(common_headers)
 
 all:
 .PHONY: all
@@ -115,16 +116,15 @@ define full-recipe
 # $(1)_sources contains the shared and archtecture-specific source files
 
 $(2)_objects = $$(foreach source,$$(patsubst %.c,%.o,$$(filter %.c,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
-$(2)_asm_objects = $$(foreach source,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(source)))
+$(2)_asm_objects = $$(foreach obj,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sources))),$(3)/$$(notdir $$(obj)))
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
 $(2)_test_headers = $$(foreach header,$$(filter %.hpp,$$(test_sources)),$(3)/$$(notdir $$(header)))
-$(2)_test_objects = $$(foreach source,$$(patsubst %.cpp,%.o,$$(filter %.cpp,$$(test_sources))),$(3)/$$(notdir $$(source)))
+$(2)_test_objects = $$(foreach obj,$$(patsubst %.cpp,%.o,$$(filter %.cpp,$$(test_sources))) $$(common_objects),$(3)/$$(notdir $$(obj)))
 $(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $$($(2)_test_objects) $(3)/$(2)_test
 $(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects)) $$(patsubst %.o,%.d,$$($(2)_test_objects))
 
-# hard link all source files into the variant directory
-$$(foreach src,$$($(1)_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
-$$(foreach src,$$(test_sources),$$(eval $$(call link-recipe,$(3),$$(src))))
+# hard link all source files into the variant directory. Also copy common object files.
+$$(foreach src,$$($(1)_sources) $$(test_sources) $$(common_objects),$$(eval $$(call link-recipe,$(3),$$(src))))
 
 # generate config.h with the setting-specific constants
 $(eval $(call config-recipe,$(3),$(4)))
@@ -160,6 +160,17 @@ $$($(2)_depfiles):
 include $$(wildcard $$($(2)_depfiles))
 endef
 
+# Compile common object files in a subfolder
+common_objects = $(foreach obj,$(patsubst %.cpp,%.o,$(filter %.cpp,$(common_sources))),Common/$(notdir $(obj)))
+$(foreach src,$(common_sources),$(eval $(call link-recipe,Common,$(src))))
+
+headers-common : $(foreach header,$(common_headers),Common/$(notdir $(header)))
+.PHONY: headers-common
+$(common_objects) : | headers-common
+
+Common/:
+	$(MKDIR_P) $@
+
 #$(foreach setting,$(settings),\
 #	$(let name,$(call first,$(setting)),\
 #		$(eval $(call full-recipe,ref,$(name)_ref,Reference_Implementation/$(name),$(setting)))\
@@ -178,5 +189,5 @@ $(foreach setting,$(settings),\
 # TODO: AVX-512
 
 clean:
-	rm -rf Reference_Implementation Additional_Implementations
+	rm -rf Reference_Implementation Additional_Implementations Common
 .PHONY: clean
