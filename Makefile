@@ -1,8 +1,8 @@
 CPPFLAGS += -MMD -MP -MF $*.d
-COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native -Wall -Wextra
+COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native -Wall -Wextra -g -gdwarf-2 -fsanitize=address
 CFLAGS ?= -std=c11 $(COMMON_FLAGS)
 CXXFLAGS ?= -std=c++14 $(COMMON_FLAGS)
-LDFLAGS += -lcrypto
+LDFLAGS += -lcrypto -fsanitize=address
 
 CP_L = cp -l
 MKDIR_P = mkdir -p
