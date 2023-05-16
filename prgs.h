@@ -14,12 +14,14 @@
 		const block_secpar* restrict keys, const prg_##name##_iv* restrict ivs, \
 		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
 	{ \
+        (void) fixed_key; \
 		aes_keygen_ctr(prgs, keys, ivs, num_keys, num_blocks, counter, output); \
 	} \
 	inline void prg_##name##_gen( \
 		const prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
 		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
 	{ \
+        (void) fixed_key; \
 		aes_ctr(prgs, num_keys, num_blocks, counter, output); \
 	}
 #define EXTERN_DEFINE_PRG_AES_CTR(name) \
