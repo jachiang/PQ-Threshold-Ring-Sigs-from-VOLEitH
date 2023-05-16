@@ -67,7 +67,7 @@ static ALWAYS_INLINE void expand_chunk(
 	static_assert(TREE_BLOCKS_PER_KEY >= 2);
 	static_assert(LEAF_BLOCKS_PER_KEY >= 2);
 
-	uint32_t num_blocks = blocks_per_key % 1 ? 3 : 2;
+	uint32_t num_blocks = blocks_per_key % 2 ? 3 : 2;
 	if (!leaf)
 		prg_tree_init(&prgs_tree[0], fixed_key_tree, &keys[0], &ivs_tree[0],
 		              n, num_blocks, 0, &prg_output_tree[0]);
