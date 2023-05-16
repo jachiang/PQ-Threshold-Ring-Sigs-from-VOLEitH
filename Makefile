@@ -1,8 +1,12 @@
+#COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native # Benchmark
+#COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native -ggdb -fsanitize=address # Debug Fast
+COMMON_LD_FLAGS ?= -Og -march=native -mtune=native -ggdb -fsanitize=address -fsanitize=undefined # Debug Slow
+COMMON_CC_FLAGS ?= -pedantic-errors -Wall -Wextra $(COMMON_LD_FLAGS)
+
 CPPFLAGS += -MMD -MP -MF $*.d
-COMMON_FLAGS ?= -pedantic-errors -O2 -march=native -mtune=native -Wall -Wextra -g -gdwarf-2 -fsanitize=address
-CFLAGS ?= -std=c11 $(COMMON_FLAGS)
-CXXFLAGS ?= -std=c++14 $(COMMON_FLAGS)
-LDFLAGS += -lcrypto -fsanitize=address
+CFLAGS ?= -std=c11 $(COMMON_CC_FLAGS)
+CXXFLAGS ?= -std=c++14 $(COMMON_CC_FLAGS)
+LDFLAGS += -lcrypto $(COMMON_LD_FLAGS)
 
 CP_L = cp -l
 MKDIR_P = mkdir -p
