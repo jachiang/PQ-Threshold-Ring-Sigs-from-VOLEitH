@@ -17,7 +17,7 @@ ALWAYS_INLINE void cumulative_xor(block128* x, size_t n)
 	#ifdef __GNUC__
 	_Pragma(STRINGIZE(GCC unroll (2*KEYGEN_WIDTH)))
 	#endif
-	for (size_t i = 0; i < n - 1; ++i)
+	for (size_t i = 0; i + 1 < n; ++i)
 		x[i + 1] = block128_xor(x[i], x[i + 1]);
 }
 
