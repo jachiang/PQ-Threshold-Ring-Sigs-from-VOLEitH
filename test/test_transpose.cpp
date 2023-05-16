@@ -90,7 +90,6 @@ TEST_CASE( "transpose 2x2 64", "[transpose]" ) {
 TEST_CASE( "transpose 2x2 128", "[transpose]" ) {
     std::array<block256, 2> in;
     std::array<block256, 2> out;
-    std::array<block128, 4> out_128;
     memcpy(in.data(), transpose2x2_128_in.data(), sizeof(in));
     transpose2x2_128(out.data(), in[0], in[1]);
     REQUIRE( memcmp(&out, &transpose2x2_128_out, sizeof(transpose2x2_128_out)) == 0 );
