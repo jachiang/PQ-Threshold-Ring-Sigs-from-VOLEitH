@@ -81,7 +81,11 @@ static ALWAYS_INLINE void expand_chunk(
 
 	for (uint32_t j = num_blocks; j < blocks_per_key; j += num_blocks)
 	{
+		// TODO: Make sure this doesn't pull in the whole switch statement (with optimizations).
 		num_blocks = 2;
+		if (j + num_blocks > blocks_per_key)
+			num_blocks = blocks_per_key - j;
+
 		if (!leaf)
 			prg_tree_gen(&prgs_tree[0], fixed_key_tree, n, num_blocks, j, &prg_output_tree[0]);
 		else
