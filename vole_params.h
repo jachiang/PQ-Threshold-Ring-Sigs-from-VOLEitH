@@ -26,7 +26,7 @@
 
 // Number of block128s in a prg_vole_block.
 #define PRG_VOLE_BLOCK_SIZE (1 << PRG_VOLE_BLOCK_SIZE_SHIFT)
-static_assert(PRG_VOLE_BLOCK_SIZE * 16 == sizeof(prg_vole_block));
+static_assert(PRG_VOLE_BLOCK_SIZE * 16 == sizeof(prg_vole_block), "a `prg_vole_block` must be 16 * PRG_VOLE_BLOCK_SIZE");
 
 // Number of prg_vole_block in a vole_block.
 #define PRG_VOLE_BLOCKS (1 << PRG_VOLE_BLOCKS_SHIFT)

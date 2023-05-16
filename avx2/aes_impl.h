@@ -129,7 +129,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	assert(1 <= num_blocks && num_blocks <= 4);
 
 	// Use a switch to select which function. The case should always be resolved at compile time.
-	static_assert(AES_PREFERRED_WIDTH <= 16);
+	static_assert(AES_PREFERRED_WIDTH <= 16, "AES_PREFERRED_WITH must be at most 16");
 	switch(num_keys * 4 + num_blocks)
 	{
 #define AES_KEYGEN_SWITCH_CASE_KB(num_keys,num_blocks) \
