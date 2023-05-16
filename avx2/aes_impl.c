@@ -326,6 +326,7 @@ static void rijndael192_keygen_helper(
 
 	memcpy(&t1, &round_key_in->data[0], sizeof(t1));
 	t2 = kga;
+	t3 = round_key_in->data[2];
 
 	t2 = _mm_shuffle_epi32(t2, 0x55);
 	t4 = _mm_slli_si128(t1, 0x4);
