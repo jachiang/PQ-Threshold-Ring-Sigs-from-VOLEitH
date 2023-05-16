@@ -286,15 +286,15 @@ TEST_CASE( "aes keygen", "[aes]" ) {
     const auto& expected_aes_round_keys = expected_aes256_round_keys;
 #endif
 
-    std::array<aes_round_keys, AES_ROUNDS + 1> round_keys = {0};
+    aes_round_keys round_keys = {0};
     std::array<std::array<uint8_t, 16>, AES_ROUNDS + 1> round_key_bytes = {0};
     block_secpar key;
 
     for (size_t i = 0; i < num_keys; ++i) {
         memcpy(&key, aes_keys[i].data(), SECURITY_PARAM / 8);
-        aes_keygen(round_keys.data(), key);
-        CHECK( memcmp(round_keys.data(), expected_aes_round_keys[i].data(), (AES_ROUNDS + 1) * 16) == 0 );
-        memcpy(round_key_bytes.data(), round_keys.data(), round_key_bytes.size());
+        aes_keygen(&round_keys, key);
+        CHECK( memcmp(&round_keys, expected_aes_round_keys[i].data(), (AES_ROUNDS + 1) * 16) == 0 );
+        memcpy(round_key_bytes.data(), &round_keys, sizeof(round_key_bytes));
         REQUIRE( round_key_bytes == expected_aes_round_keys[i] );
     }
 }
