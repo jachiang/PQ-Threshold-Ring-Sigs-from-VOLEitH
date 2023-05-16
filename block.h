@@ -32,7 +32,7 @@ inline block192 block192_and(block192 x, block192 y)
 
 inline block192 block192_set_low64(uint64_t x)
 {
-	block192 out = {x, 0, 0};
+	block192 out = {{x, 0, 0}};
 	return out;
 }
 
