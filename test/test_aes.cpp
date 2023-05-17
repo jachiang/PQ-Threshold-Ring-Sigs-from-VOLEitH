@@ -293,33 +293,34 @@ TEST_CASE( "aes keygen", "[aes]" ) {
     for (size_t i = 0; i < num_keys; ++i) {
         memcpy(&key, aes_keys[i].data(), SECURITY_PARAM / 8);
         aes_keygen(&round_keys, key);
-        CHECK( memcmp(&round_keys, expected_aes_round_keys[i].data(), (AES_ROUNDS + 1) * 16) == 0 );
         memcpy(round_key_bytes.data(), &round_keys, sizeof(round_key_bytes));
         REQUIRE( round_key_bytes == expected_aes_round_keys[i] );
     }
 }
 
 TEST_CASE( "rijndael192 keygen", "[aes]" ) {
-    std::array<rijndael192_round_keys, 13> round_keys = {0};
+    rijndael192_round_keys round_keys = {0};
     std::array<std::array<uint8_t, 24>, 12 + 1> round_key_bytes = {0};
     block192 key;
 
     for (size_t i = 0; i < num_keys; ++i) {
         memcpy(&key, keys_192[i].data(), 24);
-        rijndael192_keygen(round_keys.data(), key);
+        rijndael192_keygen(&round_keys, key);
         memcpy(round_key_bytes.data(), &round_keys, sizeof(round_key_bytes));
-        REQUIRE(round_key_bytes == expected_rijndael192_round_keys[i] );
+        REQUIRE( round_key_bytes == expected_rijndael192_round_keys[i] );
     }
 }
 
 TEST_CASE( "rijndael256 keygen", "[aes]" ) {
-    std::array<rijndael256_round_keys, 15> round_keys = {0};
+    rijndael256_round_keys round_keys = {0};
+    std::array<std::array<uint8_t, 32>, 14 + 1> round_key_bytes = {0};
     block256 key;
 
     for (size_t i = 0; i < num_keys; ++i) {
         memcpy(&key, keys_256[i].data(), 32);
-        rijndael256_keygen(round_keys.data(), key);
-        REQUIRE( memcmp(round_keys.data(), expected_rijndael256_round_keys[i].data(), 15 * 32) == 0 );
+        rijndael256_keygen(&round_keys, key);
+        memcpy(round_key_bytes.data(), &round_keys, sizeof(round_key_bytes));
+        REQUIRE( round_key_bytes == expected_rijndael256_round_keys[i] );
     }
 }
 
