@@ -337,7 +337,7 @@ static void rijndael192_keygen_helper(
 	t4 = _mm_slli_si128(t4, 0x4);
 	t1 = _mm_xor_si128(t1, t4);
 	t1 = _mm_xor_si128(t1, t2);
-	t3 ^= _mm_extract_epi32(t1, 3);
+	t3 ^= (uint32_t) _mm_extract_epi32(t1, 3);
 	t3 ^= t3 << 32;
 
 	memcpy(&round_key_out->data[0], &t1, sizeof(t1));

@@ -301,12 +301,14 @@ TEST_CASE( "aes keygen", "[aes]" ) {
 
 TEST_CASE( "rijndael192 keygen", "[aes]" ) {
     std::array<rijndael192_round_keys, 13> round_keys = {0};
+    std::array<std::array<uint8_t, 24>, 12 + 1> round_key_bytes = {0};
     block192 key;
 
     for (size_t i = 0; i < num_keys; ++i) {
         memcpy(&key, keys_192[i].data(), 24);
         rijndael192_keygen(round_keys.data(), key);
-        REQUIRE( memcmp(round_keys.data(), expected_rijndael192_round_keys[i].data(), 13 * 24) == 0 );
+        memcpy(round_key_bytes.data(), &round_keys, sizeof(round_key_bytes));
+        REQUIRE(round_key_bytes == expected_rijndael192_round_keys[i] );
     }
 }
 
