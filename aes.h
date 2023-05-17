@@ -64,6 +64,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 
 // Given num_keys AES keys, generate num_blocks block128s of output from each, starting at
 // counter. Outputs from the same key are grouped together in output.
+// Need 1 <= num_blocks <= 4.
 inline void aes_ctr(
 	const aes_round_keys* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
