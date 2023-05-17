@@ -1,7 +1,7 @@
 #COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native # Benchmark
 #COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native -ggdb -fsanitize=address # Debug Fast
 COMMON_LD_FLAGS ?= -Og -march=native -mtune=native -ggdb -fsanitize=address -fsanitize=undefined # Debug Slow
-COMMON_CC_FLAGS ?= -pedantic-errors -Wall -Wextra $(COMMON_LD_FLAGS)
+COMMON_CC_FLAGS ?= -pedantic-errors -Wall -Wextra -Wno-ignored-attributes $(COMMON_LD_FLAGS)
 
 CPPFLAGS += -MMD -MP -MF $*.d
 CFLAGS ?= -std=c11 $(COMMON_CC_FLAGS)
