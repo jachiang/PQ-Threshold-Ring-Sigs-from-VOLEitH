@@ -128,8 +128,8 @@ ALWAYS_INLINE void aes_keygen_round(
 			// Undo ShiftRows operation, then apply RotWord.
 			block128 inv_shift_rows =
 				_mm_setr_epi8( 0, 13, 10,  7,  4,  1, 14, 11,  8,  5,  2, 15, 12,  9,  6,  3);
-			block128 inv_shift_rows_then_rot_word =
-				_mm_setr_epi8(13, 10,  7,  0,  1, 14, 11,  4,  5,  2, 15,  8,  9,  6,  3, 12);
+			block128 rot_word_then_inv_shift_rows =
+				_mm_setr_epi8( 1, 14, 11,  4,  5,  2, 15,  8,  9,  6,  3, 12, 13, 10,  7,  0);
 
 			block128 perm, round_constant;
 			if (SECURITY_PARAM == 256 && round % 2 == 1)
@@ -139,7 +139,7 @@ ALWAYS_INLINE void aes_keygen_round(
 			}
 			else
 			{
-				perm = inv_shift_rows_then_rot_word;
+				perm = rot_word_then_inv_shift_rows;
 				int idx = (2 * round + 1) / (SECURITY_PARAM / 64);
 				round_constant = _mm_set1_epi32(aes_round_constants[idx - 1]);
 			}
@@ -311,6 +311,7 @@ static inline block128 load_high_128(const block256* block)
 {
 	block128 out;
 	memcpy(&out, ((unsigned char*) block) + sizeof(block128), sizeof(out));
+	return out;
 }
 
 static inline block128 load_high_64(const block192* block)
