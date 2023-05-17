@@ -206,14 +206,18 @@ ALWAYS_INLINE void aes_keygen_impl(
 	size_t unroll_rounds = 2;
 #endif
 
-	// Separate out the first and last rounds, as they work differently.
-	aes_round(aeses, output, num_keys, num_blocks, 0);
-	if (round_start > 1)
-		aes_round(aeses, output, num_keys, num_blocks, 1);
+	for (size_t l = 0; l < num_keys; ++l)
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			output[l * num_blocks + m] = block128_set_low32(counter + m);
 
 	// Bake the ivs into the round keys.
 	for (size_t i = 0; i < num_keys; ++i)
 		aeses[i].keys[0] = block128_xor(aeses[i].keys[0], ivs[i]);
+
+	// Separate out the first and last rounds, as they work differently.
+	aes_round(aeses, output, num_keys, num_blocks, 0);
+	if (round_start > 1)
+		aes_round(aeses, output, num_keys, num_blocks, 1);
 
 	for (int round = round_start; round <= round_end; round += unroll_rounds)
 	{
