@@ -7,6 +7,7 @@ import random
 
 random.seed(42)
 
+num_ctr_blocks = 15
 num_keys = 3
 params = [
     (16, 16), (24, 16), (32, 16), (24, 24), (32, 32),
@@ -22,6 +23,9 @@ def num_rounds(ks):
     else:
         assert False
 
+def xor(xs, ys):
+    assert len(xs) == len(ys)
+    return bytes(x ^ y for x, y in zip(xs, ys))
 
 def keygen(ks):
     return random.randbytes(ks)
@@ -53,12 +57,41 @@ keys = gen_keys()
 def print_array(bs):
     return '{' + ', '.join(f'0x{b:02x}' for b in bs) + '}'
 
-for ks, bs in params:
-    print((ks, bs))
-    for i, k in enumerate(keys[ks]):
-        rks = expand_key((ks, bs), k)
-        print('    {')
-        for rk in rks:
-            print(' ' * 8 + print_array(rk) + ',')
-        print('    },')
+#  for ks, bs in params:
+#      print((ks, bs))
+#      for i, k in enumerate(keys[ks]):
+#          rks = expand_key((ks, bs), k)
+#          print('    {')
+#          for rk in rks:
+#              print(' ' * 8 + print_array(rk) + ',')
+#          print('    },')
 
+def aesctr(key, iv, counter):
+    R = Rijndael(key)
+    blocks = []
+    for c in range(counter, counter + num_ctr_blocks):
+        blocks.append(R.encrypt(xor(iv, pack('<I', c) + bytes(12))))
+    return b''.join(blocks)
+
+
+def gen_aes_ctr_tests(keys):
+    ivs = [ivgen(16) for _ in range(num_keys)]
+    counter = random.getrandbits(32)
+    ctrblocks = defaultdict(list)
+    for ks, aes_keys in keys.items():
+        for iv, key in zip(ivs, aes_keys):
+            ctrblocks[ks].append(aesctr(key, iv, counter))
+    return ivs, counter, ctrblocks
+
+ivs, counter, ctrblocks = gen_aes_ctr_tests(keys)
+
+print('ivs')
+for iv in ivs:
+    print(print_array(iv))
+print('counter')
+print(counter)
+
+for ks, outputs in ctrblocks.items():
+    print(f'ks = {8 * ks}')
+    for o in outputs:
+        print('    ' + print_array(o) + ',')
