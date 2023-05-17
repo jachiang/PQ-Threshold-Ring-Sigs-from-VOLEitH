@@ -87,4 +87,17 @@ inline std::string poly512_vec_to_string(poly512_vec pv) {
 #define REQUIRE_POLY512VEC_NEQ(a, b) \
     { INFO("Requiring: " << poly512_vec_to_string(a) << " != " << poly512_vec_to_string(b)); REQUIRE(!poly512_eq(a, b)); }
 
+template<size_t N>
+inline std::ostream& operator<<(std::ostream& o, const std::array<uint8_t, N>& array)
+{
+	o << "{ ";
+	for (size_t i = 0; i < N; ++i)
+	{
+		if (i)
+			o << ", ";
+		o << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int) array[i];
+	}
+	return o << " }";
+}
+
 #endif
