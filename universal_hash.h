@@ -7,23 +7,23 @@
 #include "polynomials.h"
 
 // Number of powers of the hash key to precompute
-#define HASH_SECPAR_KEY_POWS 2
-#define HASH_SECPAR_KEY64_POWS 1 // TODO: Is there a good way to do > 1?
-#define HASH64_KEY_POWS 2
+// For hasher_gfsecpar_64, there doesn't seem to be a good way to do more than 1.
+#define HASHER_GFSECPAR_KEY_POWS 2
+#define HASHER_GF64_KEY_POWS 2
 
 typedef struct
 {
-	poly_secpar_vec key_pows[HASH_SECPAR_KEY_POWS];
+	poly_secpar_vec key_pows[HASHER_GFSECPAR_KEY_POWS];
 } hasher_gfsecpar_key;
 
 typedef struct
 {
-	poly64_vec key_pows[HASH_SECPAR_KEY64_POWS];
+	poly64_vec key;
 } hasher_gfsecpar_64_key;
 
 typedef struct
 {
-	poly64_vec key_pows[HASH64_KEY_POWS];
+	poly64_vec key_pows[HASHER_GF64_KEY_POWS];
 	poly64_vec key_pow_times_a64;
 } hasher_gf64_key;
 
@@ -33,61 +33,152 @@ typedef struct
 	int pow;
 } hasher_gfsecpar_state;
 
-typedef poly_secpar_plus_64_vec hasher_gfsecpar_64_state;
-typedef poly128_vec hasher_gf64_state;
+typedef struct
+{
+	poly_secpar_plus_64_vec state;
+} hasher_gfsecpar_64_state;
 
-inline void hasher_gfsecpar_init_key(hasher_gfsecpar_key* hash_key, poly_secpar_vec key)
+typedef struct
+{
+	poly128_vec state;
+	int pow;
+} hasher_gf64_state;
+
+inline void hasher_gfsecpar_init_key(hasher_gfsecpar_key* hash_key, poly64_vec key)
 {
 	hash_key->key_pows[0] = key;
 	poly_secpar_vec key_pow = key;
-	for (size_t i = 1; i < HASH_SECPAR_KEY_POWS; ++i)
+	for (size_t i = 1; i < HASHER_GFSECPAR_KEY_POWS; ++i)
 	{
 		key_pow = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, key));
 		hash_key->key_pows[i] = key_pow;
 	}
 }
 
-inline void hasher_gfsecpar_init_state(hasher_gfsecpar_state* state)
+inline void hasher_gfsecpar_init_state(hasher_gfsecpar_state* state, size_t num_coefficients)
 {
-	memset(&state, 0, sizeof(*state));
-	state->pow = HASH_SECPAR_KEY_POWS - 1;
+	memset(&state->state, 0, sizeof(state->state));
+	state->pow = (num_coefficients + HASHER_GFSECPAR_KEY_POWS - 1) % HASHER_GFSECPAR_KEY_POWS;
 }
 
 // Update a vector of hashers on a vector of polynomials.
-inline void hasher_secpar_update(const hasher_gfsecpar_key* key, hasher_gfsecpar_state* state, poly_secpar_vec input)
+inline void hasher_gfsecpar_update(const hasher_gfsecpar_key* key, hasher_gfsecpar_state* state, poly_secpar_vec input)
 {
 	if (state->pow == -1)
 	{
-		state->state = poly_secpar_mul(key->key_pow[HASH_SECPAR_KEY_POWS - 1], poly_2secpar_reduce_secpar(state->state));
-		state->pow = HASH_SECPAR_KEY_POWS - 1;
+		state->state = poly_secpar_mul(key->key_pow[HASHER_GFSECPAR_KEY_POWS - 1], poly_2secpar_reduce_secpar(state->state));
+		state->pow = HASHER_GFSECPAR_KEY_POWS - 1;
 	}
 
 	poly_2secpar_vec summand;
 	if (state->pow > 0)
 		summand = poly_secpar_mul(key->key_pows[state->pow - 1], input);
 	else
-		summand = poly_2secpar_from_secpar(input);
+		summand = poly_2secpar_from_secpar(input); // TODO
 	state->state = poly_2secpar_add(state->state, summand);
 	--state->pow;
 }
 
-inline poly_secpar_vec hasher_secpar_final(const hasher_gfsecpar_state* state)
+inline poly_secpar_vec hasher_gfsecpar_final(const hasher_gfsecpar_state* state)
 {
 	assert(state->pow == -1);
 	return poly_2secpar_reduce_secpar(state->state);
 }
 
-inline void hasher64_init(hasher64* hasher, poly64_vec key)
+inline void hasher_gfsecpar_64_init_key(hasher_gfsecpar_64_key* hash_key, poly_secpar_vec key)
 {
-	hasher->key_pows[0] = key;
-	poly64_vec key_pow = key;
-	for (size_t i = 1; i < HASH64_KEY_POWS; ++i)
+	hash_key->key = key;
+}
+
+inline void hasher_gfsecpar_64_init_state(hasher_gfsecpar_64_state* state, size_t num_coefficients)
+{
+	memset(&state->state, 0, sizeof(state->state));
+}
+
+// Update a vector of hashers on a vector of polynomials.
+inline void hasher_gfsecpar_64_update(const hasher_gfsecpar_64_key* key, hasher_gfsecpar_64_state* state, poly_secpar_vec input)
+{
+	state->state = poly64xsecpar_mul(key->key, poly_secpar_plus_64_reduce_secpar(state->state));
+	state->state = poly_secpar_add(state->state, poly_secpar_plus_64_from_secpar(input)); // TODO
+}
+
+inline poly_secpar_vec hasher_gfsecpar_64_final(const hasher_gfsecpar_64_state* state)
+{
+	return poly_secpar_plus_64_reduce_secpar(state->state);
+}
+
+// Input key and output hash are in index 0 of their respective polynomial vectors.
+// TODO: probably should go into .c file instead.
+inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key, poly_secpar_vec hash, size_t num_coefficients)
+{
+	// Compute offset using exponentiation by squaring.
+	poly_secpar_vec key_pow2 = key;
+	poly_secpar_vec key_pow = /* TODO: polynomial = 1 */;
+	bool first = true;
+	for (size_t i = 1; i < num_coefficients; i <<= 1)
 	{
-		key_pow = poly128_reduce64(poly64_mul(key_pow, key));
-		hasher->key_pows[i] = key_pow;
+		key_pow2 = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow2, key_pow2));
+		if (first)
+		{
+			key_pow = key_pow2;
+			first = false;
+		}
+		else
+			key_pow = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, key_pow2));
 	}
 
-	memset(&hasher->state, 0, sizeof(hasher->state));
+	poly_secpar_vec output = poly_secpar_extract(hash, POLY_VEC_LEN - 1); // TODO
+	for (int i = POLY_VEC_LEN - 2; i >= 0; --i)
+	{
+		output = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, output));
+		output = poly_secpar_add(output, poly_secpar_extract(hash, i));
+	}
+
+	return output;
+}
+
+inline void hasher_gf64_init_key(hasher_gf64_key* hash_key, poly64_vec key)
+{
+	hash_key->key_pows[0] = key;
+	poly64_vec key_pow = key;
+	for (size_t i = 1; i < HASHER_GF64_KEY_POWS; ++i)
+	{
+		key_pow = poly128_reduce64(poly64_mul(key_pow, key));
+		hash_key->key_pows[i] = key_pow;
+	}
+
+	// TODO: hash_key->key_pow_times_a64;
+}
+
+inline void hasher_gf64_init_state(hasher_gf64_state* state, size_t num_coefficients)
+{
+	memset(&state->state, 0, sizeof(state->state));
+	state->pow = (num_coefficients + GF64_KEY_POWS - 1) % GF64_KEY_POWS;
+}
+
+// Update a vector of hashers on a vector of polynomials.
+inline void hasher_gf64_update(const hasher_gf64_key* key, hasher_gf64_state* state, poly64_vec input)
+{
+	if (state->pow == -1)
+	{
+		poly128_vec l = clmul_block_clmul_ll(key->key_pow[GF64_KEY_POWS - 1], state->state);
+		poly128_vec h = clmul_block_clmul_lh(key->key_pow_times_a64, state->state);
+		state->state = poly128_add(l, h);
+	}
+
+	poly128_vec summand;
+	if (state->pow > 0)
+		summand = poly64_mul(key->key_pows[state->pow - 1], input);
+	else
+		summand = poly128_from_64(input); // TODO
+	state->state = poly128_add(state->state, summand);
+	--state->pow;
+}
+
+inline poly64_vec hasher_gf64_final(const hasher_gf64_state* state)
+{
+	assert(state->pow == -1);
+	return poly128_reduce64(state->state);
 }
 
 #endif
