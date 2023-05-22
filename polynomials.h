@@ -81,6 +81,9 @@ inline poly192_vec poly384_reduce192(poly384_vec x);
 inline poly256_vec poly320_reduce256(poly320_vec x);
 inline poly256_vec poly512_reduce256(poly512_vec x);
 
+// Multiply by a**64, then reduce modulo the modulus of GF(2**64);
+inline poly64_vec poly64_mul_a64_reduce64(poly64_vec x);
+
 // Test two vectors of polynomials for equality
 inline bool poly64_eq(poly64_vec x, poly64_vec y);
 inline bool poly128_eq(poly128_vec x, poly128_vec y);

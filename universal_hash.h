@@ -149,7 +149,7 @@ inline void hasher_gf64_init_key(hasher_gf64_key* hash_key, poly64_vec key)
 		hash_key->key_pows[i] = key_pow;
 	}
 
-	// TODO: hash_key->key_pow_times_a64;
+	hash_key->key_pow_times_a64 = poly64_mul_a64_reduce64(hash_key->key_pows[HASHER_GF64_KEY_POWS - 1]);
 }
 
 inline void hasher_gf64_init_state(hasher_gf64_state* state, size_t num_coefficients)

@@ -492,6 +492,16 @@ inline poly64_vec poly128_reduce64(poly128_vec x)
 	return poly128_add(poly128_add(x, high), high_high);
 }
 
+inline poly64_vec poly64_mul_a64_reduce64(poly64_vec x)
+{
+	poly64_vec modulus = poly64_set_low32(gf64_modulus);
+	poly128_vec high = clmul_block_clmul_ll(modulus, x); // Degree < 64 + 4
+	poly128_vec high_high = clmul_block_clmul_lh(modulus, high); // Degree < 4 + 4
+
+	// Only low 64 bits are correct, but the high 64 will be ignored anyway.
+	return poly128_add(high, high_high);
+}
+
 inline poly128_vec poly256_reduce128(poly256_vec x)
 {
 	poly64_vec modulus = poly64_set_low32(gf128_modulus);
