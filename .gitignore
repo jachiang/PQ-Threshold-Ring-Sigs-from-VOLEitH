@@ -1,4 +1,5 @@
 Reference_Implementation/**
 Additional_Implementations/**
 Common/**
+*.sage.py
 !.gitkeep
