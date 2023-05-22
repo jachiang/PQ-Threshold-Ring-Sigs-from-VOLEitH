@@ -64,6 +64,19 @@ inline void poly320_store(void* d, poly320_vec s);
 inline void poly384_store(void* d, poly384_vec s);
 inline void poly512_store(void* d, poly512_vec s);
 
+// Convert a vector of small degree polynomials into a vector larger degree polynomials by setting
+// the higher coefficients to zero.
+inline poly128_vec poly128_from_64(poly64_vec x);
+inline poly192_vec poly192_from_128(poly128_vec x);
+inline poly256_vec poly256_from_128(poly128_vec x);
+inline poly256_vec poly256_from_192(poly192_vec x);
+inline poly384_vec poly384_from_192(poly192_vec x);
+inline poly320_vec poly320_from_256(poly256_vec x);
+inline poly512_vec poly512_from_256(poly256_vec x);
+inline poly128_vec poly128_from_1(poly1_vec x);
+inline poly192_vec poly192_from_1(poly1_vec x);
+inline poly256_vec poly256_from_1(poly1_vec x);
+
 // Add two vectors of POLY_VEC_LEN polynomials.
 inline poly64_vec poly64_add(poly64_vec x, poly64_vec y);
 inline poly128_vec poly128_add(poly128_vec x, poly128_vec y);
@@ -99,9 +112,15 @@ inline poly256_vec poly512_reduce256(poly512_vec x);
 // Multiply by a**64, then reduce modulo the modulus of GF(2**64);
 inline poly64_vec poly64_mul_a64_reduce64(poly64_vec x);
 
+// Convert 8 bits into a GF(2^8) element, and embed it into GF(2**n).
 inline poly128_vec poly128_from_8_poly1(const poly1_vec* bits);
 inline poly192_vec poly192_from_8_poly1(const poly1_vec* bits);
 inline poly256_vec poly256_from_8_poly1(const poly1_vec* bits);
+
+// Same linear transformation as poly*_from_8_poly1, but apply it to GF(2**n) elements instead.
+inline poly128_vec poly128_from_8_poly128(const poly128_vec* polys);
+inline poly192_vec poly192_from_8_poly192(const poly192_vec* polys);
+inline poly256_vec poly256_from_8_poly256(const poly256_vec* polys);
 
 // Test two vectors of polynomials for equality
 inline bool poly64_eq(poly64_vec x, poly64_vec y);
@@ -111,19 +130,6 @@ inline bool poly256_eq(poly256_vec x, poly256_vec y);
 inline bool poly320_eq(poly320_vec x, poly320_vec y);
 inline bool poly384_eq(poly384_vec x, poly384_vec y);
 inline bool poly512_eq(poly512_vec x, poly512_vec y);
-
-// Convert a vector of small degree polynomials into a vector larger degree polynomials by setting
-// the higher coefficients to zero.
-inline poly128_vec poly128_from_64(poly64_vec x);
-inline poly192_vec poly192_from_128(poly128_vec x);
-inline poly256_vec poly256_from_128(poly128_vec x);
-inline poly256_vec poly256_from_192(poly192_vec x);
-inline poly384_vec poly384_from_192(poly192_vec x);
-inline poly320_vec poly320_from_256(poly256_vec x);
-inline poly512_vec poly512_from_256(poly256_vec x);
-inline poly128_vec poly128_from_1(poly1_vec x);
-inline poly192_vec poly192_from_1(poly1_vec x);
-inline poly256_vec poly256_from_1(poly1_vec x);
 
 // Move single polynomial with given index into the first slot of a new vector and zero the other
 // components.
@@ -200,6 +206,10 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
 	return poly128_from_8_poly1(bits);
 }
+inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
+{
+	return poly128_from_8_poly128(polys);
+}
 
 #elif SECURITY_PARAM == 192
 typedef poly192_vec poly_secpar_vec;
@@ -270,6 +280,10 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
 	return poly192_from_8_poly1(bits);
 }
+inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
+{
+	return poly192_from_8_poly192(polys);
+}
 
 #elif SECURITY_PARAM == 256
 typedef poly256_vec poly_secpar_vec;
@@ -339,6 +353,10 @@ inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
 	return poly256_from_8_poly1(bits);
+}
+inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
+{
+	return poly256_from_8_poly256(polys);
 }
 
 #endif

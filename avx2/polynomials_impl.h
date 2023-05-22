@@ -305,6 +305,76 @@ inline void poly512_store(void* d, poly512_vec s)
 #endif
 }
 
+inline poly128_vec poly128_from_64(poly64_vec x)
+{
+	// set the unused bits to zero
+#if POLY_VEC_LEN == 1
+	return _mm_insert_epi64(x, 0, 1);
+#elif POLY_VEC_LEN == 2
+	return _mm256_insert_epi64(_mm256_insert_epi64(x, 0, 1), 0, 3);
+#endif
+}
+
+inline poly192_vec poly192_from_128(poly128_vec x)
+{
+	poly192_vec out;
+	out.data[0] = x;
+	out.data[1] = clmul_block_set_zero();
+	return out;
+}
+
+inline poly256_vec poly256_from_128(poly128_vec x)
+{
+	poly256_vec out;
+	out.data[0] = x;
+	out.data[1] = clmul_block_set_zero();
+	return out;
+}
+
+inline poly256_vec poly256_from_192(poly192_vec x)
+{
+	poly256_vec out;
+	out.data[0] = x.data[0];
+#if POLY_VEC_LEN == 1
+	out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
+#elif POLY_VEC_LEN == 2
+	out.data[1] =  _mm256_insert_epi64(_mm256_insert_epi64(x.data[1], 0, 1), 0, 3);
+#endif
+	return out;
+}
+
+inline poly384_vec poly384_from_192(poly192_vec x)
+{
+	poly384_vec out;
+	out.data[0] = x.data[0];
+#if POLY_VEC_LEN == 1
+	out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
+#elif POLY_VEC_LEN == 2
+	out.data[1] =  _mm256_insert_epi64(_mm256_insert_epi64(x.data[1], 0, 1), 0, 3);
+#endif
+	out.data[2] = clmul_block_set_zero();
+	return out;
+}
+
+inline poly320_vec poly320_from_256(poly256_vec x)
+{
+	poly320_vec out;
+	out.data[0] = x.data[0];
+	out.data[1] = x.data[1];
+	out.data[2] = clmul_block_set_zero();
+	return out;
+}
+
+inline poly512_vec poly512_from_256(poly256_vec x)
+{
+	poly512_vec out;
+	out.data[0] = x.data[0];
+	out.data[1] = x.data[1];
+	out.data[2] = clmul_block_set_zero();
+	out.data[3] = clmul_block_set_zero();
+	return out;
+}
+
 inline void add_clmul_block_vectors(clmul_block* x, const clmul_block* y, size_t n)
 {
 	for (size_t i = 0; i < n; ++i)
@@ -732,7 +802,6 @@ inline poly128_vec poly128_from_8_poly1(const poly1_vec* bits)
 		out = poly128_add(out, poly1x128_mul(bits[i], poly128_load_dup(gf8_in_gf128[i - 1])));
 	return out;
 }
-
 inline poly192_vec poly192_from_8_poly1(const poly1_vec* bits)
 {
 	poly192_vec out = poly192_from_1(bits[0]);
@@ -740,13 +809,34 @@ inline poly192_vec poly192_from_8_poly1(const poly1_vec* bits)
 		out = poly192_add(out, poly1x192_mul(bits[i], poly192_load_dup(gf8_in_gf192[i - 1])));
 	return out;
 }
-
 inline poly256_vec poly256_from_8_poly1(const poly1_vec* bits)
 {
 	poly256_vec out = poly256_from_1(bits[0]);
 	for (size_t i = 1; i < 8; ++i)
 		out = poly256_add(out, poly1x256_mul(bits[i], poly256_load_dup(gf8_in_gf256[i - 1])));
 	return out;
+}
+
+inline poly128_vec poly128_from_8_poly128(const poly128_vec* polys)
+{
+	poly256_vec out = poly256_from_128(polys[0]);
+	for (size_t i = 1; i < 8; ++i)
+		out = poly256_add(out, poly128_mul(polys[i], poly128_load_dup(gf8_in_gf128[i - 1])));
+	return poly256_reduce128(out);
+}
+inline poly192_vec poly192_from_8_poly192(const poly192_vec* polys)
+{
+	poly384_vec out = poly384_from_192(polys[0]);
+	for (size_t i = 1; i < 8; ++i)
+		out = poly384_add(out, poly192_mul(polys[i], poly192_load_dup(gf8_in_gf192[i - 1])));
+	return poly384_reduce192(out);
+}
+inline poly256_vec poly256_from_8_poly256(const poly256_vec* polys)
+{
+	poly512_vec out = poly512_from_256(polys[0]);
+	for (size_t i = 1; i < 8; ++i)
+		out = poly512_add(out, poly256_mul(polys[i], poly256_load_dup(gf8_in_gf256[i - 1])));
+	return poly512_reduce256(out);
 }
 
 inline bool poly64_eq(poly64_vec x, poly64_vec y)
@@ -841,76 +931,6 @@ inline bool poly512_eq(poly512_vec x, poly512_vec y)
     return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1) && \
            _mm256_test_all_zeros(tmp2, tmp2) && _mm256_test_all_zeros(tmp3, tmp3);
 #endif
-}
-
-inline poly128_vec poly128_from_64(poly64_vec x)
-{
-    // set the unused bits to zero
-#if POLY_VEC_LEN == 1
-    return _mm_insert_epi64(x, 0, 1);
-#elif POLY_VEC_LEN == 2
-	return _mm256_insert_epi64(_mm256_insert_epi64(x, 0, 1), 0, 3);
-#endif
-}
-
-inline poly192_vec poly192_from_128(poly128_vec x)
-{
-    poly192_vec out;
-    out.data[0] = x;
-    out.data[1] = clmul_block_set_zero();
-    return out;
-}
-
-inline poly256_vec poly256_from_128(poly128_vec x)
-{
-    poly256_vec out;
-    out.data[0] = x;
-    out.data[1] = clmul_block_set_zero();
-    return out;
-}
-
-inline poly256_vec poly256_from_192(poly192_vec x)
-{
-    poly256_vec out;
-    out.data[0] = x.data[0];
-#if POLY_VEC_LEN == 1
-	out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
-#elif POLY_VEC_LEN == 2
-	out.data[1] =  _mm256_insert_epi64(_mm256_insert_epi64(x.data[1], 0, 1), 0, 3);
-#endif
-    return out;
-}
-
-inline poly384_vec poly384_from_192(poly192_vec x)
-{
-    poly384_vec out;
-    out.data[0] = x.data[0];
-#if POLY_VEC_LEN == 1
-	out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
-#elif POLY_VEC_LEN == 2
-	out.data[1] =  _mm256_insert_epi64(_mm256_insert_epi64(x.data[1], 0, 1), 0, 3);
-#endif
-    out.data[2] = clmul_block_set_zero();
-    return out;
-}
-
-inline poly320_vec poly320_from_256(poly256_vec x)
-{
-    poly320_vec out;
-    out.data[0] = x.data[0];
-    out.data[1] = x.data[1];
-    out.data[2] = clmul_block_set_zero();
-    return out;
-}
-
-inline poly512_vec poly512_from_256(poly256_vec x)
-{
-    poly512_vec out;
-    out.data[0] = x.data[0];
-    out.data[1] = x.data[1];
-    out.data[2] = clmul_block_set_zero();
-    out.data[3] = clmul_block_set_zero();
-    return out;
 }
 
 inline poly128_vec poly128_extract(poly128_vec x, size_t index)
