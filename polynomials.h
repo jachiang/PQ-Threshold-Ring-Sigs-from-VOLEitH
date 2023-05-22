@@ -2,8 +2,15 @@
 #define POLYNOMIALS_H
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 #define POLY_VEC_LEN (1 << POLY_VEC_LEN_SHIFT)
+
+// Modulus for GF(2^n), without the x^n term.
+extern const uint32_t gf64_modulus;  // degree = 4
+extern const uint32_t gf128_modulus; // degree = 7
+extern const uint32_t gf192_modulus; // degree = 7
+extern const uint32_t gf256_modulus; // degree = 10
 
 #include "polynomials_impl.h"
 
@@ -25,9 +32,17 @@ inline poly64_vec poly64_load(const void* s);
 inline poly128_vec poly128_load(const void* s);
 inline poly192_vec poly192_load(const void* s);
 inline poly256_vec poly256_load(const void* s);
-inline poly384_vec poly384_load(const void* s);
 inline poly320_vec poly320_load(const void* s);
+inline poly384_vec poly384_load(const void* s);
 inline poly512_vec poly512_load(const void* s);
+
+inline poly64_vec poly64_set_low32(uint32_t x);
+inline poly128_vec poly128_set_low32(uint32_t x);
+inline poly192_vec poly192_set_low32(uint32_t x);
+inline poly256_vec poly256_set_low32(uint32_t x);
+inline poly320_vec poly320_set_low32(uint32_t x);
+inline poly384_vec poly384_set_low32(uint32_t x);
+inline poly512_vec poly512_set_low32(uint32_t x);
 
 // Store a vector of POLY_VEC_LEN polynomials in a packed format.
 inline void poly64_store(void* d, poly64_vec s);
@@ -56,12 +71,6 @@ inline poly512_vec poly256_mul(poly256_vec x, poly256_vec y);
 inline poly192_vec poly64x128_mul(poly64_vec x, poly128_vec y);
 inline poly256_vec poly64x192_mul(poly64_vec x, poly192_vec y);
 inline poly320_vec poly64x256_mul(poly64_vec x, poly256_vec y);
-
-// Modulus for GF(2^n), without the x^n term.
-inline poly64_vec get_gf64_modulus();
-inline poly64_vec get_gf128_modulus();
-inline poly64_vec get_gf192_modulus();
-inline poly64_vec get_gf256_modulus();
 
 // Reduce modulo the modulus for GF(2**n).
 inline poly64_vec poly128_reduce64(poly128_vec x);
@@ -105,6 +114,10 @@ typedef poly256_vec poly_2secpar_vec;
 inline poly_secpar_vec poly_secpar_load(const void* s)
 {
 	return poly128_load(s);
+}
+inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
+{
+	return poly128_set_low32(x);
 }
 inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {
@@ -160,6 +173,10 @@ inline poly_secpar_vec poly_secpar_load(const void* s)
 {
 	return poly192_load(s);
 }
+inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
+{
+	return poly192_set_low32(x);
+}
 inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {
 	poly192_store(d, s);
@@ -213,6 +230,10 @@ typedef poly512_vec poly_2secpar_vec;
 inline poly_secpar_vec poly_secpar_load(const void* s)
 {
 	return poly256_load(s);
+}
+inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
+{
+	return poly256_set_low32(x);
 }
 inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {

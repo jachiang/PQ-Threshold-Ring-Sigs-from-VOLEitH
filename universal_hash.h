@@ -115,8 +115,7 @@ inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key, poly_secpar_
 {
 	// Compute offset using exponentiation by squaring.
 	poly_secpar_vec key_pow2 = key;
-	// poly_secpar_vec key_pow = /* TODO: polynomial = 1 */;
-	poly_secpar_vec key_pow = key_pow2; // XXX: just to make it compile
+	poly_secpar_vec key_pow = poly_secpar_set_low32(1);
 	bool first = true;
 	for (size_t i = 1; i < num_coefficients; i <<= 1)
 	{

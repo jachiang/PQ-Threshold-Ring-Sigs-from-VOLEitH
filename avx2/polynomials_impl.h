@@ -425,13 +425,15 @@ inline poly320_vec poly64x256_mul(poly64_vec x, poly256_vec y)
 	return out;
 }
 
-// Modulus for GF(2^n), without the x^n term.
-const extern uint32_t gf64_modulus;  // degree = 4
-const extern uint32_t gf128_modulus; // degree = 7
-const extern uint32_t gf192_modulus; // degree = 7
-const extern uint32_t gf256_modulus; // degree = 10
+inline poly64_vec poly64_set_low32(uint32_t x);
+inline poly128_vec poly128_set_low32(uint32_t x);
+inline poly192_vec poly192_set_low32(uint32_t x);
+inline poly256_vec poly256_set_low32(uint32_t x);
+inline poly320_vec poly320_set_low32(uint32_t x);
+inline poly384_vec poly384_set_low32(uint32_t x);
+inline poly512_vec poly512_set_low32(uint32_t x);
 
-inline clmul_block load_u32_into_vector(uint32_t x)
+inline poly128_vec poly128_set_low32(uint32_t x)
 {
 #if POLY_VEC_LEN == 1
 	return _mm_cvtsi32_si128(x);
@@ -440,26 +442,49 @@ inline clmul_block load_u32_into_vector(uint32_t x)
 #endif
 }
 
-inline poly64_vec get_gf64_modulus()
+inline poly64_vec poly64_set_low32(uint32_t x)
 {
-	return load_u32_into_vector(gf64_modulus);
+	return poly128_set_low32(x);
 }
-inline poly64_vec get_gf128_modulus()
+inline poly192_vec poly192_set_low32(uint32_t x)
 {
-	return load_u32_into_vector(gf128_modulus);
+	poly192_vec out;
+	out.data[0] = poly128_set_low32(x);
+	memset(&out.data[1], 0, sizeof(out.data[1]));
+	return out;
 }
-inline poly64_vec get_gf192_modulus()
+inline poly256_vec poly256_set_low32(uint32_t x)
 {
-	return load_u32_into_vector(gf192_modulus);
+	poly256_vec out;
+	out.data[0] = poly128_set_low32(x);
+	memset(&out.data[1], 0, sizeof(out.data[1]));
+	return out;
 }
-inline poly64_vec get_gf256_modulus()
+inline poly320_vec poly320_set_low32(uint32_t x)
 {
-	return load_u32_into_vector(gf256_modulus);
+	poly320_vec out;
+	out.data[0] = poly128_set_low32(x);
+	memset(&out.data[1], 0, 2 * sizeof(out.data[1]));
+	return out;
+}
+inline poly384_vec poly384_set_low32(uint32_t x)
+{
+	poly384_vec out;
+	out.data[0] = poly128_set_low32(x);
+	memset(&out.data[1], 0, 2 * sizeof(out.data[1]));
+	return out;
+}
+inline poly512_vec poly512_set_low32(uint32_t x)
+{
+	poly512_vec out;
+	out.data[0] = poly128_set_low32(x);
+	memset(&out.data[1], 0, 3 * sizeof(out.data[1]));
+	return out;
 }
 
 inline poly64_vec poly128_reduce64(poly128_vec x)
 {
-	poly64_vec modulus = get_gf64_modulus();
+	poly64_vec modulus = poly64_set_low32(gf64_modulus);
 	poly128_vec high = clmul_block_clmul_lh(modulus, x); // Degree < 64 + 4
 	poly128_vec high_high = clmul_block_clmul_lh(modulus, high); // Degree < 4 + 4
 
@@ -469,7 +494,7 @@ inline poly64_vec poly128_reduce64(poly128_vec x)
 
 inline poly128_vec poly256_reduce128(poly256_vec x)
 {
-	poly64_vec modulus = get_gf128_modulus();
+	poly64_vec modulus = poly64_set_low32(gf128_modulus);
 	poly128_vec reduced_192 = clmul_block_clmul_lh(modulus, x.data[1]);
 	x.data[0] = poly128_add(x.data[0], clmul_block_shift_left_64(reduced_192));
 	x.data[1] = poly128_add(x.data[1], clmul_block_shift_right_64(reduced_192));
@@ -479,7 +504,7 @@ inline poly128_vec poly256_reduce128(poly256_vec x)
 
 inline poly192_vec poly384_reduce192(poly384_vec x)
 {
-	poly64_vec modulus = get_gf192_modulus();
+	poly64_vec modulus = poly64_set_low32(gf192_modulus);
 	poly128_vec reduced_320 = clmul_block_clmul_lh(modulus, x.data[2]);
 	poly128_vec reduced_256 = clmul_block_clmul_ll(modulus, x.data[2]);
 	poly192_vec out;
@@ -492,7 +517,7 @@ inline poly192_vec poly384_reduce192(poly384_vec x)
 
 inline poly256_vec poly512_reduce256(poly512_vec x)
 {
-	poly64_vec modulus = get_gf256_modulus();
+	poly64_vec modulus = poly64_set_low32(gf256_modulus);
 	clmul_block xmod[4];
 	xmod[0] = clmul_block_set_zero();
 	xmod[1] = clmul_block_clmul_lh(modulus, x.data[2]);
@@ -513,13 +538,13 @@ inline poly256_vec poly512_reduce256(poly512_vec x)
 
 inline poly128_vec poly192_reduce128(poly192_vec x)
 {
-	poly64_vec modulus = get_gf128_modulus();
+	poly64_vec modulus = poly64_set_low32(gf128_modulus);
 	return poly128_add(x.data[0], clmul_block_clmul_ll(modulus, x.data[1]));
 }
 
 inline poly192_vec poly256_reduce192(poly256_vec x)
 {
-	poly64_vec modulus = get_gf192_modulus();
+	poly64_vec modulus = poly64_set_low32(gf192_modulus);
 	poly192_vec out;
 	out.data[1] = x.data[1];
 	out.data[0] = poly128_add(x.data[0], clmul_block_clmul_lh(modulus, out.data[1]));
@@ -528,7 +553,7 @@ inline poly192_vec poly256_reduce192(poly256_vec x)
 
 inline poly256_vec poly320_reduce256(poly320_vec x)
 {
-	poly64_vec modulus = get_gf256_modulus();
+	poly64_vec modulus = poly64_set_low32(gf256_modulus);
 	poly256_vec out;
 	out.data[1] = x.data[1];
 	out.data[0] = poly128_add(x.data[0], clmul_block_clmul_ll(modulus, x.data[2]));
@@ -540,7 +565,7 @@ inline bool poly64_eq(poly64_vec x, poly64_vec y)
 #if POLY_VEC_LEN == 1
 	return _mm_cvtsi128_si64(x) == _mm_cvtsi128_si64(y);
 #elif POLY_VEC_LEN == 2
-    __m128i tmp = _mm_xor_si128(_mm256_castsi256_si128(transpose2x2_64(x)), _mm256_castsi256_si128(transpose2x2_64(y)));
+    __m128i tmp = _mm256_castsi256_si128(transpose2x2_64(poly64_add(x, y)));
     return _mm_test_all_zeros(tmp, tmp);
 #endif
 }
@@ -563,7 +588,7 @@ inline bool poly192_eq(poly192_vec x, poly192_vec y)
 	return _mm_test_all_zeros(tmp0, tmp0) && (_mm_cvtsi128_si64(x.data[1]) == _mm_cvtsi128_si64(y.data[1]));
 #elif POLY_VEC_LEN == 2
     __m256i tmp0 = _mm256_xor_si256(x.data[0], y.data[0]);
-    __m128i tmp1 = _mm_xor_si128(_mm256_castsi256_si128(transpose2x2_64(x.data[1])), _mm256_castsi256_si128(transpose2x2_64(y.data[1])));
+    __m128i tmp1 = _mm256_castsi256_si128(transpose2x2_64(_mm256_xor_si256(x.data[1], y.data[1])));
     return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1);
 #endif
 }
