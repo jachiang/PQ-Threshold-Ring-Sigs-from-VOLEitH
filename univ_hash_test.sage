@@ -32,7 +32,7 @@ n_inputs = 8
 def gen_tests(F):
     keys = [F.random_element() for _ in range(n_hashers)]
     inputs = [[F.random_element() for _ in range(n_inputs)] for _ in range(n_hashers)]
-    outputs = [sum(key ^ i * a for i, a in reversed(list(enumerate(ins)))) for key, ins in zip(keys, inputs)]
+    outputs = [sum(key ^ i * a for i, a in enumerate(reversed(ins))) for key, ins in zip(keys, inputs)]
     return keys, inputs, outputs
 
 def print_tests(F, t):
@@ -52,7 +52,7 @@ print("128")
 print_tests(F128, t_128)
 t_192 = gen_tests(F192)
 print("192")
-#  print_tests(F192, t_192)
+print_tests(F192, t_192)
 t_256 = gen_tests(F256)
 print("256")
-#  print_tests(F256, t_256)
+print_tests(F256, t_256)
