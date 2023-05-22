@@ -50,6 +50,12 @@ inline std::string poly256_vec_to_string(poly256_vec pv) {
     return poly_vec_to_string(buf.data(), 32);
 }
 
+inline std::string poly320_vec_to_string(poly320_vec pv) {
+    std::array<uint8_t, POLY_VEC_LEN * 40> buf;
+    poly320_store(buf.data(), pv);
+    return poly_vec_to_string(buf.data(), 40);
+}
+
 inline std::string poly384_vec_to_string(poly384_vec pv) {
     std::array<uint8_t, POLY_VEC_LEN * 48> buf;
     poly384_store(buf.data(), pv);
@@ -78,6 +84,10 @@ inline std::string poly512_vec_to_string(poly512_vec pv) {
     { INFO("Requiring: " << poly256_vec_to_string(a) << " == " << poly256_vec_to_string(b)); REQUIRE(poly256_eq(a, b)); }
 #define REQUIRE_POLY256VEC_NEQ(a, b) \
     { INFO("Requiring: " << poly256_vec_to_string(a) << " != " << poly256_vec_to_string(b)); REQUIRE(!poly256_eq(a, b)); }
+#define REQUIRE_POLY320VEC_EQ(a, b) \
+    { INFO("Requiring: " << poly320_vec_to_string(a) << " == " << poly320_vec_to_string(b)); REQUIRE(poly320_eq(a, b)); }
+#define REQUIRE_POLY320VEC_NEQ(a, b) \
+    { INFO("Requiring: " << poly320_vec_to_string(a) << " != " << poly320_vec_to_string(b)); REQUIRE(!poly320_eq(a, b)); }
 #define REQUIRE_POLY384VEC_EQ(a, b) \
     { INFO("Requiring: " << poly384_vec_to_string(a) << " == " << poly384_vec_to_string(b)); REQUIRE(poly384_eq(a, b)); }
 #define REQUIRE_POLY384VEC_NEQ(a, b) \

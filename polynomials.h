@@ -26,6 +26,7 @@ inline poly128_vec poly128_load(const void* s);
 inline poly192_vec poly192_load(const void* s);
 inline poly256_vec poly256_load(const void* s);
 inline poly384_vec poly384_load(const void* s);
+inline poly320_vec poly320_load(const void* s);
 inline poly512_vec poly512_load(const void* s);
 
 // Store a vector of POLY_VEC_LEN polynomials in a packed format.
@@ -33,6 +34,7 @@ inline void poly64_store(void* d, poly64_vec s);
 inline void poly128_store(void* d, poly128_vec s);
 inline void poly192_store(void* d, poly192_vec s);
 inline void poly256_store(void* d, poly256_vec s);
+inline void poly320_store(void* d, poly320_vec s);
 inline void poly384_store(void* d, poly384_vec s);
 inline void poly512_store(void* d, poly512_vec s);
 
@@ -75,8 +77,25 @@ inline bool poly64_eq(poly64_vec x, poly64_vec y);
 inline bool poly128_eq(poly128_vec x, poly128_vec y);
 inline bool poly192_eq(poly192_vec x, poly192_vec y);
 inline bool poly256_eq(poly256_vec x, poly256_vec y);
+inline bool poly320_eq(poly320_vec x, poly320_vec y);
 inline bool poly384_eq(poly384_vec x, poly384_vec y);
 inline bool poly512_eq(poly512_vec x, poly512_vec y);
+
+// Convert a vector of small degree polynomials into a vector larger degree polynomials by setting
+// the higher coefficients to zero.
+inline poly128_vec poly128_from_64(poly64_vec x);
+inline poly192_vec poly192_from_128(poly128_vec x);
+inline poly256_vec poly256_from_128(poly128_vec x);
+inline poly256_vec poly256_from_192(poly192_vec x);
+inline poly384_vec poly384_from_192(poly192_vec x);
+inline poly320_vec poly320_from_256(poly256_vec x);
+inline poly512_vec poly512_from_256(poly256_vec x);
+
+// Move single polynomial with given index into the first slot of a new vector and zero the other
+// components.
+inline poly128_vec poly128_extract(poly128_vec x, size_t index);
+inline poly192_vec poly192_extract(poly192_vec x, size_t index);
+inline poly256_vec poly256_extract(poly256_vec x, size_t index);
 
 #if SECURITY_PARAM == 128
 typedef poly128_vec poly_secpar_vec;
@@ -118,6 +137,18 @@ inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x)
 {
 	return poly192_reduce128(x);
+}
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_from_secpar(poly_secpar_vec x)
+{
+    return poly192_from_128(x);
+}
+inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
+{
+    return poly256_from_128(x);
+}
+inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
+{
+    return poly128_extract(x, index);
 }
 
 #elif SECURITY_PARAM == 192
@@ -161,6 +192,18 @@ inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec
 {
 	return poly256_reduce192(x);
 }
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_from_secpar(poly_secpar_vec x)
+{
+    return poly256_from_192(x);
+}
+inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
+{
+    return poly384_from_192(x);
+}
+inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
+{
+    return poly192_extract(x, index);
+}
 
 #elif SECURITY_PARAM == 256
 typedef poly256_vec poly_secpar_vec;
@@ -202,6 +245,18 @@ inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x)
 {
 	return poly320_reduce256(x);
+}
+inline poly_secpar_plus_64_vec poly_secpar_plus_64_from_secpar(poly_secpar_vec x)
+{
+    return poly320_from_256(x);
+}
+inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
+{
+    return poly512_from_256(x);
+}
+inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
+{
+    return poly256_extract(x, index);
 }
 
 #endif

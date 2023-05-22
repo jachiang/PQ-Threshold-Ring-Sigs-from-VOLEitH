@@ -102,6 +102,18 @@ inline poly256_vec poly256_load(const void* s)
 	return out;
 }
 
+inline poly320_vec poly320_load(const void* s)
+{
+	poly320_vec out;
+
+#if POLY_VEC_LEN == 1
+	memcpy(&out, s, 40);
+	return out;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
 inline poly384_vec poly384_load(const void* s)
 {
 	poly384_vec out;
@@ -176,6 +188,14 @@ inline void poly256_store(void* d, poly256_vec s)
 #endif
 }
 
+inline void poly320_store(void* d, poly320_vec s)
+{
+#if POLY_VEC_LEN == 1
+	memcpy(d, &s, 40);
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
 
 inline void poly384_store(void* d, poly384_vec s)
 {
@@ -561,6 +581,18 @@ inline bool poly256_eq(poly256_vec x, poly256_vec y)
 #endif
 }
 
+inline bool poly320_eq(poly320_vec x, poly320_vec y)
+{
+#if POLY_VEC_LEN == 1
+    __m128i tmp0 = _mm_xor_si128(x.data[0], y.data[0]);
+    __m128i tmp1 = _mm_xor_si128(x.data[1], y.data[1]);
+    return _mm_test_all_zeros(tmp0, tmp0) && _mm_test_all_zeros(tmp1, tmp1) && \
+	    (_mm_cvtsi128_si64(x.data[2]) == _mm_cvtsi128_si64(y.data[2]));
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
 inline bool poly384_eq(poly384_vec x, poly384_vec y)
 {
 #if POLY_VEC_LEN == 1
@@ -594,6 +626,124 @@ inline bool poly512_eq(poly512_vec x, poly512_vec y)
     __m256i tmp3 = _mm256_xor_si256(x.data[3], y.data[3]);
     return _mm256_test_all_zeros(tmp0, tmp0) && _mm256_test_all_zeros(tmp1, tmp1) && \
            _mm256_test_all_zeros(tmp2, tmp2) && _mm256_test_all_zeros(tmp3, tmp3);
+#endif
+}
+
+inline poly128_vec poly128_from_64(poly64_vec x)
+{
+    // set the unused bits to zero
+#if POLY_VEC_LEN == 1
+    return _mm_insert_epi64(x, 0, 1);
+#elif POLY_VEC_LEN == 2
+    return = _mm256_inserti128_si256(x, _mm_setzero_si128(), 1);
+#endif
+}
+
+inline poly192_vec poly192_from_128(poly128_vec x)
+{
+    poly192_vec out;
+    out.data[0] = x;
+#if POLY_VEC_LEN == 1
+    out.data[1] = _mm_setzero_si128();
+#elif POLY_VEC_LEN == 2
+    out.data[1] = _mm256_setzero_si256();
+#endif
+    return out;
+}
+
+inline poly256_vec poly256_from_128(poly128_vec x)
+{
+    poly256_vec out;
+    out.data[0] = x;
+#if POLY_VEC_LEN == 1
+    out.data[1] = _mm_setzero_si128();
+#elif POLY_VEC_LEN == 2
+    out.data[1] = _mm256_setzero_si256();
+#endif
+    return out;
+}
+
+inline poly256_vec poly256_from_192(poly192_vec x)
+{
+    poly256_vec out;
+    out.data[0] = x.data[0];
+#if POLY_VEC_LEN == 1
+    out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
+#elif POLY_VEC_LEN == 2
+    out.data[1] = _mm256_inserti128_si256(x.data[1], _mm_setzero_si128(), 1);
+#endif
+    return out;
+}
+
+inline poly384_vec poly384_from_192(poly192_vec x)
+{
+    poly384_vec out;
+    out.data[0] = x.data[0];
+#if POLY_VEC_LEN == 1
+    out.data[1] = _mm_insert_epi64(x.data[1], 0, 1);
+    out.data[2] = _mm_setzero_si128();
+#elif POLY_VEC_LEN == 2
+    out.data[1] = _mm256_inserti128_si256(x.data[1], _mm_setzero_si128(), 1);
+    out.data[2] = _mm256_setzero_si256();
+#endif
+    return out;
+}
+
+inline poly320_vec poly320_from_256(poly256_vec x)
+{
+    poly320_vec out;
+    out.data[0] = x.data[0];
+    out.data[1] = x.data[1];
+#if POLY_VEC_LEN == 1
+    out.data[2] = _mm_setzero_si128();
+#elif POLY_VEC_LEN == 2
+    out.data[2] = _mm256_setzero_si256();
+#endif
+    return out;
+}
+
+inline poly512_vec poly512_from_256(poly256_vec x)
+{
+    poly512_vec out;
+    out.data[0] = x.data[0];
+    out.data[1] = x.data[1];
+#if POLY_VEC_LEN == 1
+    out.data[2] = _mm_setzero_si128();
+    out.data[3] = _mm_setzero_si128();
+#elif POLY_VEC_LEN == 2
+    out.data[2] = _mm256_setzero_si256();
+    out.data[3] = _mm256_setzero_si256();
+#endif
+    return out;
+}
+
+inline poly128_vec poly128_extract(poly128_vec x, size_t index)
+{
+#if POLY_VEC_LEN == 1
+    (void) index;
+    return x;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
+inline poly192_vec poly192_extract(poly192_vec x, size_t index)
+{
+#if POLY_VEC_LEN == 1
+    (void) index;
+    return x;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
+inline poly256_vec poly256_extract(poly256_vec x, size_t index)
+{
+#if POLY_VEC_LEN == 1
+    (void) index;
+    return x;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
 #endif
 }
 
