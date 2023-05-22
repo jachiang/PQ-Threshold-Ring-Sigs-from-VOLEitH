@@ -44,7 +44,7 @@ typedef struct
 	int pow;
 } hasher_gf64_state;
 
-inline void hasher_gfsecpar_init_key(hasher_gfsecpar_key* hash_key, poly64_vec key)
+inline void hasher_gfsecpar_init_key(hasher_gfsecpar_key* hash_key, poly_secpar_vec key)
 {
 	hash_key->key_pows[0] = key;
 	poly_secpar_vec key_pow = key;
@@ -87,7 +87,7 @@ inline poly_secpar_vec hasher_gfsecpar_final(const hasher_gfsecpar_state* state)
 	return poly_2secpar_reduce_secpar(state->state);
 }
 
-inline void hasher_gfsecpar_64_init_key(hasher_gfsecpar_64_key* hash_key, poly_secpar_vec key)
+inline void hasher_gfsecpar_64_init_key(hasher_gfsecpar_64_key* hash_key, poly64_vec key)
 {
 	hash_key->key = key;
 }
@@ -101,7 +101,7 @@ inline void hasher_gfsecpar_64_init_state(hasher_gfsecpar_64_state* state, size_
 inline void hasher_gfsecpar_64_update(const hasher_gfsecpar_64_key* key, hasher_gfsecpar_64_state* state, poly_secpar_vec input)
 {
 	state->state = poly64xsecpar_mul(key->key, poly_secpar_plus_64_reduce_secpar(state->state));
-	state->state = poly_secpar_add(state->state, poly_secpar_plus_64_from_secpar(input)); // TODO
+	// state->state = poly_secpar_add(state->state, poly_secpar_plus_64_from_secpar(input)); // TODO
 }
 
 inline poly_secpar_vec hasher_gfsecpar_64_final(const hasher_gfsecpar_64_state* state)
@@ -115,7 +115,8 @@ inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key, poly_secpar_
 {
 	// Compute offset using exponentiation by squaring.
 	poly_secpar_vec key_pow2 = key;
-	poly_secpar_vec key_pow = /* TODO: polynomial = 1 */;
+	// poly_secpar_vec key_pow = /* TODO: polynomial = 1 */;
+	poly_secpar_vec key_pow = key_pow2; // XXX: just to make it compile
 	bool first = true;
 	for (size_t i = 1; i < num_coefficients; i <<= 1)
 	{
