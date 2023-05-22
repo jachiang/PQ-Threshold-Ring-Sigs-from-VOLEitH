@@ -62,11 +62,13 @@ inline void hasher_gfsecpar_init_state(hasher_gfsecpar_state* state, size_t num_
 }
 
 // Update a vector of hashers on a vector of polynomials.
+// - Needs to get called `num_coefficients` (parameter to `hasher_gfsecpar_init_state`) times before
+// calling `hasher_secpar_final`.
 inline void hasher_gfsecpar_update(const hasher_gfsecpar_key* key, hasher_gfsecpar_state* state, poly_secpar_vec input)
 {
 	if (state->pow == -1)
 	{
-		state->state = poly_secpar_mul(key->key_pow[HASHER_GFSECPAR_KEY_POWS - 1], poly_2secpar_reduce_secpar(state->state));
+		state->state = poly_secpar_mul(key->key_pows[HASHER_GFSECPAR_KEY_POWS - 1], poly_2secpar_reduce_secpar(state->state));
 		state->pow = HASHER_GFSECPAR_KEY_POWS - 1;
 	}
 
@@ -153,7 +155,7 @@ inline void hasher_gf64_init_key(hasher_gf64_key* hash_key, poly64_vec key)
 inline void hasher_gf64_init_state(hasher_gf64_state* state, size_t num_coefficients)
 {
 	memset(&state->state, 0, sizeof(state->state));
-	state->pow = (num_coefficients + GF64_KEY_POWS - 1) % GF64_KEY_POWS;
+	state->pow = (num_coefficients + HASHER_GF64_KEY_POWS - 1) % HASHER_GF64_KEY_POWS;
 }
 
 // Update a vector of hashers on a vector of polynomials.
@@ -161,7 +163,7 @@ inline void hasher_gf64_update(const hasher_gf64_key* key, hasher_gf64_state* st
 {
 	if (state->pow == -1)
 	{
-		poly128_vec l = clmul_block_clmul_ll(key->key_pow[GF64_KEY_POWS - 1], state->state);
+		poly128_vec l = clmul_block_clmul_ll(key->key_pows[HASHER_GF64_KEY_POWS - 1], state->state);
 		poly128_vec h = clmul_block_clmul_lh(key->key_pow_times_a64, state->state);
 		state->state = poly128_add(l, h);
 	}
