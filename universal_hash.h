@@ -76,7 +76,7 @@ inline void hasher_gfsecpar_update(const hasher_gfsecpar_key* key, hasher_gfsecp
 	if (state->pow > 0)
 		summand = poly_secpar_mul(key->key_pows[state->pow - 1], input);
 	else
-		summand = poly_2secpar_from_secpar(input); // TODO
+		summand = poly_2secpar_from_secpar(input);
 	state->state = poly_2secpar_add(state->state, summand);
 	--state->pow;
 }
@@ -94,6 +94,7 @@ inline void hasher_gfsecpar_64_init_key(hasher_gfsecpar_64_key* hash_key, poly64
 
 inline void hasher_gfsecpar_64_init_state(hasher_gfsecpar_64_state* state, size_t num_coefficients)
 {
+    (void) num_coefficients;
 	memset(&state->state, 0, sizeof(state->state));
 }
 
@@ -129,7 +130,7 @@ inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key, poly_secpar_
 			key_pow = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, key_pow2));
 	}
 
-	poly_secpar_vec output = poly_secpar_extract(hash, POLY_VEC_LEN - 1); // TODO
+	poly_secpar_vec output = poly_secpar_extract(hash, POLY_VEC_LEN - 1);
 	for (int i = POLY_VEC_LEN - 2; i >= 0; --i)
 	{
 		output = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, output));
@@ -173,7 +174,7 @@ inline void hasher_gf64_update(const hasher_gf64_key* key, hasher_gf64_state* st
 	if (state->pow > 0)
 		summand = poly64_mul(key->key_pows[state->pow - 1], input);
 	else
-		summand = poly128_from_64(input); // TODO
+		summand = poly128_from_64(input);
 	state->state = poly128_add(state->state, summand);
 	--state->pow;
 }
