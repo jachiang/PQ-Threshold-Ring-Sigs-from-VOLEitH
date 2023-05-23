@@ -166,6 +166,7 @@ inline void hasher_gf64_update(const hasher_gf64_key* key, hasher_gf64_state* st
 		poly128_vec l = clmul_block_clmul_ll(key->key_pows[HASHER_GF64_KEY_POWS - 1], state->state);
 		poly128_vec h = clmul_block_clmul_lh(key->key_pow_times_a64, state->state);
 		state->state = poly128_add(l, h);
+		state->pow = HASHER_GF64_KEY_POWS - 1;
 	}
 
 	poly128_vec summand;
