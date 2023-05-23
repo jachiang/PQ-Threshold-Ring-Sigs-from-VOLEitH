@@ -5,7 +5,7 @@ COMMON_CC_FLAGS ?= -pedantic-errors -Wall -Wextra -Wno-ignored-attributes $(COMM
 
 CPPFLAGS += -MMD -MP -MF $*.d
 CFLAGS ?= -std=c11 $(COMMON_CC_FLAGS)
-CXXFLAGS ?= -std=c++14 $(COMMON_CC_FLAGS)
+CXXFLAGS ?= -std=c++20 $(COMMON_CC_FLAGS)
 LDFLAGS += -lcrypto $(COMMON_LD_FLAGS)
 
 CP_L = cp -l
