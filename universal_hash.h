@@ -101,7 +101,7 @@ inline void hasher_gfsecpar_64_init_state(hasher_gfsecpar_64_state* state, size_
 inline void hasher_gfsecpar_64_update(const hasher_gfsecpar_64_key* key, hasher_gfsecpar_64_state* state, poly_secpar_vec input)
 {
 	state->state = poly64xsecpar_mul(key->key, poly_secpar_plus_64_reduce_secpar(state->state));
-	// state->state = poly_secpar_add(state->state, poly_secpar_plus_64_from_secpar(input)); // TODO
+    state->state = poly_secpar_plus_64_add(state->state, poly_secpar_plus_64_from_secpar(input));
 }
 
 inline poly_secpar_vec hasher_gfsecpar_64_final(const hasher_gfsecpar_64_state* state)
