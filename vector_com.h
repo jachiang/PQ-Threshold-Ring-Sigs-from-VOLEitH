@@ -10,7 +10,7 @@
 #define VECTOR_COMMIT_LEAVES ((VOLES_MIN_K << VOLE_MIN_K) + (VOLES_MAX_K << VOLE_MAX_K))
 #define VECTOR_COMMIT_NODES (2 * (VECTOR_COMMIT_LEAVES - BITS_PER_WITNESS))
 #define VECTOR_OPEN_BITS (SECURITY_PARAM * SECURITY_PARAM + 2 * SECURITY_PARAM * BITS_PER_WITNESS)
-#define VECTOR_OPEN_SIZE (VECTCOM_OPEN_BITS / 8)
+#define VECTOR_OPEN_SIZE (VECTOR_OPEN_BITS / 8)
 
 // roots is a random vector of 2 * BITS_PER_WITNESS blocks. leaves and hashed_leaves must each be
 // VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves (but not
@@ -24,7 +24,7 @@ void vector_commit(
 
 // Using decommitment data from vector_commit, open at delta. delta is represented as SECURITY_PARAM
 // bytes, each 0 or 0xff, with each segment (corresponding to a single VOLE) ordered in little
-// endian. opening must be VECTCOM_OPEN_SIZE bytes long.
+// endian. opening must be VECTOR_OPEN_SIZE bytes long.
 void vector_open(
 	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
 	const unsigned char* restrict delta, unsigned char* restrict opening);
