@@ -35,6 +35,11 @@ def gen_tests(F):
     outputs = [sum(key ^ i * a for i, a in enumerate(reversed(ins))) for key, ins in zip(keys, inputs)]
     return keys, inputs, outputs
 
+def make_64_secpar_tests(F, keys64, inputs):
+    keys = [F(R2(k)) for k in keys64]
+    outputs = [sum(key ^ i * a for i, a in enumerate(reversed(ins))) for key, ins in zip(keys, inputs)]
+    return outputs
+
 def print_tests(F, t):
     k, i, o = t
     print("keys")
@@ -59,3 +64,16 @@ print_tests(F256, t_256)
 t_64 = gen_tests(F64)
 print("64")
 print_tests(F64, t_64)
+
+mixed_64_128_outputs = make_64_secpar_tests(F128, t_64[0], t_128[1])
+mixed_64_192_outputs = make_64_secpar_tests(F192, t_64[0], t_192[1])
+mixed_64_256_outputs = make_64_secpar_tests(F256, t_64[0], t_256[1])
+print('mixed 128')
+for os in mixed_64_128_outputs:
+    print('    {' + fe_list_to_cpp_array(byte_len(F128), [os]) + '},')
+print('mixed 192')
+for os in mixed_64_192_outputs:
+    print('    {' + fe_list_to_cpp_array(byte_len(F192), [os]) + '},')
+print('mixed 256')
+for os in mixed_64_256_outputs:
+    print('    {' + fe_list_to_cpp_array(byte_len(F256), [os]) + '},')
