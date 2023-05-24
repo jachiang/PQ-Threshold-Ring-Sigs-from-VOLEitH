@@ -139,7 +139,7 @@ inline block128 rand<block128>() {
 
 template <>
 inline block192 rand<block192>() {
-	std::array<uint64_t, 2> data;
+	std::array<uint64_t, 3> data;
 	for (size_t i = 0; i < data.size(); ++i)
 		data[i] = rand();
 
@@ -150,7 +150,7 @@ inline block192 rand<block192>() {
 
 template <>
 inline block256 rand<block256>() {
-	std::array<uint64_t, 2> data;
+	std::array<uint64_t, 4> data;
 	for (size_t i = 0; i < data.size(); ++i)
 		data[i] = rand();
 
