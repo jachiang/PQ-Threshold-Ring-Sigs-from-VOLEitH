@@ -27,7 +27,7 @@ void vector_commit(
 // endian. opening must be VECTOR_OPEN_SIZE bytes long.
 void vector_open(
 	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
-	const unsigned char* restrict delta, unsigned char* restrict opening);
+	const uint8_t* restrict delta, unsigned char* restrict opening);
 
 // Given an opening, get all but one of the leaves and all of the hashed leaves. The hashed_leaves
 // must be verified against the output from vector_commit. leaves will be permuted according to
@@ -36,7 +36,7 @@ void vector_open(
 void vector_verify(
 	const unsigned char* restrict opening,
 	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
-	const unsigned char* restrict delta,
+	const uint8_t* restrict delta,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
 
 #endif

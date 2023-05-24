@@ -24,7 +24,7 @@ void vole_sender(
 void vole_receiver(
 	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
-	const unsigned char* restrict delta);
+	const uint8_t* restrict delta);
 
 inline size_t vole_permute_key_index(size_t i)
 {

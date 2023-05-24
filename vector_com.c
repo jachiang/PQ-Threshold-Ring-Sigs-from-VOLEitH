@@ -1,6 +1,8 @@
 #include "vector_com.h"
 #include <assert.h>
+#include <stdalign.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "util.h"
 #include "small_vole.h"
@@ -21,6 +23,8 @@
 #define LEAF_BYTES_PER_KEY_REMAINDER \
 	((3 * sizeof(block_secpar)) % sizeof(prg_leaf_block))
 
+#define MAX_CHUNK_SIZE_SHIFT \
+	(LEAF_CHUNK_SIZE_SHIFT > TREE_CHUNK_SIZE_SHIFT ? LEAF_CHUNK_SIZE_SHIFT : TREE_CHUNK_SIZE_SHIFT)
 #define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > TREE_CHUNK_SIZE ? LEAF_CHUNK_SIZE : TREE_CHUNK_SIZE)
 
 static ALWAYS_INLINE void copy_prg_output(
@@ -45,7 +49,7 @@ static ALWAYS_INLINE void expand_chunk(
 	const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	assert(n <= !leaf ? TREE_CHUNK_SIZE : LEAF_CHUNK_SIZE);
+	assert(n <= (!leaf ? TREE_CHUNK_SIZE : LEAF_CHUNK_SIZE));
 
 	block_secpar keys[MAX_CHUNK_SIZE];
 	prg_tree_iv ivs_tree[TREE_CHUNK_SIZE];
@@ -188,19 +192,25 @@ static ALWAYS_INLINE void expand_chunk_switch( \
 		EXPAND_CHUNK_SWITCH_CASE(30)
 		EXPAND_CHUNK_SWITCH_CASE(31)
 		EXPAND_CHUNK_SWITCH_CASE(32)
+	default:
+		assert(0 < n && n <= 32);
 	}
 }
 
 static void expand_chunk_leaf_n_leaf_chunk_size(
-	const prg_tree_fixed_key* restrict fixed_key_tree,
 	const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	expand_chunk(true, LEAF_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, input, output);
+	expand_chunk(true, LEAF_CHUNK_SIZE, NULL, fixed_key_leaf, input, output);
 }
 
-#define PARENT(x) (((x) - 2 * BITS_PER_WITNESS) / 2)
-#define FIRST_CHILD(x) (2 * (x) + 2 * BITS_PER_WITNESS)
+#define TREES_IN_FOREST(verifier) ((verifier) ? SECURITY_PARAM : 2 * BITS_PER_WITNESS)
+#define PARENT(x, verifier) (((x) - TREES_IN_FOREST(verifier)) / 2)
+#define FIRST_CHILD(x, verifier) (2 * (x) + TREES_IN_FOREST(verifier))
+
+// Equivalent to FIRST_CHILD(..., verifier) iterated d times, starting from x.
+#define FIRST_DESCENDENT_DEPTH(x, d, verifier) \
+	((((x) + TREES_IN_FOREST(verifier)) << (d)) - TREES_IN_FOREST(verifier))
 
 // Duplicate the same function many times for recursion, so that it will all get inlined.
 #define EXPAND_ROOTS_RECURSION(n, next) \
@@ -211,10 +221,10 @@ static void expand_chunk_leaf_n_leaf_chunk_size(
 	{ \
 		if (n >= TREE_CHUNK_SIZE_SHIFT) \
 			return; \
-		size_t this_chunk_size = partial ? (2 * BITS_PER_WITNESS) % TREE_CHUNK_SIZE : TREE_CHUNK_SIZE; \
-		expand_chunk_switch(this_chunk_size, fixed_key_tree, fixed_key_leaf, &forest[i], &forest[FIRST_CHILD(i)]); \
-		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i)); \
-		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i) + this_chunk_size); \
+		size_t this_chunk_size = partial ? TREES_IN_FOREST(false) % TREE_CHUNK_SIZE : TREE_CHUNK_SIZE; \
+		expand_chunk_switch(this_chunk_size, fixed_key_tree, fixed_key_leaf, &forest[i], &forest[FIRST_CHILD(i, false)]); \
+		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i, false)); \
+		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i, false) + this_chunk_size); \
 	}
 #define FINISHED_RECURSION(a,b,c,d,e) do {} while (0)
 
@@ -225,106 +235,70 @@ EXPAND_ROOTS_RECURSION(2, expand_roots_3)
 EXPAND_ROOTS_RECURSION(1, expand_roots_2)
 #undef FINISHED_RECURSION
 
-static ALWAYS_INLINE void expand_tree(
-	bool verifier, size_t delta, const prg_tree_fixed_key* restrict fixed_key_tree,
-	const prg_leaf_fixed_key* restrict fixed_key_leaf, block_secpar* restrict forest,
-	unsigned int levels_to_expand, size_t index,
+static void write_leaves(
+	size_t delta, const prg_leaf_fixed_key* restrict fixed_key_leaf,
+	block_secpar* restrict starting_node, size_t starting_leaf_idx,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
 {
-	if (verifier)
+	for (size_t j = 0; j < MAX_CHUNK_SIZE; j += LEAF_CHUNK_SIZE)
 	{
-		// If the active path fills up at least 1 LEAF_CHUNK_SIZE block, we need to apply the leaf
-		// prgs and write out to leaves and hashed_leaves.
-		if (LEAF_CHUNK_SIZE <= TREE_CHUNK_SIZE)
-		{
-			size_t starting_leaf_idx = delta & -TREE_CHUNK_SIZE;
-			size_t starting_node =
-				BITS_PER_WITNESS * ((1 << (levels_to_expand + TREE_CHUNK_SIZE_SHIFT)) - 2) +
-				(index << (levels_to_expand + TREE_CHUNK_SIZE_SHIFT)) + starting_leaf_idx;
-			for (size_t j = 0; j < TREE_CHUNK_SIZE; j += LEAF_CHUNK_SIZE)
-			{
-				block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
-				expand_chunk_leaf_n_leaf_chunk_size(
-					fixed_key_tree, fixed_key_leaf, &forest[starting_node + j], prg_output);
+		block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
+		expand_chunk_leaf_n_leaf_chunk_size(fixed_key_leaf, &starting_node[j], prg_output);
 
-				for (size_t k = 0; k < LEAF_CHUNK_SIZE; k += VOLE_WIDTH)
-				{
-					// Simplest to compute permuted_leaf_idx in each iteration, but
-					// vole_permute_key_index leaves the last VOLE_WIDTH_SHIFT bits unchanged, so it
-					// only needs to be called once every VOLE_WIDTH blocks.
-					size_t leaf_idx = starting_leaf_idx + j + k;
-					size_t permuted_leaf_idx = vole_permute_key_index(leaf_idx ^ delta);
-					for (size_t l = 0; l < VOLE_WIDTH && l < LEAF_CHUNK_SIZE; l++)
-					{
-						leaves[permuted_leaf_idx] = prg_output[3 * (k + l)];
-						memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * (k + l) + 1], sizeof(block_2secpar));
-						leaf_idx++;
-						permuted_leaf_idx = (permuted_leaf_idx & -VOLE_WIDTH) |
-							((leaf_idx ^ delta) & (VOLE_WIDTH - 1));
-					}
-				}
+		for (size_t k = 0; k < LEAF_CHUNK_SIZE; k += VOLE_WIDTH)
+		{
+			// Simplest to compute permuted_leaf_idx in each iteration, but
+			// vole_permute_key_index leaves the last VOLE_WIDTH_SHIFT bits unchanged, so it
+			// only needs to be called once every VOLE_WIDTH blocks.
+			size_t leaf_idx = starting_leaf_idx + j + k;
+			size_t permuted_leaves_start = vole_permute_key_index(leaf_idx ^ delta) & -VOLE_WIDTH;
+			for (size_t l = 0; l < VOLE_WIDTH && l < LEAF_CHUNK_SIZE; l++)
+			{
+				leaves[permuted_leaves_start + ((leaf_idx ^ delta) & (VOLE_WIDTH - 1))] = prg_output[3 * (k + l)];
+				memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * (k + l) + 1], sizeof(block_2secpar));
+				leaf_idx++;
 			}
 		}
 	}
+}
 
-	// The verifier has already completed the active path by here, so put the
-	// leaf == delta / TREE_CHUNK_SIZE iteration first, and skip it.
-	for (size_t i = verifier ? 1 : 0; i < (1 << levels_to_expand); ++i)
+static ALWAYS_INLINE void expand_tree(
+	bool verifier, size_t delta, const prg_tree_fixed_key* restrict fixed_key_tree,
+	const prg_leaf_fixed_key* restrict fixed_key_leaf, block_secpar* restrict forest,
+	unsigned int height, size_t root, size_t starting_leaf_idx,
+	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
+{
+	// Loop over blocks of size max(TREE_CHUNK_SIZE, LEAF_CHUNK_SIZE).
+	size_t pow_height = (size_t) 1 << height;
+	for (size_t chunk = 0; chunk < pow_height;
+	     chunk += MAX_CHUNK_SIZE / TREE_CHUNK_SIZE, starting_leaf_idx += TREE_CHUNK_SIZE)
 	{
-		size_t leaf = i ^ (delta / TREE_CHUNK_SIZE);
-
-		unsigned int generations_from_ancestor = count_trailing_zeros(i | (1 << levels_to_expand));
-		unsigned int ancestor_level = levels_to_expand - generations_from_ancestor;
-
-		size_t ancestor =
-			BITS_PER_WITNESS * ((TREE_CHUNK_SIZE << ancestor_level) - 2) +
-			TREE_CHUNK_SIZE * ((index << ancestor_level) + (leaf >> generations_from_ancestor));
-
-		for (int d = generations_from_ancestor - 1; d >= 0; --d)
+		size_t ancestor;
+		for (size_t i = chunk; i < chunk + (MAX_CHUNK_SIZE / TREE_CHUNK_SIZE) && i < pow_height; ++i)
 		{
-			size_t first_child = FIRST_CHILD(ancestor);
-			expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf,
-			                    &forest[ancestor], &forest[first_child]);
-			// More straightforward to add TREE_CHUNK_SIZE times the dth bit of leaf, but we have leaf ==
-			// i ^ (delta / TREE_CHUNK_SIZE), and i has generations_from_ancestor trailing zeros, so this
-			// is equivalent:
-			ancestor = first_child + ((delta >> d) & TREE_CHUNK_SIZE);
+			unsigned int ancestor_height = count_trailing_zeros(i | pow_height);
+			unsigned int ancestor_depth = height - ancestor_height;
+
+			ancestor = FIRST_DESCENDENT_DEPTH(root, ancestor_depth, verifier) +
+				TREE_CHUNK_SIZE * (i >> ancestor_height);
+
+			for (int d = ancestor_height - 1; d >= 0; --d)
+			{
+				size_t first_child = FIRST_CHILD(ancestor, verifier);
+				expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf,
+				                    &forest[ancestor], &forest[first_child]);
+				ancestor = first_child;
+			}
 		}
 
-		// If this ends a block of size at least LEAF_CHUNK_SIZE, then apply the leaf prgs and write
-		// to leaves and hashed_leaves.
-		size_t leaf_node = ancestor;
-		if (LEAF_CHUNK_SIZE <= TREE_CHUNK_SIZE || (i + 1) % (LEAF_CHUNK_SIZE / TREE_CHUNK_SIZE) == 0)
+		if (chunk + (MAX_CHUNK_SIZE / TREE_CHUNK_SIZE) <= pow_height)
 		{
-			size_t starting_node = leaf_node - (TREE_CHUNK_SIZE * leaf) % MAX_CHUNK_SIZE;
-			size_t starting_leaf_idx = TREE_CHUNK_SIZE * leaf - (TREE_CHUNK_SIZE * leaf) % MAX_CHUNK_SIZE;
-			for (size_t j = 0; j < MAX_CHUNK_SIZE; j += LEAF_CHUNK_SIZE)
-			{
-				block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
-				expand_chunk_leaf_n_leaf_chunk_size(
-					fixed_key_tree, fixed_key_leaf, &forest[starting_node + j], prg_output);
-
-				for (size_t k = 0; k < LEAF_CHUNK_SIZE; k += VOLE_WIDTH)
-				{
-					// Simplest to compute permuted_leaf_idx in each iteration, but
-					// vole_permute_key_index leaves the last VOLE_WIDTH_SHIFT bits unchanged, so it
-					// only needs to be called once every VOLE_WIDTH blocks.
-					size_t leaf_idx = starting_leaf_idx + j + k;
-					size_t permuted_leaf_idx = vole_permute_key_index(leaf_idx ^ delta);
-					for (size_t l = 0; l < VOLE_WIDTH && l < LEAF_CHUNK_SIZE; l++)
-					{
-						leaves[permuted_leaf_idx] = prg_output[3 * (k + l)];
-						memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * (k + l) + 1], sizeof(block_2secpar));
-						leaf_idx++;
-						if (verifier)
-							permuted_leaf_idx = (permuted_leaf_idx & -VOLE_WIDTH) |
-								((leaf_idx ^ delta) & (VOLE_WIDTH - 1));
-						else
-							// Equivalent because delta == 0, but the compiler can't figure this out.
-							permuted_leaf_idx++;
-					}
-				}
-			}
+			// We've just finished a block of size MAX_CHUNK_SIZE (at least LEAF_CHUNK_SIZE), so
+			// apply the leaf prgs and write to leaves and hashed_leaves.
+			size_t leaf_node = ancestor;
+			size_t starting_node = leaf_node + TREE_CHUNK_SIZE - MAX_CHUNK_SIZE;
+			write_leaves(delta, fixed_key_leaf, &forest[starting_node], starting_leaf_idx,
+			             leaves, hashed_leaves);
 		}
 	}
 }
@@ -335,15 +309,15 @@ void vector_commit(
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves)
 {
-	memcpy(forest, roots, 2 * BITS_PER_WITNESS * sizeof(block_secpar));
+	memcpy(forest, roots, TREES_IN_FOREST(false) * sizeof(block_secpar));
 
 	// First expand each tree far enough to have TREE_CHUNK_SIZE nodes.
 	static_assert(VOLE_MIN_K >= TREE_CHUNK_SIZE_SHIFT);
-	for (size_t i = 0; i + TREE_CHUNK_SIZE <= 2 * BITS_PER_WITNESS; i += TREE_CHUNK_SIZE)
+	for (size_t i = 0; i + TREE_CHUNK_SIZE <= TREES_IN_FOREST(false); i += TREE_CHUNK_SIZE)
 		expand_roots_1(false, fixed_key_tree, fixed_key_leaf, forest, i);
-	size_t remaining = (2 * BITS_PER_WITNESS) % TREE_CHUNK_SIZE;
+	size_t remaining = TREES_IN_FOREST(false) % TREE_CHUNK_SIZE;
 	if (remaining)
-		expand_roots_1(true, fixed_key_tree, fixed_key_leaf, forest, 2 * BITS_PER_WITNESS - remaining);
+		expand_roots_1(true, fixed_key_tree, fixed_key_leaf, forest, TREES_IN_FOREST(false) - remaining);
 
 	// Expand each tree, now that they are each 1 chunk in size.
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
@@ -351,7 +325,7 @@ void vector_commit(
 		// First VOLES_MAX_K trees are 1 depth bigger.
 		unsigned int depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		expand_tree(false, 0, fixed_key_tree, fixed_key_leaf, forest,
-		            depth - TREE_CHUNK_SIZE_SHIFT, i, leaves, hashed_leaves);
+		            depth - TREE_CHUNK_SIZE_SHIFT, i, 0, leaves, hashed_leaves);
 		leaves += (1 << depth);
 		hashed_leaves += (1 << depth);
 	}
@@ -359,7 +333,7 @@ void vector_commit(
 
 void vector_open(
 	const block_secpar* restrict forest, const block_2secpar* restrict hashed_leaves,
-	const unsigned char* restrict delta, unsigned char* restrict opening)
+	const uint8_t* restrict delta, unsigned char* restrict opening)
 {
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
 	{
@@ -374,7 +348,7 @@ void vector_open(
 			node = node + hole;
 			memcpy(opening, &forest[node ^ 1], sizeof(block_secpar));
 			opening += sizeof(block_secpar);
-			node = FIRST_CHILD(node);
+			node = FIRST_CHILD(node, false);
 		}
 
 		memcpy(opening, &hashed_leaves[leaf_idx], sizeof(block_2secpar));
@@ -385,9 +359,6 @@ void vector_open(
 	}
 }
 
-#define VERIFIER_SUBTREES_PARENT(x) (((x) - SECURITY_PARAM) / 2)
-#define VERIFIER_SUBTREES_FIRST_CHILD(x) (2 * (x) + SECURITY_PARAM)
-
 #define EXPAND_VERIFIER_SUBTREES_RECURSION(n, next) \
 	static ALWAYS_INLINE void expand_verifier_subtrees_##n( \
 		size_t this_chunk_size, const prg_tree_fixed_key* restrict fixed_key_tree, \
@@ -396,14 +367,14 @@ void vector_open(
 	{ \
 		if (n >= TREE_CHUNK_SIZE_SHIFT) \
 			return; \
-		size_t level_lim = (SECURITY_PARAM - (n + 1) * BITS_PER_WITNESS) << n; \
+		size_t level_lim = (TREES_IN_FOREST(true) - (n + 1) * BITS_PER_WITNESS) << n; \
 		if (i >= level_lim) \
 			return; \
 		if (i + this_chunk_size > level_lim) \
 		{ \
-			/* Should always equal level_lim - i, because all preceding calls were on whole chunks. */ \
 			this_chunk_size = level_lim % TREE_CHUNK_SIZE; \
-			size_t child = VERIFIER_SUBTREES_FIRST_CHILD(node); \
+			assert(this_chunk_size == level_lim - i); /* All preceding calls were on whole chunks. */ \
+			size_t child = FIRST_CHILD(node, true); \
 			expand_chunk_switch(this_chunk_size, fixed_key_tree, fixed_key_leaf, &forest[node], &forest[child]); \
 			size_t output_size = 2 * this_chunk_size; \
 			i *= 2; \
@@ -420,7 +391,7 @@ void vector_open(
 		{ \
 			/* this_chunk_size must be TREE_CHUNK_SIZE here, because at most the last call is not on a */ \
 			/* whole chunk, and that call will be the one that hits the level_lim limit above. */ \
-			size_t child = VERIFIER_SUBTREES_FIRST_CHILD(node); \
+			size_t child = FIRST_CHILD(node, true); \
 			expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, &forest[node], &forest[child]); \
 			next(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, forest, 2*i, child); \
 			next(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, forest, 2*i + TREE_CHUNK_SIZE, child + TREE_CHUNK_SIZE); \
@@ -436,6 +407,7 @@ EXPAND_VERIFIER_SUBTREES_RECURSION(1, expand_verifier_subtrees_2)
 EXPAND_VERIFIER_SUBTREES_RECURSION(0, expand_verifier_subtrees_1)
 #undef FINISHED_RECURSION
 
+// Reorder the keys in the opening, to group them by height.
 static ALWAYS_INLINE void reorder_verifier_keys(
 	const unsigned char* opening, block_secpar* reordered_keys)
 {
@@ -445,18 +417,23 @@ static ALWAYS_INLINE void reorder_verifier_keys(
 		size_t src_idx = i;
 		for (size_t j = 0; j < VOLES_MAX_K; ++j, ++dst, src_idx += VOLE_MAX_K + 2)
 			memcpy(dst, &opening[src_idx * sizeof(block_secpar)], sizeof(block_secpar));
-		if (i < VOLE_MIN_K)
+		if (i >= VOLE_MAX_K - VOLE_MIN_K)
+		{
+			src_idx -= VOLE_MAX_K - VOLE_MIN_K;
 			for (size_t j = 0; j < VOLES_MIN_K; ++j, ++dst, src_idx += VOLE_MIN_K + 2)
 				memcpy(dst, &opening[src_idx * sizeof(block_secpar)], sizeof(block_secpar));
+		}
 	}
 }
 
 void vector_verify(
 	const unsigned char* restrict opening, const prg_tree_fixed_key* restrict fixed_key_tree,
-	const prg_leaf_fixed_key* restrict fixed_key_leaf, const unsigned char* restrict delta,
+	const prg_leaf_fixed_key* restrict fixed_key_leaf, const uint8_t* restrict delta,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
 {
-	block_secpar verifier_subtrees[SECURITY_PARAM * (2 * TREE_CHUNK_SIZE - 1)];
+	block_secpar* verifier_subtrees = aligned_alloc(
+		alignof(block_secpar),
+		TREES_IN_FOREST(true) * ((1 << VOLE_MAX_K) - 1) * sizeof(block_secpar));
 
 	// Need the keys in transposed order.
 	reorder_verifier_keys(opening, verifier_subtrees);
@@ -472,72 +449,65 @@ void vector_verify(
 	for (unsigned int d = TREE_CHUNK_SIZE_SHIFT; d > 0; --d)
 	{
 		// Expand subtrees that fully use depth d.
-		size_t end = SECURITY_PARAM - d * BITS_PER_WITNESS;
+		size_t end = TREES_IN_FOREST(true) - d * BITS_PER_WITNESS;
 		for (; (i + TREE_CHUNK_SIZE) <= end; i += TREE_CHUNK_SIZE)
 			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, verifier_subtrees, i, i);
 
 		// Expand the subtree that partially reaches depth d, but also has parts that only reach d-1
-		// or less. But only if this subtree exists.
+		// or less. But only if this subtree exists. Again, this is separated so that the compiler
+		// can see that take advantage of constants.
 		if (end % TREE_CHUNK_SIZE != 0)
 		{
-			// i == end - end % TREE_CHUNK_SIZE should hold here.
+			assert(i == end - (end % TREE_CHUNK_SIZE));
 			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, verifier_subtrees, i, i);
 			i += TREE_CHUNK_SIZE;
 		}
 	}
 
-	block_secpar forest[VECTOR_COMMIT_NODES];
-
+	// Fully expand each subtree.
 	for (i = 0; i < BITS_PER_WITNESS; ++i)
 	{
-		// Copy the subtrees into the forest. We only need to copy the leaves of the subtrees, as
-		// the interior nodes are unused.
-		unsigned int depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
-		size_t verifier_subtrees_node = VERIFIER_SUBTREES_FIRST_CHILD(i);
-		size_t forest_node = 2 * i;
+		unsigned int tree_depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
+		size_t root = i + (i < VOLES_MAX_K ? 0 : VOLES_MAX_K);
+
 		size_t this_delta = 0;
-		unsigned int d = 1;
-		while (true)
+		for (unsigned int d = 1; d <= tree_depth; ++d)
+			this_delta = 2*this_delta + (delta[tree_depth - d] & 1);
+
+		block_secpar last_chunk[MAX_CHUNK_SIZE];
+		for (int height = tree_depth - 1; height >= 0; --height, root += BITS_PER_WITNESS)
 		{
-			unsigned int hole = delta[depth - d] & 1;
-			this_delta = 2*this_delta + hole;
+			root += BITS_PER_WITNESS;
+			size_t root = (tree_depth - 1 - height) * BITS_PER_WITNESS + i;
 
-			size_t copy_input_node = verifier_subtrees_node + (1 - hole);
-			size_t copy_output_node = forest_node + (1 - hole);
-			size_t copy_depth = depth - d > TREE_CHUNK_SIZE_SHIFT ? TREE_CHUNK_SIZE_SHIFT : depth - d;
+			size_t pow_height = (size_t) 1 << height;
+			size_t leaf_index = (this_delta & -pow_height) ^ pow_height;
 
-			// Same as iterating VERIFIER_SUBTREES_FIRST_CHILD (resp. FIRST_CHILD) copy_depth times.
-			copy_input_node = (copy_input_node << copy_depth) + ((1 << copy_depth) - 1) * VERIFIER_SUBTREES_FIRST_CHILD(0);
-			copy_output_node = (copy_output_node << copy_depth) + ((1 << copy_depth) - 1) * FIRST_CHILD(0);
+			// Expand the rest of this tree, and hash the leaf nodes if there are at least
+			// LEAF_CHUNK_SIZE of them.
+			if (height >= TREE_CHUNK_SIZE_SHIFT)
+				expand_tree(true, this_delta, fixed_key_tree, fixed_key_leaf, verifier_subtrees,
+				            height - TREE_CHUNK_SIZE_SHIFT, root, leaf_index, leaves, hashed_leaves);
 
-			memcpy(&forest[copy_output_node], &verifier_subtrees[copy_input_node], sizeof(block_secpar) << copy_depth);
-
-			if (d < depth)
+			if (height < MAX_CHUNK_SIZE_SHIFT)
 			{
-				verifier_subtrees_node = VERIFIER_SUBTREES_FIRST_CHILD(verifier_subtrees_node + hole);
-				forest_node = FIRST_CHILD(forest_node + hole);
-				++d;
+				memcpy(&last_chunk[leaf_index % MAX_CHUNK_SIZE],
+				       &verifier_subtrees[FIRST_DESCENDENT_DEPTH(root, height, true)],
+				       sizeof(block_secpar) << height);
 			}
-			else
-				break;
 		}
 
-		// forest_node currently contains the 1 leaf node we cannot compute. At least stop it from
-		// being uninitialized memory.
-		memset(&forest[forest_node], 0, sizeof(block_secpar));
+		// There's 1 leaf node we cannot compute. At least stop it from being uninitialized memory.
+		memset(&last_chunk[this_delta % MAX_CHUNK_SIZE], 0, sizeof(block_secpar));
 
-		// Expand the rest of this tree.
-		expand_tree(true, this_delta, fixed_key_tree, fixed_key_leaf, forest,
-		            depth - TREE_CHUNK_SIZE_SHIFT, i, leaves, hashed_leaves);
+		// Hash the 1 remaining MAX_CHUNK_SIZE sized chunk of the tree, which didn't get hashed
+		// because it was too small.
+		write_leaves(this_delta, fixed_key_leaf, last_chunk,
+		             this_delta - (this_delta % MAX_CHUNK_SIZE), leaves, hashed_leaves);
 
-		// Currently leaves[0] and hashed_leaves[this_delta] contain garbage (specifically, PRG(0)),
-		// because we don't know the keys on the active path. Fix them up.
-		memset(&leaves[0], 0, sizeof(block_secpar));
-		memcpy(&hashed_leaves[this_delta], opening + depth * sizeof(block_secpar), sizeof(block_2secpar));
-
-		leaves += (1 << depth);
-		hashed_leaves += (1 << depth);
-		opening += (depth + 2) * sizeof(block_secpar);
-		delta += depth;
+		leaves += (1 << tree_depth);
+		hashed_leaves += (1 << tree_depth);
 	}
+
+	free(verifier_subtrees);
 }

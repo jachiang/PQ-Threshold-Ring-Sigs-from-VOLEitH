@@ -46,7 +46,7 @@ static ALWAYS_INLINE void vole(
 	bool receiver, unsigned int k,
 	const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u_or_c_in, vole_block* restrict vq, vole_block* restrict c_out,
-	const unsigned char* restrict delta)
+	const uint8_t* restrict delta)
 {
 	vole_block accum[COL_LEN];
 	memset(&accum[0], 0, COL_LEN * sizeof(vole_block));
@@ -145,7 +145,7 @@ void vole_sender(
 void vole_receiver(
 	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
-	const unsigned char* restrict delta)
+	const uint8_t* restrict delta)
 {
 	vole(true, k, keys, fixed_key, c, q, NULL, delta);
 }
