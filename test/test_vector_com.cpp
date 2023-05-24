@@ -16,7 +16,7 @@ extern "C" {
 
 
 TEST_CASE( "commit/open/verify", "[vector com]" ) {
-    std::array<block_secpar, 2 * BITS_PER_WITNESS> roots = {0};
+    std::vector<block_secpar> roots = random_vector<block_secpar>(2 * BITS_PER_WITNESS);
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves(VECTOR_COMMIT_LEAVES);
     std::vector<block_2secpar> hashed_leaves_sender(VECTOR_COMMIT_LEAVES);

@@ -121,9 +121,42 @@ inline std::ostream& operator<<(std::ostream& o, const std::array<uint8_t, N>& a
 
 template <typename T>
 inline T rand() {
-    std::random_device rd("/dev/urandom");
+    static std::mt19937_64 rd(42);
     std::uniform_int_distribution<T> dist(0, std::numeric_limits<T>::max());
     return dist(rd);
+}
+
+template <>
+inline block128 rand<block128>() {
+	std::array<uint64_t, 2> data;
+	for (size_t i = 0; i < data.size(); ++i)
+		data[i] = rand();
+
+	block128 output;
+	memcpy(&output, &data[0], sizeof(output));
+	return output;
+}
+
+template <>
+inline block192 rand<block192>() {
+	std::array<uint64_t, 2> data;
+	for (size_t i = 0; i < data.size(); ++i)
+		data[i] = rand();
+
+	block192 output;
+	memcpy(&output, &data[0], sizeof(output));
+	return output;
+}
+
+template <>
+inline block256 rand<block256>() {
+	std::array<uint64_t, 2> data;
+	for (size_t i = 0; i < data.size(); ++i)
+		data[i] = rand();
+
+	block256 output;
+	memcpy(&output, &data[0], sizeof(output));
+	return output;
 }
 
 template <typename T>

@@ -505,8 +505,16 @@ void vector_verify(
 		write_leaves(this_delta, fixed_key_leaf, last_chunk,
 		             this_delta - (this_delta % MAX_CHUNK_SIZE), leaves, hashed_leaves);
 
-		leaves += (1 << tree_depth);
-		hashed_leaves += (1 << tree_depth);
+		// Currently leaves[0] and hashed_leaves[this_delta] contain garbage (specifically, PRG(0)),
+		// because we don't know the keys on the active path. Fix them up.
+		memset(&leaves[0], 0, sizeof(block_secpar));
+		memcpy(&hashed_leaves[this_delta], opening + tree_depth * sizeof(block_secpar), sizeof(block_2secpar));
+
+		size_t pow_tree_depth = (size_t) 1 << tree_depth;
+		leaves += pow_tree_depth;
+		hashed_leaves += pow_tree_depth;
+		opening += (tree_depth + 2) * sizeof(block_secpar);
+		delta += tree_depth;
 	}
 
 	free(verifier_subtrees);
