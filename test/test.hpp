@@ -1,9 +1,12 @@
 #ifndef TEST_TEST_HPP
 #define TEST_TEST_HPP
 
+#include <algorithm>
 #include <iomanip>
-#include <sstream>
 #include <iostream>
+#include <limits>
+#include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -114,6 +117,20 @@ template<size_t N>
 inline std::ostream& operator<<(std::ostream& o, const std::array<uint8_t, N>& array)
 {
 	return o << std::vector(array.begin(), array.end());
+}
+
+template <typename T>
+inline T rand() {
+    std::random_device rd("/dev/urandom");
+    std::uniform_int_distribution<T> dist(0, std::numeric_limits<T>::max());
+    return dist(rd);
+}
+
+template <typename T>
+inline std::vector<T> random_vector(std::size_t size) {
+    std::vector<T> v(size);
+    std::generate(v.begin(), v.end(), rand<T>);
+    return v;
 }
 
 #endif
