@@ -16,6 +16,9 @@ extern "C" {
 
 
 TEST_CASE( "commit/open/verify", "[vector com]" ) {
+	typedef std::array<uint8_t, SECURITY_PARAM / 8> arr_secpar;
+	typedef std::array<uint8_t, 2 * SECURITY_PARAM / 8> arr_2secpar;
+
     std::vector<block_secpar> roots = random_vector<block_secpar>(2 * BITS_PER_WITNESS);
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves(VECTOR_COMMIT_LEAVES);
@@ -28,9 +31,9 @@ TEST_CASE( "commit/open/verify", "[vector com]" ) {
     vector_open(forest.data(), hashed_leaves_sender.data(), delta.data(), opening.data());
     vector_verify(opening.data(), NULL, NULL, delta.data(), leaves.data(), hashed_leaves_receiver.data());
 
-    const auto hashed_leaves_sender_bytes = std::vector(reinterpret_cast<uint8_t*>(hashed_leaves_sender.data()),
-                                                        reinterpret_cast<uint8_t*>(hashed_leaves_sender.data() + hashed_leaves_sender.size()));
-    const auto hashed_leaves_receiver_bytes = std::vector(reinterpret_cast<uint8_t*>(hashed_leaves_receiver.data()),
-                                                          reinterpret_cast<uint8_t*>(hashed_leaves_receiver.data() + hashed_leaves_receiver.size()));
+    const auto hashed_leaves_sender_bytes = std::vector(reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data()),
+                                                        reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data() + hashed_leaves_sender.size()));
+    const auto hashed_leaves_receiver_bytes = std::vector(reinterpret_cast<arr_2secpar*>(hashed_leaves_receiver.data()),
+                                                          reinterpret_cast<arr_2secpar*>(hashed_leaves_receiver.data() + hashed_leaves_receiver.size()));
     REQUIRE( hashed_leaves_receiver_bytes == hashed_leaves_sender_bytes );
 }

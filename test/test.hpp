@@ -130,7 +130,7 @@ template <>
 inline block128 rand<block128>() {
 	std::array<uint64_t, 2> data;
 	for (size_t i = 0; i < data.size(); ++i)
-		data[i] = rand();
+		data[i] = rand<uint64_t>();
 
 	block128 output;
 	memcpy(&output, &data[0], sizeof(output));

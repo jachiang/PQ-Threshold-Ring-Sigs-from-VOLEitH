@@ -105,11 +105,10 @@ static ALWAYS_INLINE void expand_chunk(
 #define DEF_EXPAND_CHUNK_N(n) \
 	static void expand_chunk_n_##n( \
 		const prg_tree_fixed_key* restrict fixed_key_tree, \
-		const prg_leaf_fixed_key* restrict fixed_key_leaf, \
 		const block_secpar* restrict input, block_secpar* restrict output) \
 	{ \
 		if (n <= TREE_CHUNK_SIZE) \
-			expand_chunk(false, n, fixed_key_tree, fixed_key_leaf, input, output); \
+			expand_chunk(false, n, fixed_key_tree, NULL, input, output); \
 	}
 
 // Most of these will be unused, and so removed by the compiler.
@@ -151,14 +150,13 @@ DEF_EXPAND_CHUNK_N(32)
 // just a way to get the compiler to select the right function to call.
 static ALWAYS_INLINE void expand_chunk_switch( \
 	size_t n, const prg_tree_fixed_key* restrict fixed_key_tree,
-	const prg_leaf_fixed_key* restrict fixed_key_leaf, \
 	const block_secpar* restrict input, block_secpar* restrict output) \
 { \
 	switch (n)
 	{
 #define EXPAND_CHUNK_SWITCH_CASE(n) \
 	case n: \
-		expand_chunk_n_##n(fixed_key_tree, fixed_key_leaf, input, output); \
+		expand_chunk_n_##n(fixed_key_tree, input, output); \
 		break;
 		EXPAND_CHUNK_SWITCH_CASE(1)
 		EXPAND_CHUNK_SWITCH_CASE(2)
@@ -216,17 +214,16 @@ static void expand_chunk_leaf_n_leaf_chunk_size(
 #define EXPAND_ROOTS_RECURSION(n, next) \
 	static ALWAYS_INLINE void expand_roots_##n( \
 		bool partial, const prg_tree_fixed_key* restrict fixed_key_tree, \
-		const prg_leaf_fixed_key* restrict fixed_key_leaf, \
 		block_secpar* restrict forest, size_t i) \
 	{ \
 		if (n >= TREE_CHUNK_SIZE_SHIFT) \
 			return; \
 		size_t this_chunk_size = partial ? TREES_IN_FOREST(false) % TREE_CHUNK_SIZE : TREE_CHUNK_SIZE; \
-		expand_chunk_switch(this_chunk_size, fixed_key_tree, fixed_key_leaf, &forest[i], &forest[FIRST_CHILD(i, false)]); \
-		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i, false)); \
-		next(partial, fixed_key_tree, fixed_key_leaf, forest, FIRST_CHILD(i, false) + this_chunk_size); \
+		expand_chunk_switch(this_chunk_size, fixed_key_tree, &forest[i], &forest[FIRST_CHILD(i, false)]); \
+		next(partial, fixed_key_tree, forest, FIRST_CHILD(i, false)); \
+		next(partial, fixed_key_tree, forest, FIRST_CHILD(i, false) + this_chunk_size); \
 	}
-#define FINISHED_RECURSION(a,b,c,d,e) do {} while (0)
+#define FINISHED_RECURSION(a,b,c,d) do {} while (0)
 
 static_assert(TREE_CHUNK_SIZE_SHIFT <= 5);
 EXPAND_ROOTS_RECURSION(4, FINISHED_RECURSION)
@@ -285,7 +282,7 @@ static ALWAYS_INLINE void expand_tree(
 			for (int d = ancestor_height - 1; d >= 0; --d)
 			{
 				size_t first_child = FIRST_CHILD(ancestor, verifier);
-				expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf,
+				expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree,
 				                    &forest[ancestor], &forest[first_child]);
 				ancestor = first_child;
 			}
@@ -295,8 +292,7 @@ static ALWAYS_INLINE void expand_tree(
 		{
 			// We've just finished a block of size MAX_CHUNK_SIZE (at least LEAF_CHUNK_SIZE), so
 			// apply the leaf prgs and write to leaves and hashed_leaves.
-			size_t leaf_node = ancestor;
-			size_t starting_node = leaf_node + TREE_CHUNK_SIZE - MAX_CHUNK_SIZE;
+			size_t starting_node = ancestor + TREE_CHUNK_SIZE - MAX_CHUNK_SIZE;
 			write_leaves(delta, fixed_key_leaf, &forest[starting_node], starting_leaf_idx,
 			             leaves, hashed_leaves);
 		}
@@ -314,20 +310,24 @@ void vector_commit(
 	// First expand each tree far enough to have TREE_CHUNK_SIZE nodes.
 	static_assert(VOLE_MIN_K >= TREE_CHUNK_SIZE_SHIFT);
 	for (size_t i = 0; i + TREE_CHUNK_SIZE <= TREES_IN_FOREST(false); i += TREE_CHUNK_SIZE)
-		expand_roots_1(false, fixed_key_tree, fixed_key_leaf, forest, i);
+		expand_roots_1(false, fixed_key_tree, forest, i);
 	size_t remaining = TREES_IN_FOREST(false) % TREE_CHUNK_SIZE;
 	if (remaining)
-		expand_roots_1(true, fixed_key_tree, fixed_key_leaf, forest, TREES_IN_FOREST(false) - remaining);
+		expand_roots_1(true, fixed_key_tree, forest, TREES_IN_FOREST(false) - remaining);
 
 	// Expand each tree, now that they are each 1 chunk in size.
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
 	{
-		// First VOLES_MAX_K trees are 1 depth bigger.
-		unsigned int depth = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
+		// First VOLES_MAX_K trees are 1 taller.
+		unsigned int height = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
+
+		size_t root = FIRST_DESCENDENT_DEPTH(2 * i, TREE_CHUNK_SIZE_SHIFT - 1, false);
 		expand_tree(false, 0, fixed_key_tree, fixed_key_leaf, forest,
-		            depth - TREE_CHUNK_SIZE_SHIFT, i, 0, leaves, hashed_leaves);
-		leaves += (1 << depth);
-		hashed_leaves += (1 << depth);
+		            height - TREE_CHUNK_SIZE_SHIFT, root, 0, leaves, hashed_leaves);
+
+		size_t pow_height = (size_t) 1 << height;
+		leaves += pow_height;
+		hashed_leaves += pow_height;
 	}
 }
 
@@ -362,7 +362,6 @@ void vector_open(
 #define EXPAND_VERIFIER_SUBTREES_RECURSION(n, next) \
 	static ALWAYS_INLINE void expand_verifier_subtrees_##n( \
 		size_t this_chunk_size, const prg_tree_fixed_key* restrict fixed_key_tree, \
-		const prg_leaf_fixed_key* restrict fixed_key_leaf, \
 		block_secpar* restrict forest, size_t i, size_t node) \
 	{ \
 		if (n >= TREE_CHUNK_SIZE_SHIFT) \
@@ -375,29 +374,29 @@ void vector_open(
 			this_chunk_size = level_lim % TREE_CHUNK_SIZE; \
 			assert(this_chunk_size == level_lim - i); /* All preceding calls were on whole chunks. */ \
 			size_t child = FIRST_CHILD(node, true); \
-			expand_chunk_switch(this_chunk_size, fixed_key_tree, fixed_key_leaf, &forest[node], &forest[child]); \
+			expand_chunk_switch(this_chunk_size, fixed_key_tree, &forest[node], &forest[child]); \
 			size_t output_size = 2 * this_chunk_size; \
 			i *= 2; \
 			if (output_size >= TREE_CHUNK_SIZE) \
 			{ \
-				next(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, forest, i, child); \
+				next(TREE_CHUNK_SIZE, fixed_key_tree, forest, i, child); \
 				i += TREE_CHUNK_SIZE; \
 				child += TREE_CHUNK_SIZE; \
 				output_size -= TREE_CHUNK_SIZE; \
 			} \
-			next(output_size, fixed_key_tree, fixed_key_leaf, forest, i, child); \
+			next(output_size, fixed_key_tree, forest, i, child); \
 		} \
 		else \
 		{ \
 			/* this_chunk_size must be TREE_CHUNK_SIZE here, because at most the last call is not on a */ \
 			/* whole chunk, and that call will be the one that hits the level_lim limit above. */ \
 			size_t child = FIRST_CHILD(node, true); \
-			expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, &forest[node], &forest[child]); \
-			next(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, forest, 2*i, child); \
-			next(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, forest, 2*i + TREE_CHUNK_SIZE, child + TREE_CHUNK_SIZE); \
+			expand_chunk_switch(TREE_CHUNK_SIZE, fixed_key_tree, &forest[node], &forest[child]); \
+			next(TREE_CHUNK_SIZE, fixed_key_tree, forest, 2*i, child); \
+			next(TREE_CHUNK_SIZE, fixed_key_tree, forest, 2*i + TREE_CHUNK_SIZE, child + TREE_CHUNK_SIZE); \
 		} \
 	}
-#define FINISHED_RECURSION(a,b,c,d,e,f) do {} while (0)
+#define FINISHED_RECURSION(a,b,c,d,e) do {} while (0)
 
 static_assert(TREE_CHUNK_SIZE_SHIFT <= 5);
 EXPAND_VERIFIER_SUBTREES_RECURSION(4, FINISHED_RECURSION)
@@ -451,7 +450,7 @@ void vector_verify(
 		// Expand subtrees that fully use depth d.
 		size_t end = TREES_IN_FOREST(true) - d * BITS_PER_WITNESS;
 		for (; (i + TREE_CHUNK_SIZE) <= end; i += TREE_CHUNK_SIZE)
-			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, verifier_subtrees, i, i);
+			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, verifier_subtrees, i, i);
 
 		// Expand the subtree that partially reaches depth d, but also has parts that only reach d-1
 		// or less. But only if this subtree exists. Again, this is separated so that the compiler
@@ -459,7 +458,7 @@ void vector_verify(
 		if (end % TREE_CHUNK_SIZE != 0)
 		{
 			assert(i == end - (end % TREE_CHUNK_SIZE));
-			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, fixed_key_leaf, verifier_subtrees, i, i);
+			expand_verifier_subtrees_0(TREE_CHUNK_SIZE, fixed_key_tree, verifier_subtrees, i, i);
 			i += TREE_CHUNK_SIZE;
 		}
 	}
@@ -477,24 +476,22 @@ void vector_verify(
 		block_secpar last_chunk[MAX_CHUNK_SIZE];
 		for (int height = tree_depth - 1; height >= 0; --height, root += BITS_PER_WITNESS)
 		{
-			root += BITS_PER_WITNESS;
-			size_t root = (tree_depth - 1 - height) * BITS_PER_WITNESS + i;
-
 			size_t pow_height = (size_t) 1 << height;
 			size_t leaf_index = (this_delta & -pow_height) ^ pow_height;
 
 			// Expand the rest of this tree, and hash the leaf nodes if there are at least
 			// LEAF_CHUNK_SIZE of them.
 			if (height >= TREE_CHUNK_SIZE_SHIFT)
+			{
+				size_t tree_chunk_root = FIRST_DESCENDENT_DEPTH(root, TREE_CHUNK_SIZE_SHIFT, true);
 				expand_tree(true, this_delta, fixed_key_tree, fixed_key_leaf, verifier_subtrees,
-				            height - TREE_CHUNK_SIZE_SHIFT, root, leaf_index, leaves, hashed_leaves);
+				            height - TREE_CHUNK_SIZE_SHIFT, tree_chunk_root, leaf_index, leaves, hashed_leaves);
+			}
 
 			if (height < MAX_CHUNK_SIZE_SHIFT)
-			{
 				memcpy(&last_chunk[leaf_index % MAX_CHUNK_SIZE],
 				       &verifier_subtrees[FIRST_DESCENDENT_DEPTH(root, height, true)],
 				       sizeof(block_secpar) << height);
-			}
 		}
 
 		// There's 1 leaf node we cannot compute. At least stop it from being uninitialized memory.
