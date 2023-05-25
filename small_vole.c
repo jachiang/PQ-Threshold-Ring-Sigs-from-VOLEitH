@@ -65,7 +65,8 @@ static ALWAYS_INLINE void vole(
 	if (receiver)
 	{
 		// Handle first iteration separately, since the 0th PRG key is a dummy. Hopefully the
-		// compiler will notice that it's unused and remove the corresponding code.
+		// compiler will notice that it's unused and remove the corresponding code. TODO: just call
+		// with size 1 smaller instead.
 		prg_vole_key prgs[VOLE_WIDTH];
 		prg_vole_iv ivs[VOLE_WIDTH];
 		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
