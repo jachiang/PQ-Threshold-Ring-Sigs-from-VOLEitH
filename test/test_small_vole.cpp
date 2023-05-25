@@ -30,6 +30,7 @@ TEST_CASE( "small vole", "[small vole]" ) {
     expand_bits_to_bytes(delta_bytes.data(), k, delta);
 
     std::generate(sender_keys.begin(), sender_keys.end(), rand<block_secpar>);
+    std::generate(u.begin(), u.end(), rand<vole_block>);
 
     for (size_t i = 0; i < (1 << k); ++i) {
         receiver_keys[vole_permute_key_index(i ^ delta)] = sender_keys[vole_permute_key_index(i)];
