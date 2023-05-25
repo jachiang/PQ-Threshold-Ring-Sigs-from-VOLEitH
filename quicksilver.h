@@ -31,6 +31,8 @@ typedef struct
 	hasher_gfsecpar_64_state state_64_linear;
 } quicksilver_state;
 
+// TODO: Get witness bit.
+
 inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y)
 {
 	quicksilver_vec_gf2 out;

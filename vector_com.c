@@ -233,10 +233,13 @@ EXPAND_ROOTS_RECURSION(1, expand_roots_2)
 #undef FINISHED_RECURSION
 
 static void write_leaves(
-	size_t delta, const prg_leaf_fixed_key* restrict fixed_key_leaf,
-	block_secpar* restrict starting_node, size_t starting_leaf_idx,
+	const prg_leaf_fixed_key* restrict fixed_key_leaf,
+	block_secpar* restrict starting_node, size_t starting_leaf_idx, size_t* permuted_leaf_idx,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
 {
+	size_t perm_leaf_idx = *permuted_leaf_idx;
+	size_t leaf_idx = starting_leaf_idx;
+
 	for (size_t j = 0; j < MAX_CHUNK_SIZE; j += LEAF_CHUNK_SIZE)
 	{
 		block_secpar prg_output[3 * LEAF_CHUNK_SIZE];
@@ -247,16 +250,17 @@ static void write_leaves(
 			// Simplest to compute permuted_leaf_idx in each iteration, but
 			// vole_permute_key_index leaves the last VOLE_WIDTH_SHIFT bits unchanged, so it
 			// only needs to be called once every VOLE_WIDTH blocks.
-			size_t leaf_idx = starting_leaf_idx + j + k;
-			size_t permuted_leaves_start = vole_permute_key_index(leaf_idx ^ delta) & -VOLE_WIDTH;
 			for (size_t l = 0; l < VOLE_WIDTH && l < LEAF_CHUNK_SIZE; l++)
 			{
-				leaves[permuted_leaves_start + ((leaf_idx ^ delta) & (VOLE_WIDTH - 1))] = prg_output[3 * (k + l)];
+				leaves[perm_leaf_idx] = prg_output[3 * (k + l)];
 				memcpy(&hashed_leaves[leaf_idx], &prg_output[3 * (k + l) + 1], sizeof(block_2secpar));
+				perm_leaf_idx ^= vole_permute_inv_increment(leaf_idx, 1);
 				leaf_idx++;
 			}
 		}
 	}
+
+	*permuted_leaf_idx = perm_leaf_idx;
 }
 
 static ALWAYS_INLINE void expand_tree(
@@ -265,6 +269,8 @@ static ALWAYS_INLINE void expand_tree(
 	unsigned int height, size_t root, size_t starting_leaf_idx,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves)
 {
+	size_t permuted_leaf_idx = vole_permute_key_index_inv(starting_leaf_idx ^ delta);
+
 	// Loop over blocks of size max(TREE_CHUNK_SIZE, LEAF_CHUNK_SIZE).
 	size_t pow_height = (size_t) 1 << height;
 	for (size_t chunk = 0; chunk < pow_height;
@@ -293,8 +299,8 @@ static ALWAYS_INLINE void expand_tree(
 			// We've just finished a block of size MAX_CHUNK_SIZE (at least LEAF_CHUNK_SIZE), so
 			// apply the leaf prgs and write to leaves and hashed_leaves.
 			size_t starting_node = ancestor + TREE_CHUNK_SIZE - MAX_CHUNK_SIZE;
-			write_leaves(delta, fixed_key_leaf, &forest[starting_node], starting_leaf_idx,
-			             leaves, hashed_leaves);
+			write_leaves(fixed_key_leaf, &forest[starting_node], starting_leaf_idx,
+			             &permuted_leaf_idx, leaves, hashed_leaves);
 		}
 	}
 }
@@ -505,8 +511,9 @@ void vector_verify(
 
 		// Hash the 1 remaining MAX_CHUNK_SIZE sized chunk of the tree, which didn't get hashed
 		// because it was too small.
-		write_leaves(this_delta, fixed_key_leaf, last_chunk,
-		             this_delta - (this_delta % MAX_CHUNK_SIZE), leaves, hashed_leaves);
+		size_t starting_leaf_idx = this_delta - (this_delta % MAX_CHUNK_SIZE);
+		size_t permuted_leaf_idx = vole_permute_key_index_inv(starting_leaf_idx);
+		write_leaves(fixed_key_leaf, last_chunk, starting_leaf_idx, &permuted_leaf_idx, leaves, hashed_leaves);
 
 		// Currently leaves[0] and hashed_leaves[this_delta] contain garbage (specifically, PRG(0)),
 		// because we don't know the keys on the active path. Fix them up.
