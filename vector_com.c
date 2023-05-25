@@ -474,8 +474,9 @@ void vector_verify(
 			this_delta = 2*this_delta + (delta[tree_depth - d] & 1);
 
 		block_secpar last_chunk[MAX_CHUNK_SIZE];
-		for (int height = tree_depth - 1; height >= 0; --height, root += BITS_PER_WITNESS)
+		for (unsigned int j = 0; j < tree_depth; ++j)
 		{
+			unsigned int height = tree_depth - 1 - j;
 			size_t pow_height = (size_t) 1 << height;
 			size_t leaf_index = (this_delta & -pow_height) ^ pow_height;
 
@@ -492,6 +493,11 @@ void vector_verify(
 				memcpy(&last_chunk[leaf_index % MAX_CHUNK_SIZE],
 				       &verifier_subtrees[FIRST_DESCENDENT_DEPTH(root, height, true)],
 				       sizeof(block_secpar) << height);
+
+			if (i < VOLES_MAX_K && j == 0)
+				root += VOLES_MAX_K;
+			else
+				root += BITS_PER_WITNESS;
 		}
 
 		// There's 1 leaf node we cannot compute. At least stop it from being uninitialized memory.
