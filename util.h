@@ -37,10 +37,19 @@ inline unsigned int count_trailing_zeros(uint64_t x)
 	return 64;
 }
 
-// Expands bit i of x to a whole bit, either 0 or 0xff.
+// Expands bit i of x to a whole byte, either 0 or 0xff.
 inline uint8_t expand_bit_to_byte(size_t x, unsigned int i)
 {
 	return -((x >> i) & 1);
+}
+
+// Converts x into a little-endian expanded form, such that each bit of x is encoded as a whole
+// byte, either 0 or 0xff.
+inline void expand_bits_to_bytes(uint8_t* output, size_t num_bits, size_t x)
+{
+    assert(num_bits <= sizeof(x) * 8);
+    for (size_t i = 0; i < num_bits; ++i)
+        output[i] = expand_bit_to_byte(x, i);
 }
 
 #endif
