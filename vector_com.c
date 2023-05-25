@@ -512,7 +512,7 @@ void vector_verify(
 		// Hash the 1 remaining MAX_CHUNK_SIZE sized chunk of the tree, which didn't get hashed
 		// because it was too small.
 		size_t starting_leaf_idx = this_delta - (this_delta % MAX_CHUNK_SIZE);
-		size_t permuted_leaf_idx = vole_permute_key_index_inv(starting_leaf_idx);
+		size_t permuted_leaf_idx = vole_permute_key_index_inv(starting_leaf_idx ^ this_delta);
 		write_leaves(fixed_key_leaf, last_chunk, starting_leaf_idx, &permuted_leaf_idx, leaves, hashed_leaves);
 
 		// Currently leaves[0] and hashed_leaves[this_delta] contain garbage (specifically, PRG(0)),
