@@ -42,19 +42,26 @@ TEST_CASE( "small vole", "[small vole]" ) {
 
     const auto u_vec = std::vector(reinterpret_cast<uint8_t*>(u.data()),
                                    reinterpret_cast<uint8_t*>(u.data() + VOLE_COL_BLOCKS));
+    REQUIRE( u_vec.size() == VOLE_COL_BLOCKS * sizeof(vole_block) );
     for (size_t i = 0; i < k; ++i) {
         const auto v_vec = std::vector(reinterpret_cast<uint8_t*>(&v[i * VOLE_COL_BLOCKS]),
                                        reinterpret_cast<uint8_t*>(&v[(i + 1) * VOLE_COL_BLOCKS]));
         const auto q_vec = std::vector(reinterpret_cast<uint8_t*>(&q[i * VOLE_COL_BLOCKS]),
                                        reinterpret_cast<uint8_t*>(&q[(i + 1) * VOLE_COL_BLOCKS]));
+
+        REQUIRE( v_vec.size() == VOLE_COL_BLOCKS * sizeof(vole_block) );
+        REQUIRE( q_vec.size() == VOLE_COL_BLOCKS * sizeof(vole_block) );
         auto q_xor_u_vec = q_vec;
+        REQUIRE( q_xor_u_vec == q_vec );
+        REQUIRE( q_xor_u_vec.size() == u_vec.size() );
+        REQUIRE( q_vec.size() == u_vec.size() );
         for (size_t j = 0; j < q_vec.size(); ++j) {
-            q_xor_u_vec[j] ^= u_vec[j];
+            q_xor_u_vec[j] = q_xor_u_vec[j] ^ u_vec[j];
         }
         if ((delta >> i) & 1) {
-            REQUIRE( v_vec == q_xor_u_vec );
+            CHECK( v_vec == q_xor_u_vec );
         } else {
-            REQUIRE( v_vec == q_vec );
+            CHECK( v_vec == q_vec );
         }
     }
 }
