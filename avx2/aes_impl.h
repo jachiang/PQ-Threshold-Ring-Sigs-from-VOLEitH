@@ -12,21 +12,6 @@
 #define AES_PREFERRED_WIDTH_SHIFT 3
 #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT 2
 
-typedef struct
-{
-	block128 keys[AES_ROUNDS + 1];
-} aes_round_keys;
-
-typedef struct
-{
-	block192 keys[RIJNDAEL192_ROUNDS + 1];
-} rijndael192_round_keys;
-
-typedef struct
-{
-	block256 keys[RIJNDAEL256_ROUNDS + 1];
-} rijndael256_round_keys;
-
 void rijndael192_encrypt_block(
 	const rijndael192_round_keys* restrict fixed_key, block192* restrict block);
 

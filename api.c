@@ -11,8 +11,10 @@ void randombytes(unsigned char *x, unsigned long long xlen);
 
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {
-	randombytes(sk, FAEST_SECRET_KEY_BYTES);
-	faest_pubkey(pk, sk);
+	do
+	{
+		randombytes(sk, FAEST_SECRET_KEY_BYTES);
+	} while (!faest_pubkey(pk, sk));
 	return 0;
 }
 

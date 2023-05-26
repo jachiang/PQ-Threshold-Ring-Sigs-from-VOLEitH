@@ -25,6 +25,21 @@
 
 #define FIXED_KEY_PREFERRED_WIDTH (1 << FIXED_KEY_PREFERRED_WIDTH_SHIFT)
 
+typedef struct
+{
+	block128 keys[AES_ROUNDS + 1];
+} aes_round_keys;
+
+typedef struct
+{
+	block192 keys[RIJNDAEL192_ROUNDS + 1];
+} rijndael192_round_keys;
+
+typedef struct
+{
+	block256 keys[RIJNDAEL256_ROUNDS + 1];
+} rijndael256_round_keys;
+
 extern unsigned char aes_round_constants[];
 
 #include "aes_impl.h"
