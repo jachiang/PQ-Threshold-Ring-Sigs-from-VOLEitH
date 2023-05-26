@@ -27,7 +27,7 @@ keccak_avx2_sources = \
 common_headers = Catch2/extras/catch_amalgamated.hpp
 common_sources = $(common_headers) Catch2/extras/catch_amalgamated.cpp
 
-shared_sources = $(wildcard *.c *.h *.in) $(keccak_sources)
+shared_sources = $(wildcard *.c *.h *.in *.inc) $(keccak_sources)
 #opt_sources = $(wildcard opt/*.c opt/*.h)
 ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
