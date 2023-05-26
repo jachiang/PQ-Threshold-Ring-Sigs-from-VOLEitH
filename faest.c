@@ -51,7 +51,7 @@ static void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
 #if defined(OWF_AES_CTR)
 	aes_keygen(&unpacked->round_keys, unpacked->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(&unpacked->pk.fixed_key, iv);
+	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.iv);
 #endif
 }
 
@@ -63,7 +63,11 @@ static void pack_public_key(unsigned char* packed, const public_key* unpacked)
 
 static void unpack_public_key(public_key* unpacked, const unsigned char* packed)
 {
-	// TODO
+	memcpy(&unpacked->iv, packed, sizeof(unpacked->iv));
+	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->iv), sizeof(unpacked->owf_output));
+#if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(&unpacked->fixed_key, unpacked->iv);
+#endif
 }
 
 static bool compute_witness(secret_key* sk)
