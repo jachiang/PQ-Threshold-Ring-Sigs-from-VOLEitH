@@ -203,12 +203,12 @@ inline void aes_fixed_key_ctr(
 
 	aes_round(fixed_key, state, 1, num_keys * num_blocks, 0);
 	for (int round = 1; round < AES_ROUNDS; ++round)
-		aes_round(fixed_key, state, num_keys, num_blocks, round);
+		aes_round(fixed_key, state, 1, num_keys * num_blocks, round);
 	aes_round(fixed_key, state, 1, num_keys * num_blocks, AES_ROUNDS);
 
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
-			output[l * num_blocks + m] = block128_xor(output[l * num_blocks + m], keys[l]);
+			output[l * num_blocks + m] = block128_xor(state[l * num_blocks + m], keys[l]);
 }
 
 inline void rijndael256_fixed_key_ctr(
