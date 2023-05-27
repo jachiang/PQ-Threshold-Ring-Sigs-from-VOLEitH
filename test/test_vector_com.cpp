@@ -39,9 +39,9 @@ TEST_CASE( "commit/open/verify", "[vector com]" ) {
 
     std::vector<unsigned char> opening(VECTOR_OPEN_SIZE);
 
-    vector_commit(seed, NULL, NULL, forest.data(), leaves_sender.data(), hashed_leaves_sender.data());
+    vector_commit(seed, forest.data(), leaves_sender.data(), hashed_leaves_sender.data());
     vector_open(forest.data(), hashed_leaves_sender.data(), delta_bytes.data(), opening.data());
-    vector_verify(opening.data(), NULL, NULL, delta_bytes.data(), leaves_receiver.data(), hashed_leaves_receiver.data());
+    vector_verify(opening.data(), delta_bytes.data(), leaves_receiver.data(), hashed_leaves_receiver.data());
 
     const auto hashed_leaves_sender_bytes = std::vector(reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data()),
                                                         reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data() + hashed_leaves_sender.size()));

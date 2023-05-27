@@ -14,11 +14,9 @@
 
 // The GGM trees are all expanded from seed. leaves and hashed_leaves must each be
 // VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves (but not
-// hashed_leaves) will be permuted according to vole_permute_key_index. fixed_key is only used for
-// PRGs based on fixed-key Rijndael.
+// hashed_leaves) will be permuted according to vole_permute_key_index.
 void vector_commit(
 	const block_secpar seed,
-	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
@@ -31,12 +29,9 @@ void vector_open(
 
 // Given an opening, get all but one of the leaves and all of the hashed leaves. The hashed_leaves
 // must be verified against the output from vector_commit. leaves will be permuted according to
-// delta first, then vole_permute_key_index. fixed_key is only used for PRGs based on fixed-key
-// Rijndael.
+// delta first, then vole_permute_key_index.
 void vector_verify(
-	const unsigned char* restrict opening,
-	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
-	const uint8_t* restrict delta,
+	const unsigned char* restrict opening, const uint8_t* restrict delta,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
 
 #endif

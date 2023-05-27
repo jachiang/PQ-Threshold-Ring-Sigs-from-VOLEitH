@@ -44,6 +44,7 @@
 		const block_secpar* restrict keys, const prg_##name##_iv* restrict ivs, \
 		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
 	{ \
+		(void) ivs; \
 		memcpy(prgs, keys, num_keys * sizeof(keys[0])); \
 		rijndael_fixed_key_ctr(fixed_key, prgs, num_keys, num_blocks, counter, output); \
 	} \
