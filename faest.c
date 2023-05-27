@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "vector_com.h"
 #include "vole_commit.h"
+#include "vole_check.h"
 
 #if defined(OWF_AES_CTR)
 
@@ -162,7 +163,15 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 		aligned_alloc(alignof(vole_block), VOLE_COL_BLOCKS * sizeof(vole_block));
 	vole_block* v =
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
-	signature += vole_commit(seed, forest, u, v, signature);
+	size_t vole_commit_size = vole_commit(seed, forest, u, v, signature);
+
+	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &mu, sizeof(mu));
+	hash_update(&hasher, signature, vole_commit_size);
+	hash_final(&hasher, &chal1[0], sizeof(chal1));
+
+	vole_check_sender(u, v, chal1, signature + vole_commit_size);
 
 	free(forest);
 	free(u);

@@ -68,5 +68,12 @@ void vole_check_sender(
 		poly_secpar_store(, mapped_hashes[0]);
 	}
 }
+#else
+
+void vole_check_sender(
+	const vole_block* restrict u, const vole_block* restrict v,
+	const unsigned char* restrict challenge, unsigned char* restrict response)
+{
+}
 
 #endif
