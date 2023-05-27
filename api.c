@@ -25,7 +25,7 @@ int crypto_sign(
 {
 	*smlen = mlen + FAEST_SIGNATURE_BYTES;
 	memmove(sm, m, mlen);
-	faest_sign(sm + mlen, sm, mlen, sk, NULL);
+	faest_sign(sm + mlen, sm, mlen, sk, NULL, 0);
 	return 0;
 }
 

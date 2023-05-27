@@ -21,5 +21,5 @@
 // Random seed can be set to null for deterministic signatures.
 
 bool faest_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed);
-void faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* secret_key, const unsigned char* random_seed);
-bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* public_key);
+bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* sk_packed, const unsigned char* random_seed, size_t random_seed_len);
+bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* pk_packed);

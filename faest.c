@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "block.h"
 #include "aes.h"
+#include "hash.h"
 
 #if defined(OWF_AES_CTR)
 
@@ -107,27 +108,54 @@ static bool compute_witness(secret_key* sk)
 #endif
 
 	// TODO: Use the witness to check if this is a valid key.
+	return true;
+}
+
+static bool faest_unpack_sk_and_get_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed, secret_key* sk)
+{
+	unpack_secret_key(sk, sk_packed);
+	if (!compute_witness(sk))
+		return false;
+
+	pack_public_key(pk_packed, &sk->pk);
+	return true;
 }
 
 bool faest_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed)
 {
 	secret_key sk;
-	unpack_secret_key(&sk, sk_packed);
+	return faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk);
+}
 
-	bool valid = compute_witness(&sk);
-	if (!valid)
+bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* sk_packed, const unsigned char* random_seed, size_t random_seed_len)
+{
+	secret_key sk;
+	unsigned char pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
 		return false;
 
-	pack_public_key(pk_packed, &sk.pk);
+	// TODO: Domain separation.
+
+	// TODO: Do we need to domain separate by the faest parameters?
+
+	block_2secpar mu;
+	hash_state hasher;
+	hash_init(&hasher);
+	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
+	hash_update(&hasher, msg, msg_len);
+	hash_final(&hasher, &mu, sizeof(mu));
+
+	block_secpar seed;
+	hash_init(&hasher);
+	hash_update(&hasher, &mu, sizeof(mu));
+	if (random_seed)
+		hash_update(&hasher, &random_seed, random_seed_len);
+	hash_final(&hasher, &seed, sizeof(seed));
+
 	return true;
 }
 
-void faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* secret_key, const unsigned char* random_seed)
-{
-    // TODO
-}
-
-bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* public_key)
+bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* pk_packed)
 {
     // TODO
 }
