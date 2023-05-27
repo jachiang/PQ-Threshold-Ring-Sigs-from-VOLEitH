@@ -178,7 +178,7 @@ static ALWAYS_INLINE void transposeVxN(
 	}
 }
 
-void transpose_vole_secpar(const void* input, void* output, size_t stride, size_t rows)
+void transpose_secpar(const void* input, void* output, size_t stride, size_t rows)
 {
 	const uint8_t* in = input;
 	uint8_t* out = output;

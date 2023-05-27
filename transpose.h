@@ -28,6 +28,6 @@ ALWAYS_INLINE void transpose2x2_128(block256* output, block256 input0, block256 
 
 // Convert a column-major rows x SECURITY_PARAM bit matrix into row-major format. Each column must
 // start stride bytes from the previous. Rows must be a multiple of TRANSPOSE_BITS_ROWS.
-void transpose_vole_secpar(const void* input, void* output, size_t stride, size_t rows);
+void transpose_secpar(const void* input, void* output, size_t stride, size_t rows);
 
 #endif

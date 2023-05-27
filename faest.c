@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "hash.h"
 #include "quicksilver.h"
+#include "owf_proof.h"
 #include "vector_com.h"
 #include "vole_commit.h"
 #include "vole_check.h"
@@ -137,8 +138,6 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	vole_check_sender(u, v, chal1, vole_check_start);
 
 	free(forest);
-	free(u);
-	free(v);
 
 	uint8_t* correction_start = vole_check_start + VOLE_CHECK_HASH_BYTES;
 	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -159,10 +158,23 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	hash_update(&hasher, vole_check_start, VOLE_CHECK_HASH_BYTES + (WITNESS_BITS / 8));
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
+	block_secpar* macs =
+		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
+
+	static_assert(VOLE_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0);
+	transpose_secpar(v, macs, VOLE_COL_STRIDE, VOLE_ROWS_PADDED);
+
+	quicksilver_state qs;
+	memcpy(&u[0], &sk.witness[0], WITNESS_BITS / 8);
+	quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
+
+	free(u);
+	free(v);
+
 	return true;
 }
 
 bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* pk_packed)
 {
-    // TODO
+	// TODO
 }
