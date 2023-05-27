@@ -34,7 +34,7 @@ gen_vole_correlation(size_t n, const uint8_t* witness, poly_secpar_vec delta) {
 #if defined(OWF_AES_CTR) && SECURITY_PARAM == 128
 
 static std::pair<quicksilver_state, quicksilver_state> setup_qs() {
-    const num_constraints = 1;
+    const size_t num_constraints = 1;
     const auto delta = rand<block_secpar>();
     std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
     std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
