@@ -52,4 +52,18 @@ inline void expand_bits_to_bytes(uint8_t* output, size_t num_bits, size_t x)
         output[i] = expand_bit_to_byte(x, i);
 }
 
+ALWAYS_INLINE size_t rotate_left(size_t x, unsigned int shift, unsigned int n_bits)
+{
+	shift %= n_bits;
+	size_t mask = ((size_t) 1 << n_bits) - 1;
+	return ((x << shift) & mask) + ((x & mask) >> (n_bits - shift));
+}
+
+ALWAYS_INLINE size_t rotate_right(size_t x, unsigned int shift, unsigned int n_bits)
+{
+	shift %= n_bits;
+	size_t mask = ((size_t) 1 << n_bits) - 1;
+	return ((x << (n_bits - shift)) & mask) + ((x & mask) >> shift);
+}
+
 #endif

@@ -1,8 +1,7 @@
 #ifndef TRANSPOSE_IMPL_H
 #define TRANSPOSE_IMPL_H
 
-#define TRANSPOSE128_VEC_WIDTH 2
-#define TRANSPOSE256_VEC_WIDTH 1
+#define TRANSPOSE_BITS_ROWS_SHIFT 8
 
 ALWAYS_INLINE void transpose4x4_32(block128* output, const block128* input)
 {
