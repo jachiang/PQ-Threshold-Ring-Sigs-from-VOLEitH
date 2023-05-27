@@ -35,6 +35,23 @@ typedef struct
 
 // TODO: Get witness bit.
 
+// Initialize a quicksilver_state.
+// - If POLY_VEC_LEN > 1, all components of delta must contain the same value.
+inline void quicksilver_init_state(quicksilver_state* state, bool verifier, size_t num_constraints,
+        poly_secpar_vec delta, poly_secpar_vec hash_key_secpar, poly64_vec hash_key_64) {
+    state->verifier = verifier;
+    state->delta = delta;
+    state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(delta, delta));
+
+    hasher_gfsecpar_init_key(&state->key_secpar, hash_key_secpar);
+    hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
+    hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
+
+    hasher_gfsecpar_64_init_key(&state->key_64, hash_key_64);
+    hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+    hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
+}
+
 inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y)
 {
 	quicksilver_vec_gf2 out;
