@@ -69,7 +69,7 @@ size_t vole_commit(
 	prg_vole_fixed_key fixed_key;
     vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
-	block_2secpar correction[VOLE_COL_BLOCKS];
+	vole_block correction[VOLE_COL_BLOCKS];
 	block_secpar* leaves_iter = leaves;
 	vole_block* v_iter = v;
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
