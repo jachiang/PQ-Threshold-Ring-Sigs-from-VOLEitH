@@ -31,25 +31,51 @@ typedef struct
 	hasher_gfsecpar_64_key key_64;
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
+
+	poly_secpar_vec hash_combination[2];
+
+	const uint8_t* witness;
+	const block_secpar* v;
 } quicksilver_state;
 
 // TODO: Get witness bit.
 
-// Initialize a quicksilver_state.
-// - If POLY_VEC_LEN > 1, all components of delta must contain the same value.
-inline void quicksilver_init_state(quicksilver_state* state, bool verifier, size_t num_constraints,
-        poly_secpar_vec delta, poly_secpar_vec hash_key_secpar, poly64_vec hash_key_64) {
-    state->verifier = verifier;
-    state->delta = delta;
-    state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(delta, delta));
+inline void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge)
+{
+	for (size_t i = 0; i < 2; ++i, challenge += SECURITY_PARAM / 8)
+		state->hash_combination[i] = poly_secpar_load_dup(challenge);
+	poly_secpar_vec hash_key_secpar = poly_secpar_load_dup(challenge);
+	poly64_vec hash_key_64 = poly64_load_dup(challenge + SECURITY_PARAM / 8);
 
-    hasher_gfsecpar_init_key(&state->key_secpar, hash_key_secpar);
-    hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
-    hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
+	hasher_gfsecpar_init_key(&state->key_secpar, hash_key_secpar);
+	hasher_gfsecpar_64_init_key(&state->key_64, hash_key_64);
+}
 
-    hasher_gfsecpar_64_init_key(&state->key_64, hash_key_64);
-    hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
-    hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
+// Initialize a prover's quicksilver_state. challenge must have length QUICKSILVER_CHALLENGE_BYTES.
+inline void quicksilver_init_prover(
+	quicksilver_state* state, size_t num_constraints, const uint8_t* challenge)
+{
+	state->verifier = false;
+
+	quicksilver_init_hash_keys(state, challenge);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
+}
+
+// Initialize a verifier's quicksilver_state. challenge must have length
+// QUICKSILVER_CHALLENGE_BYTES.
+inline void quicksilver_init_verifier(
+	quicksilver_state* state, size_t num_constraints, block_secpar delta, const uint8_t* challenge)
+{
+	state->verifier = true;
+	state->delta = poly_secpar_load_dup(&delta);
+	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
+
+	quicksilver_init_hash_keys(state, challenge);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
 }
 
 inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y)
@@ -140,11 +166,10 @@ inline quicksilver_vec_gfsecpar quicksilver_const_gfsecpar(const quicksilver_sta
 
 inline quicksilver_vec_gf2 quicksilver_mul_const_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, poly1_vec c)
 {
-	quicksilver_vec_gf2 out;
-	out.mac = poly1xsecpar_mul(c, state->delta);
+	x.mac = poly1xsecpar_mul(c, x.mac);
 	if (!state->verifier)
-		out.value &= c;
-	return out;
+		x.value &= c;
+	return x;
 }
 
 inline quicksilver_vec_gfsecpar quicksilver_mul_const(const quicksilver_state* state, quicksilver_vec_gfsecpar x, poly_secpar_vec c)

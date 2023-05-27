@@ -49,9 +49,32 @@ inline poly1_vec poly1_set_all(uint8_t x)
 	return x;
 #elif POLY_VEC_LEN == 2
 	uint16_t out = x;
-	out |= (out << 8);
+	out += (out << 8);
 	return out;
 #endif
+}
+
+inline poly1_vec poly1_load(const void* s, unsigned int bit_offset)
+{
+	uint16_t tmp;
+	memcpy(&tmp, s, sizeof(tmp));
+	tmp = (tmp >> bit_offset) & ((1 << POLY_VEC_LEN) - 1);
+
+	// Split each bit out into its own byte.
+	poly1_vec poly = tmp * (((1UL << 7 * POLY_VEC_LEN) - 1) / 0x7f);
+	poly &= ((1UL << 8 * POLY_VEC_LEN) - 1) / 0xff;
+	poly *= 0xff;
+	return poly;
+}
+
+inline poly1_vec poly1_load_offset8(const void* s, unsigned int bit_offset)
+{
+	poly1_vec poly;
+	memcpy(&poly, s, sizeof(poly));
+	poly >>= bit_offset;
+	poly &= ((1UL << 8 * POLY_VEC_LEN) - 1) / 0xff;
+	poly *= 0xff;
+	return poly;
 }
 
 inline poly64_vec poly64_load(const void* s)
