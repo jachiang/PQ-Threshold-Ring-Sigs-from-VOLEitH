@@ -4,6 +4,8 @@
 #include "polynomials.h"
 #include "universal_hash.h"
 
+#define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
+
 typedef struct
 {
 	poly_secpar_vec mac;

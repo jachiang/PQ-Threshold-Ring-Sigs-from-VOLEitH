@@ -6,6 +6,7 @@
 #include "block.h"
 #include "aes.h"
 #include "hash.h"
+#include "quicksilver.h"
 #include "vector_com.h"
 #include "vole_commit.h"
 #include "vole_check.h"
@@ -171,13 +172,14 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	hash_update(&hasher, signature, vole_commit_size);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	vole_check_sender(u, v, chal1, signature + vole_commit_size);
+	uint8_t* vole_check_start = signature + vole_commit_size;
+	vole_check_sender(u, v, chal1, vole_check_start);
 
 	free(forest);
 	free(u);
 	free(v);
 
-	uint8_t* correction_start = signature + vole_commit_size + VOLE_CHECK_HASH_BYTES;
+	uint8_t* correction_start = vole_check_start + VOLE_CHECK_HASH_BYTES;
 	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
 	for (size_t i = 0; i < WITNESS_BLOCKS - (remainder != 0); ++i)
 	{
@@ -189,6 +191,12 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 		vole_block correction = vole_block_xor(u[WITNESS_BLOCKS - 1], sk.witness[WITNESS_BLOCKS - 1]);
 		memcpy(correction_start + (WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction, remainder);
 	}
+
+	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &chal1, sizeof(chal1));
+	hash_update(&hasher, vole_check_start, VOLE_CHECK_HASH_BYTES + (WITNESS_BITS / 8));
+	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	return true;
 }
