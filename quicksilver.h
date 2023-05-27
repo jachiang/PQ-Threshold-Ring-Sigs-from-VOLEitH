@@ -35,10 +35,8 @@ typedef struct
 	poly_secpar_vec hash_combination[2];
 
 	const uint8_t* witness;
-	const block_secpar* v;
+	const block_secpar* macs;
 } quicksilver_state;
-
-// TODO: Get witness bit.
 
 inline void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge)
 {
@@ -53,7 +51,8 @@ inline void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* 
 
 // Initialize a prover's quicksilver_state. challenge must have length QUICKSILVER_CHALLENGE_BYTES.
 inline void quicksilver_init_prover(
-	quicksilver_state* state, size_t num_constraints, const uint8_t* challenge)
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
+	size_t num_constraints, const uint8_t* challenge)
 {
 	state->verifier = false;
 
@@ -62,12 +61,16 @@ inline void quicksilver_init_prover(
 	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
 	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
+
+	state->witness = witness;
+	state->macs = macs;
 }
 
 // Initialize a verifier's quicksilver_state. challenge must have length
 // QUICKSILVER_CHALLENGE_BYTES.
 inline void quicksilver_init_verifier(
-	quicksilver_state* state, size_t num_constraints, block_secpar delta, const uint8_t* challenge)
+	quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
+	block_secpar delta, const uint8_t* challenge)
 {
 	state->verifier = true;
 	state->delta = poly_secpar_load_dup(&delta);
@@ -76,6 +79,17 @@ inline void quicksilver_init_verifier(
 	quicksilver_init_hash_keys(state, challenge);
 	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+
+	state->macs = macs;
+}
+
+inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* state, size_t index)
+{
+	quicksilver_vec_gf2 out;
+	if (!state->verifier)
+		out.value = poly1_load(&state->witness[index / 8], index % 8);
+	out.mac = poly_secpar_load(&state->macs[index]);
+	return out;
 }
 
 inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y)
