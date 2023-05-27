@@ -5,6 +5,7 @@
 #include "universal_hash.h"
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
+#define QUICKSILVER_PROOF_BYTES (2 * SECURITY_PARAM / 8)
 
 typedef struct
 {
@@ -238,5 +239,8 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, lin_term);
 	}
 }
+
+void quicksilver_prove(const quicksilver_state* state, size_t witness_bits, uint8_t* proof);
+bool quicksilver_verify(const quicksilver_state* state, size_t witness_bits, const uint8_t* proof);
 
 #endif
