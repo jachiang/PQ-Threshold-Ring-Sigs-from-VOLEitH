@@ -22,12 +22,12 @@ inline int hash_init(hash_state* ctx)
 #endif
 }
 
-inline int hash_update(hash_state* ctx, const uint8_t* input, size_t bytes)
+inline int hash_update(hash_state* ctx, const void* input, size_t bytes)
 {
 	return Keccak_HashUpdate(ctx, input, bytes * 8);
 }
 
-inline int hash_final(hash_state* ctx, uint8_t* digest, size_t bytes)
+inline int hash_final(hash_state* ctx, void* digest, size_t bytes)
 {
 	int ret = Keccak_HashFinal(ctx, NULL);
 	if (ret != KECCAK_SUCCESS)
@@ -38,7 +38,7 @@ inline int hash_final(hash_state* ctx, uint8_t* digest, size_t bytes)
 // Mostly copied from Picnic: Instances that work with 4 states in parallel.
 typedef Keccak_HashInstancetimes4 hash_state_x4;
 
-inline void hash_init_x4(hash_state_x4* ctx, size_t digest_size)
+inline void hash_init_x4(hash_state_x4* ctx)
 {
 #if SECURITY_PARAM <= 128
 	Keccak_HashInitializetimes4_SHAKE128(ctx);
@@ -47,42 +47,43 @@ inline void hash_init_x4(hash_state_x4* ctx, size_t digest_size)
 #endif
 }
 
-inline void hash_update_x4(hash_state_x4* ctx, const uint8_t** data, size_t size)
+inline void hash_update_x4(hash_state_x4* ctx, const void** data, size_t size)
 {
+	const uint8_t* data_casted[4] = {data[0], data[1], data[2], data[3]};
+	Keccak_HashUpdatetimes4(ctx, data_casted, size << 3);
+}
+
+inline void hash_update_x4_4(
+	hash_state_x4* ctx,
+	const void* data0, const void* data1, const void* data2, const void* data3, size_t size)
+{
+	const uint8_t* data[4] = {data0, data1, data2, data3};
 	Keccak_HashUpdatetimes4(ctx, data, size << 3);
 }
 
-inline void hash_update_x4_4(hash_state_x4* ctx,
-                             const uint8_t* data0, const uint8_t* data1,
-                             const uint8_t* data2, const uint8_t* data3, size_t size)
+inline void hash_update_x4_1(hash_state_x4* ctx, const void* data, size_t size)
 {
-	const uint8_t* data[4] = {data0, data1, data2, data3};
-	hash_update_x4(ctx, data, size);
-}
-
-inline void hash_update_x4_1(hash_state_x4* ctx, const uint8_t* data, size_t size)
-{
-	const uint8_t* tmp[4] = {data, data, data, data};
+	const void* tmp[4] = {data, data, data, data};
 	hash_update_x4(ctx, tmp, size);
 }
 
-inline void hash_init_prefix_x4(hash_state_x4* ctx, size_t digest_size, const uint8_t prefix)
+inline void hash_init_prefix_x4(hash_state_x4* ctx, const uint8_t prefix)
 {
-	hash_init_x4(ctx, digest_size);
+	hash_init_x4(ctx);
 	hash_update_x4_1(ctx, &prefix, sizeof(prefix));
 }
 
-inline void hash_final_x4(hash_state_x4* ctx, uint8_t** buffer, size_t buflen)
+inline void hash_final_x4(hash_state_x4* ctx, void** buffer, size_t buflen)
 {
+	uint8_t* buffer_casted[4] = {buffer[0], buffer[1], buffer[2], buffer[3]};
 	Keccak_HashFinaltimes4(ctx, NULL);
-	Keccak_HashSqueezetimes4(ctx, buffer, buflen << 3);
+	Keccak_HashSqueezetimes4(ctx, buffer_casted, buflen << 3);
 }
 
-inline void hash_final_x4_4(hash_state_x4* ctx,
-                            uint8_t* buffer0, uint8_t* buffer1, uint8_t* buffer2, uint8_t* buffer3,
-                            size_t buflen)
+inline void hash_final_x4_4(
+	hash_state_x4* ctx, void* buffer0, void* buffer1, void* buffer2, void* buffer3, size_t buflen)
 {
-	uint8_t* buffer[4] = {buffer0, buffer1, buffer2, buffer3};
+	void* buffer[4] = {buffer0, buffer1, buffer2, buffer3};
 	hash_final_x4(ctx, buffer, buflen);
 }
 
