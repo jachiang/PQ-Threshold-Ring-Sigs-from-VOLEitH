@@ -93,6 +93,22 @@ inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* 
 	return out;
 }
 
+inline void quicksilver_final(const quicksilver_state* state, bool verifier,
+        poly_secpar_vec* hash_const_secpar, poly_secpar_vec* hash_linear_secpar,
+        poly_secpar_vec* hash_const_64, poly_secpar_vec* hash_linear_64) {
+    *hash_const_64 = hasher_gfsecpar_64_final(&state->state_64_const);
+    *hash_const_secpar = hasher_gfsecpar_final(&state->state_secpar_const);
+    if (!verifier) {
+        *hash_linear_64 = hasher_gfsecpar_64_final(&state->state_64_linear);
+        *hash_linear_secpar = hasher_gfsecpar_final(&state->state_secpar_linear);
+    }
+}
+
+inline poly_secpar_vec quicksilver_get_delta(const quicksilver_state* state) {
+    assert(state->verifier);
+    return state->delta;
+}
+
 inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y)
 {
 	quicksilver_vec_gf2 out;

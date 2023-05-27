@@ -101,6 +101,14 @@ inline std::string poly512_vec_to_string(poly512_vec pv) {
 #define REQUIRE_POLY512VEC_NEQ(a, b) \
     { INFO("Requiring: " << poly512_vec_to_string(a) << " != " << poly512_vec_to_string(b)); REQUIRE(!poly512_eq(a, b)); }
 
+#if SECURITY_PARAM == 128
+#define REQUIRE_POLY_SECPAR_VEC_EQ(a, b) REQUIRE_POLY128VEC_EQ(a, b)
+#elif SECURITY_PARAM == 192
+#define REQUIRE_POLY_SECPAR_VEC_EQ(a, b) REQUIRE_POLY192VEC_EQ(a, b)
+#elif SECURITY_PARAM == 256
+#define REQUIRE_POLY_SECPAR_VEC_EQ(a, b) REQUIRE_POLY256VEC_EQ(a, b)
+#endif
+
 inline std::ostream& operator<<(std::ostream& o, const std::vector<uint8_t>& array)
 {
 	o << "{ ";
