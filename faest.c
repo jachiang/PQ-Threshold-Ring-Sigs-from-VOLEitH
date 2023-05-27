@@ -1,56 +1,17 @@
 #include "faest.h"
+#include "faest_details.h"
 
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "block.h"
-#include "aes.h"
 #include "hash.h"
 #include "quicksilver.h"
 #include "vector_com.h"
 #include "vole_commit.h"
 #include "vole_check.h"
 
-#if defined(OWF_AES_CTR)
 
-#define OWF_OUTPUT_BLOCKS ((SECURITY_PARAM + 127) / 128)
-typedef block128 owf_block;
-inline owf_block owf_block_xor(owf_block x, owf_block y) { return block128_xor(x, y); }
-inline owf_block owf_block_set_low32(uint32_t x) { return block128_set_low32(x); }
-
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-
-#define OWF_OUTPUT_BLOCKS 1
-typedef block_secpar owf_block;
-inline owf_block owf_block_xor(owf_block x, owf_block y) { return block_secpar_xor(x, y); }
-inline owf_block owf_block_set_low32(uint32_t x) { return block_secpar_set_low32(x); }
-
-#else
-#error Unsupported OWF configuration.
-#endif
-
-typedef struct
-{
-#if defined(OWF_AES_CTR)
-	block128 iv;
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	block_secpar iv;
-	rijndael_round_keys fixed_key;
-#endif
-	owf_block owf_output[OWF_OUTPUT_BLOCKS];
-} public_key;
-
-typedef struct
-{
-	public_key pk;
-	block_secpar sk;
-#if defined(OWF_AES_CTR)
-	aes_round_keys round_keys;
-#endif
-	vole_block witness[WITNESS_BLOCKS];
-} secret_key;
-
-static void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
+void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
 {
 	memcpy(&unpacked->pk.iv, packed, sizeof(unpacked->pk.iv));
 	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.iv), sizeof(unpacked->sk));
@@ -62,13 +23,13 @@ static void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
 #endif
 }
 
-static void pack_public_key(unsigned char* packed, const public_key* unpacked)
+void pack_public_key(unsigned char* packed, const public_key* unpacked)
 {
 	memcpy(packed, &unpacked->iv, sizeof(unpacked->iv));
 	memcpy(packed + sizeof(unpacked->iv), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
 }
 
-static void unpack_public_key(public_key* unpacked, const unsigned char* packed)
+void unpack_public_key(public_key* unpacked, const unsigned char* packed)
 {
 	memcpy(&unpacked->iv, packed, sizeof(unpacked->iv));
 	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->iv), sizeof(unpacked->owf_output));
@@ -77,7 +38,7 @@ static void unpack_public_key(public_key* unpacked, const unsigned char* packed)
 #endif
 }
 
-static bool compute_witness(secret_key* sk)
+bool compute_witness(secret_key* sk)
 {
 #if defined(OWF_AES_CTR)
 	owf_block key0_combined = sk->round_keys.keys[0];
@@ -117,7 +78,7 @@ static bool compute_witness(secret_key* sk)
 	return true;
 }
 
-static bool faest_unpack_sk_and_get_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed, secret_key* sk)
+bool faest_unpack_sk_and_get_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed, secret_key* sk)
 {
 	unpack_secret_key(sk, sk_packed);
 	if (!compute_witness(sk))
