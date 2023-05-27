@@ -51,14 +51,11 @@ static size_t hash_hashed_leaves(block_2secpar* hashed_leaves, uint8_t* restrict
 }
 
 size_t vole_commit(
-	block_secpar seed, block_secpar* restrict forest,
+	block_secpar seed, block_secpar* restrict forest, block_2secpar* hashed_leaves,
 	vole_block* restrict u, vole_block* restrict v, uint8_t* restrict commitment)
 {
 	block_secpar* leaves =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_LEAVES * sizeof(block_secpar));
-	block_2secpar* hashed_leaves =
-		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
-
 	vector_commit(seed, forest, leaves, hashed_leaves);
 
 	uint8_t* com_iter = commitment;
