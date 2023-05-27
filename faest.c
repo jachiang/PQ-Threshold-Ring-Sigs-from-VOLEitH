@@ -1,9 +1,13 @@
 #include "faest.h"
 
+#include <stdalign.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "block.h"
 #include "aes.h"
 #include "hash.h"
+#include "vector_com.h"
+#include "vole_commit.h"
 
 #if defined(OWF_AES_CTR)
 
@@ -151,6 +155,18 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	if (random_seed)
 		hash_update(&hasher, &random_seed, random_seed_len);
 	hash_final(&hasher, &seed, sizeof(seed));
+
+	block_secpar* forest =
+		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_NODES * sizeof(block_secpar));
+	vole_block* u =
+		aligned_alloc(alignof(vole_block), VOLE_COL_BLOCKS * sizeof(vole_block));
+	vole_block* v =
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
+	signature += vole_commit(seed, forest, u, v, signature);
+
+	free(forest);
+	free(u);
+	free(v);
 
 	return true;
 }

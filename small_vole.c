@@ -132,8 +132,13 @@ static ALWAYS_INLINE void vole(
 	}
 
 	if (!receiver)
-		for (size_t j = 0; j < COL_LEN; ++j)
-			c_out[j] = vole_block_xor(u_or_c_in[j], accum[j]);
+	{
+		if (u_or_c_in)
+			for (size_t j = 0; j < COL_LEN; ++j)
+				c_out[j] = vole_block_xor(u_or_c_in[j], accum[j]);
+		else
+			memcpy(c_out, accum, sizeof(accum));
+	}
 }
 
 void vole_sender(
