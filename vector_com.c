@@ -14,15 +14,6 @@
 #define LEAF_CHUNK_SIZE (PRG_LEAF_PREFERRED_WIDTH / 2)
 #define LEAF_CHUNK_SIZE_SHIFT (PRG_LEAF_PREFERRED_WIDTH_SHIFT - 1)
 
-#define TREE_BLOCKS_PER_KEY \
-	((2 * sizeof(block_secpar) + sizeof(prg_tree_block) - 1) / sizeof(prg_tree_block))
-#define LEAF_BLOCKS_PER_KEY \
-	((3 * sizeof(block_secpar) + sizeof(prg_leaf_block) - 1) / sizeof(prg_leaf_block))
-#define TREE_EXTRA_BYTES_PER_KEY \
-	(TREE_BLOCKS_PER_KEY * sizeof(prg_tree_block) - 2 * sizeof(block_secpar))
-#define LEAF_EXTRA_BYTES_PER_KEY \
-	(LEAF_BLOCKS_PER_KEY * sizeof(prg_leaf_block) - 3 * sizeof(block_secpar))
-
 #define MAX_CHUNK_SIZE_SHIFT \
 	(LEAF_CHUNK_SIZE_SHIFT > TREE_CHUNK_SIZE_SHIFT ? LEAF_CHUNK_SIZE_SHIFT : TREE_CHUNK_SIZE_SHIFT)
 #define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > TREE_CHUNK_SIZE ? LEAF_CHUNK_SIZE : TREE_CHUNK_SIZE)
@@ -40,11 +31,11 @@ static ALWAYS_INLINE void copy_prg_output(
 		             : (void*) &prg_output_leaf[num_blocks * k], num_bytes);
 }
 
-// Take each of n block_secpars from input and expand it into 2 adjacent blocks in output. If leaf,
-// this becomes 3 adjacent blocks. fixed_key_tree, fixed_key_leaf is only used for PRGs based on
-// fixed-key Rijndael. Works for n <= TREE_CHUNK_SIZE (or LEAF_CHUNK_SIZE if leaf).
+// Take each of n block_secpars from input and expand it into stretch adjacent blocks in output.
+// fixed_key_tree, fixed_key_leaf is only used for PRGs based on fixed-key Rijndael. Works for
+// n <= TREE_CHUNK_SIZE (or LEAF_CHUNK_SIZE if leaf).
 static ALWAYS_INLINE void expand_chunk(
-	bool leaf, size_t n,
+	bool leaf, size_t n, uint32_t stretch,
 	const prg_tree_fixed_key* restrict fixed_key_tree,
 	const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	const block_secpar* restrict input, block_secpar* restrict output)
@@ -56,8 +47,8 @@ static ALWAYS_INLINE void expand_chunk(
 	prg_leaf_iv ivs_leaf[LEAF_CHUNK_SIZE];
 	prg_tree_key prgs_tree[TREE_CHUNK_SIZE];
 	prg_leaf_key prgs_leaf[LEAF_CHUNK_SIZE];
-	prg_tree_block prg_output_tree[TREE_CHUNK_SIZE * TREE_BLOCKS_PER_KEY];
-	prg_leaf_block prg_output_leaf[LEAF_CHUNK_SIZE * LEAF_BLOCKS_PER_KEY];
+	prg_tree_block prg_output_tree[TREE_CHUNK_SIZE * 3];
+	prg_leaf_block prg_output_leaf[LEAF_CHUNK_SIZE * 3];
 
 	memcpy(&keys[0], input, n * sizeof(block_secpar));
 
@@ -66,11 +57,10 @@ static ALWAYS_INLINE void expand_chunk(
 	memset(&ivs_leaf, 0, sizeof(ivs_leaf));
 
 	size_t prg_block_size = !leaf ? sizeof(prg_tree_block) : sizeof(prg_leaf_block);
-	uint32_t blocks_per_key = !leaf ? TREE_BLOCKS_PER_KEY : LEAF_BLOCKS_PER_KEY;
-	size_t bytes_extra_per_key = !leaf ? TREE_EXTRA_BYTES_PER_KEY : LEAF_EXTRA_BYTES_PER_KEY;
-	static_assert(TREE_BLOCKS_PER_KEY >= 2);
-	static_assert(LEAF_BLOCKS_PER_KEY >= 2);
+	uint32_t blocks_per_key = (stretch * sizeof(block_secpar) + prg_block_size - 1) / prg_block_size;
+	size_t bytes_extra_per_key = blocks_per_key * prg_block_size - stretch * sizeof(block_secpar);
 
+	assert(blocks_per_key >= 2);
 	uint32_t num_blocks = blocks_per_key % 2 ? 3 : 2;
 	if (!leaf)
 		prg_tree_init(&prgs_tree[0], fixed_key_tree, &keys[0], &ivs_tree[0],
@@ -108,7 +98,7 @@ static ALWAYS_INLINE void expand_chunk(
 		const block_secpar* restrict input, block_secpar* restrict output) \
 	{ \
 		if (n <= TREE_CHUNK_SIZE) \
-			expand_chunk(false, n, fixed_key_tree, NULL, input, output); \
+			expand_chunk(false, n, 2, fixed_key_tree, NULL, input, output); \
 	}
 
 // Most of these will be unused, and so removed by the compiler.
@@ -199,7 +189,7 @@ static void expand_chunk_leaf_n_leaf_chunk_size(
 	const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	const block_secpar* restrict input, block_secpar* restrict output)
 {
-	expand_chunk(true, LEAF_CHUNK_SIZE, NULL, fixed_key_leaf, input, output);
+	expand_chunk(true, LEAF_CHUNK_SIZE, 3, NULL, fixed_key_leaf, input, output);
 }
 
 #define TREES_IN_FOREST(verifier) ((verifier) ? SECURITY_PARAM : 2 * BITS_PER_WITNESS)
@@ -306,11 +296,14 @@ static ALWAYS_INLINE void expand_tree(
 }
 
 void vector_commit(
-	const block_secpar* restrict roots,
+	const block_secpar seed,
 	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves)
 {
+	block_secpar roots[2 * BITS_PER_WITNESS];
+	expand_chunk(false, 1, 2 * BITS_PER_WITNESS, fixed_key_tree, NULL, &seed, &roots[0]);
+
 	memcpy(forest, roots, TREES_IN_FOREST(false) * sizeof(block_secpar));
 
 	// First expand each tree far enough to have TREE_CHUNK_SIZE nodes.

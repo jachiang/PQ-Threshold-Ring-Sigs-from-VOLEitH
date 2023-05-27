@@ -20,7 +20,7 @@ TEST_CASE( "commit/open/verify", "[vector com]" ) {
     typedef std::array<uint8_t, SECURITY_PARAM / 8> arr_secpar;
     typedef std::array<uint8_t, 2 * SECURITY_PARAM / 8> arr_2secpar;
 
-    std::vector<block_secpar> roots = random_vector<block_secpar>(2 * BITS_PER_WITNESS);
+    block_secpar seed = rand<block_secpar>();
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
     std::vector<block_secpar> leaves_receiver(VECTOR_COMMIT_LEAVES);
@@ -39,7 +39,7 @@ TEST_CASE( "commit/open/verify", "[vector com]" ) {
 
     std::vector<unsigned char> opening(VECTOR_OPEN_SIZE);
 
-    vector_commit(roots.data(), NULL, NULL, forest.data(), leaves_sender.data(), hashed_leaves_sender.data());
+    vector_commit(seed, NULL, NULL, forest.data(), leaves_sender.data(), hashed_leaves_sender.data());
     vector_open(forest.data(), hashed_leaves_sender.data(), delta_bytes.data(), opening.data());
     vector_verify(opening.data(), NULL, NULL, delta_bytes.data(), leaves_receiver.data(), hashed_leaves_receiver.data());
 

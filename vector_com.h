@@ -12,12 +12,12 @@
 #define VECTOR_OPEN_BITS (SECURITY_PARAM * SECURITY_PARAM + 2 * SECURITY_PARAM * BITS_PER_WITNESS)
 #define VECTOR_OPEN_SIZE (VECTOR_OPEN_BITS / 8)
 
-// roots is a random vector of 2 * BITS_PER_WITNESS blocks. leaves and hashed_leaves must each be
+// The GGM trees are all expanded from seed. leaves and hashed_leaves must each be
 // VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves (but not
 // hashed_leaves) will be permuted according to vole_permute_key_index. fixed_key is only used for
 // PRGs based on fixed-key Rijndael.
 void vector_commit(
-	const block_secpar* restrict roots,
+	const block_secpar seed,
 	const prg_tree_fixed_key* restrict fixed_key_tree, const prg_leaf_fixed_key* restrict fixed_key_leaf,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
