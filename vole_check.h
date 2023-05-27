@@ -3,7 +3,9 @@
 
 #include "universal_hash.h"
 
-#define VOLE_CHECK_CHALLENGE_BYTES (5 * SECURITY_PARAM + 64) / 8
+#define VOLE_CHECK_HASH_BYTES (SECURITY_PARAM + 1) /* TODO */
+#define VOLE_CHECK_CHALLENGE_BYTES ((5 * SECURITY_PARAM + 64) / 8)
+#define VOLE_CHECK_RESPONSE_BYTES (VOLE_CHECK_HASH_BYTES + 2 * SECURITY_PARAM)
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,

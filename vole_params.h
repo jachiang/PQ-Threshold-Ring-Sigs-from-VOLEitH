@@ -15,6 +15,7 @@
 
 #define WITNESS_BITS 1472 // TODO
 #define WITNESS_BLOCKS ((WITNESS_BITS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK))
+static_assert(WITNESS_BITS % 8 == 0);
 
 #define VOLE_ROWS 1600 // TODO
 static_assert(VOLE_ROWS % 8 == 0);

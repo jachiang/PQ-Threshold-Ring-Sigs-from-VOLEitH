@@ -177,6 +177,19 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	free(u);
 	free(v);
 
+	uint8_t* correction_start = signature + vole_commit_size + VOLE_CHECK_HASH_BYTES;
+	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
+	for (size_t i = 0; i < WITNESS_BLOCKS - (remainder != 0); ++i)
+	{
+		vole_block correction = vole_block_xor(u[i], sk.witness[i]);
+		memcpy(correction_start + i * sizeof(vole_block), &correction, sizeof(vole_block));
+	}
+	if (remainder)
+	{
+		vole_block correction = vole_block_xor(u[WITNESS_BLOCKS - 1], sk.witness[WITNESS_BLOCKS - 1]);
+		memcpy(correction_start + (WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction, remainder);
+	}
+
 	return true;
 }
 
