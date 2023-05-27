@@ -150,3 +150,8 @@ void vole_receiver(
 {
 	vole(true, k, keys, fixed_key, c, q, NULL, delta);
 }
+
+extern inline size_t vole_permute_key_index(size_t i);
+extern inline size_t vole_permute_key_index_inv(size_t i);
+extern inline size_t vole_permute_inv_increment(size_t i, size_t offset);
+extern inline void vole_fixed_key_init(prg_vole_fixed_key* fixed_key, block_secpar iv);

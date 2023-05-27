@@ -58,4 +58,12 @@ inline size_t vole_permute_inv_increment(size_t i, size_t offset)
 	return diff_out_odd > diff_out_even ? diff_out_odd : diff_out_even;
 }
 
+inline void vole_fixed_key_init(prg_vole_fixed_key* fixed_key, block_secpar iv)
+{
+	(void) fixed_key, (void) iv;
+#if defined(PRG_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(fixed_key, iv);
+#endif
+}
+
 #endif

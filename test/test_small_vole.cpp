@@ -37,8 +37,12 @@ TEST_CASE( "small vole", "[small vole]" ) {
         receiver_keys[i] = orig_keys[vole_permute_key_index(i) ^ delta];
     }
 
-    vole_sender(k, sender_keys.data(), NULL, u.data(), v.data(), c.data());
-    vole_receiver(k, receiver_keys.data(), NULL, c.data(), q.data(), delta_bytes.data());
+    block_secpar fixed_key_iv = rand<block_secpar>();
+	prg_vole_fixed_key fixed_key;
+    vole_fixed_key_init(&fixed_key, fixed_key_iv);
+
+    vole_sender(k, sender_keys.data(), &fixed_key, u.data(), v.data(), c.data());
+    vole_receiver(k, receiver_keys.data(), &fixed_key, c.data(), q.data(), delta_bytes.data());
 
     const auto u_vec = std::vector(reinterpret_cast<uint8_t*>(u.data()),
                                    reinterpret_cast<uint8_t*>(u.data() + VOLE_COL_BLOCKS));
