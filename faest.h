@@ -1,7 +1,13 @@
-#include "config.h"
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+#include "config.h"
+#include "quicksilver.h"
+#include "vole_check.h"
+#include "vole_params.h"
+#include "vector_com.h"
+#include "vole_commit.h"
 
 #if defined(OWF_AES_CTR)
 #define FAEST_IV_BYTES 16
@@ -17,7 +23,13 @@
 #define FAEST_PUBLIC_KEY_BYTES FAEST_SECRET_KEY_BYTES
 #endif
 
-#define FAEST_SIGNATURE_BYTES 0 /* TODO */
+#define FAEST_SIGNATURE_BYTES ( \
+	VOLE_COMMIT_SIZE + \
+	VOLE_CHECK_PROOF_BYTES + \
+	WITNESS_BITS / 8 + \
+	QUICKSILVER_PROOF_BYTES + \
+	VECTOR_OPEN_SIZE + \
+	SECURITY_PARAM / 8)
 
 // Random seed can be set to null for deterministic signatures.
 

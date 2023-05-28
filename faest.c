@@ -5,12 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "hash.h"
-#include "quicksilver.h"
 #include "owf_proof.h"
 #include "small_vole.h"
-#include "vector_com.h"
-#include "vole_commit.h"
-#include "vole_check.h"
 
 
 void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
