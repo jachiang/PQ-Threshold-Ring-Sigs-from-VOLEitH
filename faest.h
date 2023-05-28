@@ -1,4 +1,5 @@
 #include "config.h"
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -20,6 +21,9 @@
 
 // Random seed can be set to null for deterministic signatures.
 
-bool faest_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed);
-bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* sk_packed, const unsigned char* random_seed, size_t random_seed_len);
-bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* pk_packed);
+bool faest_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed);
+bool faest_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	const uint8_t* random_seed, size_t random_seed_len);
+bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  const uint8_t* pk_packed);

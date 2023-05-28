@@ -279,7 +279,7 @@ inline void poly192_store(void* d, poly192_vec s)
 	block256 a2b0b1b2 = _mm256_blend_epi32(a0b0b1b1, a2a2b2b2, 0xc3);
 
 	memcpy(p, &s.data[0], sizeof(block128));
-	memcpy(((unsigned char*) p) + sizeof(block128), &a2b0b1b2, sizoef(block256));
+	memcpy(((unsigned char*) p) + sizeof(block128), &a2b0b1b2, sizeof(block256));
 #endif
 }
 
@@ -326,6 +326,23 @@ inline void poly512_store(void* d, poly512_vec s)
 	out[2] = tmp;
 	memcpy(d, &out[0], sizeof(out));
 #endif
+}
+
+inline void poly128_store1(void* d, poly128_vec s)
+{
+	memcpy(d, &s, 16);
+}
+
+inline void poly192_store1(void* d, poly192_vec s)
+{
+	memcpy(d, &s.data[0], 16);
+	memcpy(((unsigned char*) d) + 16, &s.data[1], 8);
+}
+
+inline void poly256_store1(void* d, poly256_vec s)
+{
+	memcpy(d, &s.data[0], 16);
+	memcpy(((unsigned char*) d) + 16, &s.data[1], 16);
 }
 
 inline poly128_vec poly128_from_64(poly64_vec x)
@@ -636,6 +653,73 @@ inline poly256_vec poly1x256_mul(poly1_vec x, poly256_vec y)
 	poly256_vec out;
 	out.data[0] = clmul_block_and(mask, y.data[0]);
 	out.data[1] = clmul_block_and(mask, y.data[1]);
+	return out;
+}
+
+inline void poly_shift_left_1(clmul_block* x, size_t chunks)
+{
+	clmul_block low[4], high[4], high_shifted[4], out[4];
+	for (size_t i = 0; i < chunks; ++i)
+	{
+#if POLY_VEC_LEN == 1
+		low[i] = _mm_slli_epi32(x[i], 1);
+		high[i] = _mm_srli_epi32(x[i], 31);
+		high_shifted[i] =
+			i > 0 ? _mm_alignr_epi8(high[i], high[i - 1], 12) : _mm_slli_si128(high[i], 4);
+#elif POLY_VEC_LEN == 2
+		low[i] = _mm256_slli_epi32(x[i], 1);
+		high[i] = _mm256_srli_epi32(x[i], 31);
+		high_shifted[i] =
+			i > 0 ? _mm256_alignr_epi8(high[i], high[i - 1], 12) : _mm256_bslli_epi128(high[i], 4);
+#endif
+	}
+
+	for (size_t i = 0; i < chunks; ++i)
+		x[i] = clmul_block_xor(low[i], high_shifted[i]);
+}
+
+inline void poly_shift_left_8(clmul_block* out, const clmul_block* in, size_t chunks)
+{
+	for (size_t i = 0; i < chunks; ++i)
+#if POLY_VEC_LEN == 1
+		out[i] = i > 0 ? _mm_alignr_epi8(in[i], in[i - 1], 15) : _mm_slli_si128(in[i], 1);
+#elif POLY_VEC_LEN == 2
+		out[i] = i > 0 ? _mm256_alignr_epi8(in[i], in[i - 1], 15) : _mm256_bslli_epi128(in[i], 1);
+#endif
+}
+
+inline poly256_vec poly256_shift_left_1(poly256_vec x)
+{
+	poly_shift_left_1(&x.data[0], 2);
+	return x;
+}
+inline poly384_vec poly384_shift_left_1(poly384_vec x)
+{
+	poly_shift_left_1(&x.data[0], 3);
+	return x;
+}
+inline poly512_vec poly512_shift_left_1(poly512_vec x)
+{
+	poly_shift_left_1(&x.data[0], 4);
+	return x;
+}
+
+inline poly256_vec poly256_shift_left_8(poly256_vec x)
+{
+	poly256_vec out;
+	poly_shift_left_8(&out.data[0], &x.data[0], 2);
+	return out;
+}
+inline poly384_vec poly384_shift_left_8(poly384_vec x)
+{
+	poly384_vec out;
+	poly_shift_left_8(&out.data[0], &x.data[0], 3);
+	return out;
+}
+inline poly512_vec poly512_shift_left_8(poly512_vec x)
+{
+	poly512_vec out;
+	poly_shift_left_8(&out.data[0], &x.data[0], 4);
 	return out;
 }
 
@@ -977,6 +1061,26 @@ inline poly192_vec poly192_extract(poly192_vec x, size_t index)
 }
 
 inline poly256_vec poly256_extract(poly256_vec x, size_t index)
+{
+#if POLY_VEC_LEN == 1
+    (void) index;
+    return x;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
+inline poly384_vec poly384_extract(poly384_vec x, size_t index)
+{
+#if POLY_VEC_LEN == 1
+    (void) index;
+    return x;
+#elif POLY_VEC_LEN == 2
+#error "not implemented"
+#endif
+}
+
+inline poly512_vec poly512_extract(poly512_vec x, size_t index)
 {
 #if POLY_VEC_LEN == 1
     (void) index;

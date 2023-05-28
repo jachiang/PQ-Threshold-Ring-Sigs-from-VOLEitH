@@ -12,7 +12,7 @@
 #include "vole_check.h"
 
 
-void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
+void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 {
 	memcpy(&unpacked->pk.iv, packed, sizeof(unpacked->pk.iv));
 	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.iv), sizeof(unpacked->sk));
@@ -24,13 +24,13 @@ void unpack_secret_key(secret_key* unpacked, const unsigned char* packed)
 #endif
 }
 
-void pack_public_key(unsigned char* packed, const public_key* unpacked)
+void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
 {
 	memcpy(packed, &unpacked->iv, sizeof(unpacked->iv));
 	memcpy(packed + sizeof(unpacked->iv), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
 }
 
-void unpack_public_key(public_key* unpacked, const unsigned char* packed)
+void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 {
 	memcpy(&unpacked->iv, packed, sizeof(unpacked->iv));
 	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->iv), sizeof(unpacked->owf_output));
@@ -39,7 +39,7 @@ void unpack_public_key(public_key* unpacked, const unsigned char* packed)
 #endif
 }
 
-bool compute_witness(secret_key* sk)
+bool faest_compute_witness(secret_key* sk)
 {
 #if defined(OWF_AES_CTR)
 	owf_block key0_combined = sk->round_keys.keys[0];
@@ -79,26 +79,28 @@ bool compute_witness(secret_key* sk)
 	return true;
 }
 
-bool faest_unpack_sk_and_get_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed, secret_key* sk)
+bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {
-	unpack_secret_key(sk, sk_packed);
-	if (!compute_witness(sk))
+	faest_unpack_secret_key(sk, sk_packed);
+	if (!faest_compute_witness(sk))
 		return false;
 
-	pack_public_key(pk_packed, &sk->pk);
+	faest_pack_public_key(pk_packed, &sk->pk);
 	return true;
 }
 
-bool faest_pubkey(unsigned char* pk_packed, const unsigned char* sk_packed)
+bool faest_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed)
 {
 	secret_key sk;
 	return faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk);
 }
 
-bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* sk_packed, const unsigned char* random_seed, size_t random_seed_len)
+bool faest_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	const uint8_t* random_seed, size_t random_seed_len)
 {
 	secret_key sk;
-	unsigned char pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
 		return false;
 
@@ -196,7 +198,8 @@ bool faest_sign(unsigned char* signature, const unsigned char* msg, size_t msg_l
 	return true;
 }
 
-bool faest_verify(const unsigned char* signature, const unsigned char* msg, size_t msg_len, const unsigned char* pk_packed)
+bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  const uint8_t* pk_packed)
 {
 	// TODO
 }

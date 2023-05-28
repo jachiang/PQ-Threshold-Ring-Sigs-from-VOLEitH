@@ -71,6 +71,11 @@ inline void poly320_store(void* d, poly320_vec s);
 inline void poly384_store(void* d, poly384_vec s);
 inline void poly512_store(void* d, poly512_vec s);
 
+// Store just the one polynomial in index 0.
+inline void poly128_store1(void* d, poly128_vec s);
+inline void poly192_store1(void* d, poly192_vec s);
+inline void poly256_store1(void* d, poly256_vec s);
+
 // Convert a vector of small degree polynomials into a vector larger degree polynomials by setting
 // the higher coefficients to zero.
 inline poly128_vec poly128_from_64(poly64_vec x);
@@ -93,7 +98,7 @@ inline poly320_vec poly320_add(poly320_vec x, poly320_vec y);
 inline poly384_vec poly384_add(poly384_vec x, poly384_vec y);
 inline poly512_vec poly512_add(poly512_vec x, poly512_vec y);
 
-// Multiply two vectors of polynomials, x, componentwise.
+// Multiply two vectors of polynomials, x and y, componentwise.
 inline poly128_vec poly64_mul(poly64_vec x, poly64_vec y);
 inline poly256_vec poly128_mul(poly128_vec x, poly128_vec y);
 inline poly384_vec poly192_mul(poly192_vec x, poly192_vec y);
@@ -106,6 +111,14 @@ inline poly320_vec poly64x256_mul(poly64_vec x, poly256_vec y);
 inline poly128_vec poly1x128_mul(poly1_vec x, poly128_vec y);
 inline poly192_vec poly1x192_mul(poly1_vec x, poly192_vec y);
 inline poly256_vec poly1x256_mul(poly1_vec x, poly256_vec y);
+
+// polyn_shift_left_i: Multiply a polynomial by the polynomial a**i, modulo a**n.
+inline poly256_vec poly256_shift_left_1(poly256_vec x);
+inline poly384_vec poly384_shift_left_1(poly384_vec x);
+inline poly512_vec poly512_shift_left_1(poly512_vec x);
+inline poly256_vec poly256_shift_left_8(poly256_vec x);
+inline poly384_vec poly384_shift_left_8(poly384_vec x);
+inline poly512_vec poly512_shift_left_8(poly512_vec x);
 
 // Reduce modulo the modulus for GF(2**n).
 inline poly64_vec poly128_reduce64(poly128_vec x);
@@ -143,6 +156,8 @@ inline bool poly512_eq(poly512_vec x, poly512_vec y);
 inline poly128_vec poly128_extract(poly128_vec x, size_t index);
 inline poly192_vec poly192_extract(poly192_vec x, size_t index);
 inline poly256_vec poly256_extract(poly256_vec x, size_t index);
+inline poly384_vec poly384_extract(poly384_vec x, size_t index);
+inline poly512_vec poly512_extract(poly512_vec x, size_t index);
 
 #if SECURITY_PARAM == 128
 typedef poly128_vec poly_secpar_vec;
@@ -164,6 +179,10 @@ inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {
 	poly128_store(d, s);
+}
+inline void poly_secpar_store1(void* d, poly_secpar_vec s)
+{
+	poly128_store1(d, s);
 }
 inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
 {
@@ -189,6 +208,14 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x128_mul(x, y);
 }
+inline poly_2secpar_vec poly_2secpar_shift_left_1(poly_2secpar_vec x)
+{
+	return poly256_shift_left_1(x);
+}
+inline poly_2secpar_vec poly_2secpar_shift_left_8(poly_2secpar_vec x)
+{
+	return poly256_shift_left_8(x);
+}
 inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly256_reduce128(x);
@@ -208,6 +235,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly128_extract(x, index);
+}
+inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
+{
+    return poly256_extract(x, index);
 }
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
@@ -239,6 +270,10 @@ inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {
 	poly192_store(d, s);
 }
+inline void poly_secpar_store1(void* d, poly_secpar_vec s)
+{
+	poly192_store1(d, s);
+}
 inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
 {
 	return poly192_add(x, y);
@@ -263,6 +298,14 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x192_mul(x, y);
 }
+inline poly_2secpar_vec poly_2secpar_shift_left_1(poly_2secpar_vec x)
+{
+	return poly384_shift_left_1(x);
+}
+inline poly_2secpar_vec poly_2secpar_shift_left_8(poly_2secpar_vec x)
+{
+	return poly384_shift_left_8(x);
+}
 inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly384_reduce192(x);
@@ -282,6 +325,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly192_extract(x, index);
+}
+inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
+{
+    return poly384_extract(x, index);
 }
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
@@ -313,6 +360,10 @@ inline void poly_secpar_store(void* d, poly_secpar_vec s)
 {
 	poly256_store(d, s);
 }
+inline void poly_secpar_store1(void* d, poly_secpar_vec s)
+{
+	poly256_store1(d, s);
+}
 inline poly_secpar_vec poly_secpar_add(poly_secpar_vec x, poly_secpar_vec y)
 {
 	return poly256_add(x, y);
@@ -337,6 +388,14 @@ inline poly_secpar_plus_64_vec poly64xsecpar_mul(poly64_vec x, poly_secpar_vec y
 {
 	return poly64x256_mul(x, y);
 }
+inline poly_2secpar_vec poly_2secpar_shift_left_1(poly_2secpar_vec x)
+{
+	return poly512_shift_left_1(x);
+}
+inline poly_2secpar_vec poly_2secpar_shift_left_8(poly_2secpar_vec x)
+{
+	return poly512_shift_left_8(x);
+}
 inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x)
 {
 	return poly512_reduce256(x);
@@ -356,6 +415,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly256_extract(x, index);
+}
+inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
+{
+    return poly512_extract(x, index);
 }
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
