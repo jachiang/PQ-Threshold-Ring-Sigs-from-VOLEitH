@@ -59,7 +59,7 @@ define second
 $(word 2,$(subst $(comma), ,$(1)))
 endef
 
-# Format: name,security_param,owf,prg,tree_prg,leaf_prg,tau
+# Format: name,security_param,owf,owf_letter,prg,tree_prg,leaf_prg,tau
 settings = \
 	$(foreach security_param,$(security_params),\
 		$(foreach owf,$(ciphers),\
@@ -68,7 +68,7 @@ settings = \
 					$(foreach leaf_prg,$(leaf_prgs),\
 						$(foreach tau,$(taus_$(security_param)),\
 							$(if $(and $(findstring 192,$(security_param)),$(findstring RIJNDAEL,$(prg)$(tree_prg)$(leaf_prg))),,\
-								sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))$(call second,$(leaf_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(call first,$(leaf_prg)),$(tau)\
+								sec$(security_param)_$(call second,$(owf))$(call second,$(prg))$(call second,$(tree_prg))$(call second,$(leaf_prg))_$(tau),$(security_param),$(call first,$(owf)),$(call second,$(owf)),$(call first,$(prg)),$(call first,$(tree_prg)),$(call first,$(leaf_prg)),$(tau)\
 							)\
 						)\
 					)\
@@ -85,10 +85,11 @@ endef
 
 define config-recipe
 $(1)/% : %.in | $(1)/
-	$(let name security_param owf prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
+	$(let name security_param owf owf_letter prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
 	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),128),\
 	$(let sk_bytes,$(shell expr "(" $(security_param) "+" $(iv_bits) ")" "/" 8),\
 	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),48,$(sk_bytes)),\
+	$(let sig_bytes,$(shell python3 scripts/get_signature_size.py $(security_param) $(tau) $(owf_letter)),\
 	sed $(foreach substitution,\
 		"%VERSION%/$(name)"\
 		"%SECURITY_PARAM%/$(security_param)"\
@@ -98,10 +99,11 @@ $(1)/% : %.in | $(1)/
 		"%LEAF_PRG%/$(leaf_prg)"
 		"%TAU%/$(tau)"
 		"%SECRETKEYBYTES%/$(sk_bytes)"\
-		"%PUBLICKEYBYTES%/$(pk_bytes)",\
+		"%PUBLICKEYBYTES%/$(pk_bytes)"\
+		"%SIGBYTES%/$(sig_bytes)",\
 		-e "s/"$(substitution)"/g" \
 	) $$< > $$@ \
-	))))
+	)))))
 endef
 
 
@@ -110,7 +112,7 @@ endef
 # 	$(1): architecture (e.g. "ref", "avx2")
 # 	$(2): setting name (e.g. "sec128_cccc_10_avx2")
 # 	$(3): path (e.g. "Additional_Implementations/sec128_cccc_10_avx2")
-# 	$(4): setting (comma-separated list of the form name,security_param,owf,prg,tree_prg,leaf_prg,tau)
+# 	$(4): setting (comma-separated list of the form name,security_param,owf,owf_letter,prg,tree_prg,leaf_prg,tau)
 define full-recipe
 
 # $(1)_sources contains the shared and archtecture-specific source files
