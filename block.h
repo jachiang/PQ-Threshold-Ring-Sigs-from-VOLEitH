@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "config.h"
 
@@ -116,6 +117,10 @@ inline vole_block vole_block_set_low64(uint64_t x);
 inline block256 block256_set_128(block128 x0, block128 x1);
 inline block256 block256_set_low128(block128 x);
 
+inline bool block128_any_zeros(block128 x);
+inline bool block192_any_zeros(block192 x);
+inline bool block256_any_zeros(block256 x);
+
 #if SECURITY_PARAM == 128
 #define BLOCK_SECPAR_LEN_SHIFT 0
 #define BLOCK_2SECPAR_LEN 2
@@ -127,6 +132,7 @@ inline block_secpar block_secpar_set_all_8(uint8_t x) { return block128_set_all_
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block128_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block128_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block128_set_zero(); }
+inline bool block_secpar_any_zeros(block_secpar x) { return block128_any_zeros(x); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block256_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block256_and(x, y); }
 inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block256_set_all_8(x); }
@@ -143,6 +149,7 @@ inline block_secpar block_secpar_set_all_8(uint8_t x) { return block192_set_all_
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block192_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block192_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block192_set_zero(); }
+inline bool block_secpar_any_zeros(block_secpar x) { return block192_any_zeros(x); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block384_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block384_and(x, y); }
 inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block384_set_all_8(x); }
@@ -160,6 +167,7 @@ inline block_secpar block_secpar_set_all_8(uint8_t x) { return block256_set_all_
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block256_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block256_set_zero(); }
+inline bool block_secpar_any_zeros(block_secpar x) { return block256_any_zeros(x); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block512_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block512_and(x, y); }
 inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block512_set_all_8(x); }

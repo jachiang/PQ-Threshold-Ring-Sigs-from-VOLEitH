@@ -3,6 +3,7 @@
 
 #include <immintrin.h>
 #include <wmmintrin.h>
+#include <string.h>
 
 typedef __m128i block128;
 typedef __m256i block256;
@@ -129,6 +130,23 @@ inline block512 block512_set_low64(uint64_t x)
 	block512 out;
 	out.data[0] = block256_set_low64(x);
 	return out;
+}
+
+inline bool block128_any_zeros(block128 x)
+{
+	return _mm_movemask_epi8(_mm_cmpeq_epi8(x, _mm_setzero_si128()));
+}
+
+inline bool block256_any_zeros(block256 x)
+{
+	return _mm256_movemask_epi8(_mm256_cmpeq_epi8(x, _mm256_setzero_si256()));
+}
+
+inline bool block192_any_zeros(block192 x)
+{
+	block256 b = block256_set_zero();
+	memcpy(&b, &x, sizeof(x));
+	return _mm256_movemask_epi8(_mm256_cmpeq_epi8(b, _mm256_setzero_si256())) & 0x00fffffff;
 }
 
 #define VOLE_BLOCK_SHIFT 1

@@ -48,14 +48,48 @@ bool faest_compute_witness(secret_key* sk)
 	owf_block key0_combined = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 #endif
 
+	uint8_t* w_ptr = (uint8_t*) &sk->witness;
+
+#if defined(OWF_AES_CTR)
+	// Extract witness for key schedule.
+	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
+	w_ptr += sizeof(sk->sk);
+
+	uint32_t prev_word;
+	memcpy(&prev_word, w_ptr - 4, 4);
+
+	for (size_t i = SECURITY_PARAM / 8; i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1);
+	     i += OWF_KEY_SCHEDULE_PERIOD, w_ptr += 4)
+	{
+		uint32_t word;
+		memcpy(&word, ((uint8_t*) &sk->round_keys.keys[0]) + i, 4);
+		memcpy(w_ptr, &word, 4);
+
+		uint32_t sbox_output = word ^ prev_word;
+		if (SECURITY_PARAM != 256 || i % (SECURITY_PARAM / 8) == 0)
+			sbox_output ^= aes_round_constants[i / (SECURITY_PARAM / 8)];
+
+		// https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
+		sbox_output ^= 0x63636363; // AES SBox maps 0 to 0x63.
+		if ((sbox_output - 0x01010101) & ~sbox_output & 0x80808080)
+			return false;
+
+		prev_word = word;
+	}
+#endif
+
 	for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
 		sk->pk.owf_output[i] = owf_block_xor(owf_block_set_low32(i), key0_combined);
 
 	// TODO: pack witness into sk->witness.
-	for (unsigned int round = 1; round <= AES_ROUNDS; ++round)
+	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round, w_ptr += sizeof(owf_block))
 	{
 		for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
 		{
+			// The block is about to go into the SBox, so check for zeros.
+			if (owf_block_any_zeros(sk->pk.owf_output[i]))
+				return false;
+
 			owf_block after_sbox;
 #if defined(OWF_AES_CTR)
 			aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
@@ -68,6 +102,9 @@ bool faest_compute_witness(secret_key* sk)
 			rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 #endif
 #endif
+
+			if (round < OWF_ROUNDS)
+				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
 		}
 	}
 
@@ -76,7 +113,6 @@ bool faest_compute_witness(secret_key* sk)
 		sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 #endif
 
-	// TODO: Use the witness to check if this is a valid key.
 	return true;
 }
 
