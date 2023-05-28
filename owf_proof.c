@@ -65,7 +65,7 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
         }
 
         quicksilver_vec_gf2 inv_out[8];
-        inv_out[0] = quicksilver_add_gf2(state, sbox_out[5], quicksilver_add_gf2(state, sbox_out[3],
+        inv_out[0] = quicksilver_add_gf2(state, sbox_out[5], quicksilver_add_gf2(state, sbox_out[2],
                     quicksilver_add_gf2(state, sbox_out[0], qs_one)));
         inv_out[1] = quicksilver_add_gf2(state, sbox_out[7], quicksilver_add_gf2(state, sbox_out[4], sbox_out[1]));
         inv_out[2] = quicksilver_add_gf2(state, sbox_out[6], quicksilver_add_gf2(state, sbox_out[3],
