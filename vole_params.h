@@ -3,6 +3,8 @@
 
 #include "block.h"
 #include "prgs.h"
+#include "owf_proof.h"
+#include "vole_check.h"
 
 // The homomorphic commitments use small field VOLE with a mix of two values of k: VOLE_MIN_K and
 // VOLE_MAX_K. k is the number of bits of Delta input to a single VOLE.
@@ -13,12 +15,10 @@
 #define VOLES_MIN_K (BITS_PER_WITNESS - VOLES_MAX_K)
 #define VOLES_MAX_K (SECURITY_PARAM % BITS_PER_WITNESS)
 
-#define WITNESS_BITS 1472 // TODO
-#define WITNESS_BLOCKS ((WITNESS_BITS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK))
 static_assert(WITNESS_BITS % 8 == 0);
+#define WITNESS_BLOCKS ((WITNESS_BITS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK))
 
-#define VOLE_ROWS 1600 // TODO
-static_assert(VOLE_ROWS % 8 == 0);
+#define VOLE_ROWS (WITNESS_BITS + VOLE_CHECK_HASH_BYTES * 8 + SECURITY_PARAM)
 
 #define VOLE_COL_BLOCKS ((VOLE_ROWS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK))
 #define VOLE_COL_STRIDE (VOLE_COL_BLOCKS * 16 * VOLE_BLOCK)
