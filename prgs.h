@@ -2,6 +2,7 @@
 #define PRGS_H
 
 #include "aes.h"
+#include "hash.h"
 
 #define DEFINE_PRG_AES_CTR(name) \
 	typedef aes_round_keys prg_##name##_key; \
@@ -14,24 +15,16 @@
 		const block_secpar* restrict keys, const prg_##name##_iv* restrict ivs, \
 		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
 	{ \
-        (void) fixed_key; \
+		(void) fixed_key; \
 		aes_keygen_ctr(prgs, keys, ivs, num_keys, num_blocks, counter, output); \
 	} \
 	inline void prg_##name##_gen( \
 		const prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
 		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
 	{ \
-        (void) fixed_key; \
+		(void) fixed_key; \
 		aes_ctr(prgs, num_keys, num_blocks, counter, output); \
 	}
-#define EXTERN_DEFINE_PRG_AES_CTR(name) \
-	extern inline void prg_##name##_init( \
-		prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
-		const block_secpar* restrict keys, const prg_##name##_iv* restrict ivs, \
-		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output); \
-	extern inline void prg_##name##_gen( \
-		const prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
-		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output);
 
 #define DEFINE_PRG_RIJNDAEL_FIXED_KEY_CTR(name) \
 	typedef block_secpar prg_##name##_key; \
@@ -54,14 +47,31 @@
 	{ \
 		rijndael_fixed_key_ctr(fixed_key, prgs, num_keys, num_blocks, counter, output); \
 	}
-#define EXTERN_DEFINE_PRG_RIJNDAEL_FIXED_KEY_CTR(name) \
-	extern inline void prg_##name##_init( \
+
+#define DEFINE_PRG_SHAKE(name) \
+	typedef char prg_##name##_key; /* Unused. */ \
+	typedef char prg_##name##_iv; /* Unused. */ \
+	typedef block_secpar prg_##name##_block; \
+	typedef char prg_##name##_fixed_key; /* Unused. */ \
+	inline void prg_##name##_init( \
 		prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
 		const block_secpar* restrict keys, const prg_##name##_iv* restrict ivs, \
-		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output); \
-	extern inline void prg_##name##_gen( \
+		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
+	{ \
+		(void) prgs; \
+		(void) fixed_key; \
+		(void) ivs; \
+		assert(counter == 0); \
+		shake_prg(keys, num_keys, num_blocks * sizeof(block_secpar), (uint8_t*) output); \
+	} \
+	inline void prg_##name##_gen( \
 		const prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
-		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output);
+		size_t num_keys, uint32_t num_blocks, uint32_t counter, prg_##name##_block* restrict output) \
+	{ \
+		/* This PRG is only used to generate leafs of size 3*secpar, which */ \
+		/* should be small enough * that it's handled by just prg_init. */ \
+		assert(0); \
+	}
 
 #if defined(PRG_AES_CTR)
 #define PRG_VOLE_PREFERRED_WIDTH AES_PREFERRED_WIDTH
@@ -91,6 +101,10 @@ DEFINE_PRG_AES_CTR(leaf)
 #define PRG_LEAF_PREFERRED_WIDTH FIXED_KEY_PREFERRED_WIDTH
 #define PRG_LEAF_PREFERRED_WIDTH_SHIFT FIXED_KEY_PREFERRED_WIDTH_SHIFT
 DEFINE_PRG_RIJNDAEL_FIXED_KEY_CTR(leaf)
+#elif defined(LEAF_PRG_SHAKE)
+#define PRG_LEAF_PREFERRED_WIDTH (1 << PRG_LEAF_PREFERRED_WIDTH_SHIFT)
+#define PRG_LEAF_PREFERRED_WIDTH_SHIFT 3
+DEFINE_PRG_SHAKE(leaf)
 #endif
 
 #undef DEFINE_PRG_AES_CTR

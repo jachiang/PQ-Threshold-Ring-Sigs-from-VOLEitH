@@ -13,3 +13,5 @@ extern inline void hash_init_prefix_x4(hash_state_x4* ctx, const uint8_t prefix)
 extern inline void hash_final_x4(hash_state_x4* ctx, void** buffer, size_t buflen);
 extern inline void hash_final_x4_4(
 	hash_state_x4* ctx, void* buffer0, void* buffer1, void* buffer2, void* buffer3, size_t buflen);
+extern inline void shake_prg(
+	const block_secpar* restrict keys, size_t num_keys, size_t num_bytes, uint8_t* restrict output);

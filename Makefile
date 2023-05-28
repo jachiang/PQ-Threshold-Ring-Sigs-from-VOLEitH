@@ -48,8 +48,7 @@ taus_256 = 20 32 64
 # Format: long name (for macro definition), single letter name.
 ciphers = AES_CTR,c RIJNDAEL_EVEN_MANSOUR,e
 tree_prgs = $(ciphers)
-leaf_prgs = $(ciphers)
-# TODO: Add back RO,s
+leaf_prgs = $(ciphers) SHAKE,s
 
 comma=,
 define first
