@@ -12,7 +12,7 @@ typedef struct
 	hasher_gf64_key key_64;
 } vole_check_challenge;
 
-static vole_check_load_challenge load_challenge(const unsigned char* in)
+static vole_check_load_challenge load_challenge(const uint8_t* in)
 {
 	vole_check_load_challenge out;
 	for (size_t i = 0; i < 4; ++i, in += SECURITY_PARAM / 8)
@@ -25,13 +25,13 @@ static vole_check_load_challenge load_challenge(const unsigned char* in)
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,
-	const unsigned char* restrict challenge, unsigned char* restrict response)
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check)
 {
 	vole_check_challenge chal = load_challenge(challenge);
 
-	for (size_t col = 0; col <= SECURITY_PARAM; ++col)
+	for (int col = -1; col < SECURITY_PARAM; ++col)
 	{
-		const vole_block* to_hash = col == 0 ? u : &v[VOLE_COL_BLOCKS * (col - 1)];
+		const vole_block* to_hash = col == -1 ? u : &v[VOLE_COL_BLOCKS * col];
 
 		hasher_gfsecpar_state state_secpar;
 		hasher_gf64_state state_64;
@@ -44,9 +44,9 @@ void vole_check_sender(
 		// TODO: Maybe better to chunk the loop by HASHER_GFSECPAR_KEY_POWS.
 		for (size_t i = 0; i + sizeof(block_secpar) < VOLE_COL_STRIDE; i += POLY_VEC_LEN * sizeof(block_secpar))
 		{
-			hasher_gfsecpar_update(&chal.key_secpar, &state_secpar, poly_secpar_load(((unsigned char*) to_hash) + i));
+			hasher_gfsecpar_update(&chal.key_secpar, &state_secpar, poly_secpar_load(((uint8_t*) to_hash) + i));
 			for (size_t j = 0; j < POLY_VEC_LEN * sizeof(block_secpar); j += POLY_VEC_LEN * 8)
-				hasher_gf64_update(&chal.key_64, &state_64, poly64_load(((unsigned char*) to_hash) + i + j));
+				hasher_gf64_update(&chal.key_64, &state_64, poly64_load(((uint8_t*) to_hash) + i + j));
 		}
 
 		// TODO: Handle last, partial block, if it could be present.
@@ -68,11 +68,12 @@ void vole_check_sender(
 		poly_secpar_store(, mapped_hashes[0]);
 	}
 }
+
 #else
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,
-	const unsigned char* restrict challenge, unsigned char* restrict response)
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check)
 {
 }
 

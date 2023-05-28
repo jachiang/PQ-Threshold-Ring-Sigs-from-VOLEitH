@@ -130,36 +130,40 @@ bool faest_sign(
 		aligned_alloc(alignof(vole_block), VOLE_COL_BLOCKS * sizeof(vole_block));
 	vole_block* v =
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
-	size_t vole_commit_size = vole_commit(seed, forest, hashed_leaves, u, v, signature);
+	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
+
+	vole_commit(seed, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
-	hash_update(&hasher, signature, vole_commit_size);
+	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
+	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	uint8_t* vole_check_start = signature + vole_commit_size;
-	vole_check_sender(u, v, chal1, vole_check_start);
+	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
 
-	uint8_t* correction_start = vole_check_start + VOLE_CHECK_HASH_BYTES;
+	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
 	for (size_t i = 0; i < WITNESS_BLOCKS - (remainder != 0); ++i)
 	{
-		vole_block correction = vole_block_xor(u[i], sk.witness[i]);
-		memcpy(correction_start + i * sizeof(vole_block), &correction, sizeof(vole_block));
+		vole_block correction_i = vole_block_xor(u[i], sk.witness[i]);
+		memcpy(correction + i * sizeof(vole_block), &correction_i, sizeof(vole_block));
 	}
 	if (remainder)
 	{
-		vole_block correction = vole_block_xor(u[WITNESS_BLOCKS - 1], sk.witness[WITNESS_BLOCKS - 1]);
-		memcpy(correction_start + (WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction, remainder);
+		vole_block correction_i = vole_block_xor(u[WITNESS_BLOCKS - 1], sk.witness[WITNESS_BLOCKS - 1]);
+		memcpy(correction + (WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction_i, remainder);
 	}
-
-	uint8_t* qs_proof_start = correction_start + WITNESS_BITS / 8;
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, &chal1, sizeof(chal1));
-	hash_update(&hasher, vole_check_start, qs_proof_start - vole_check_start);
+	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+	hash_update(&hasher, correction, WITNESS_BITS / 8);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	block_secpar* macs =
@@ -173,22 +177,25 @@ bool faest_sign(
 	quicksilver_state qs;
 	quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
 	owf_constraints_prover(&qs);
-	quicksilver_prove(&qs, WITNESS_BITS, qs_proof_start);
+
+	uint8_t* qs_proof = correction + WITNESS_BITS / 8;
+	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
+	quicksilver_prove(&qs, WITNESS_BITS, qs_proof, qs_check);
 	free(macs);
 	free(u);
-
-	uint8_t* veccom_open_start = qs_proof_start + QUICKSILVER_PROOF_BYTES;
 
 	uint8_t delta[SECURITY_PARAM / 8];
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
-	hash_update(&hasher, qs_proof_start, veccom_open_start - qs_proof_start);
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
+	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_final(&hasher, &delta, sizeof(delta));
 
 	uint8_t delta_bytes[SECURITY_PARAM];
 	for (size_t i = 0; i < SECURITY_PARAM; ++i)
 		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
 
+	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
 	vector_open(forest, hashed_leaves, delta_bytes, veccom_open_start);
 	free(forest);
 	free(hashed_leaves);

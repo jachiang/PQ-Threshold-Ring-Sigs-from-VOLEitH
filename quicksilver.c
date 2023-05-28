@@ -3,10 +3,52 @@
 // TODO: Some things are unvectorized here.
 static_assert(POLY_VEC_LEN == 1);
 
-static block_secpar compute_universal_hash(
+static void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge)
+{
+	for (size_t i = 0; i < 2; ++i, challenge += SECURITY_PARAM / 8)
+		state->hash_combination[i] = poly_secpar_load_dup(challenge);
+	poly_secpar_vec hash_key_secpar = poly_secpar_load_dup(challenge);
+	poly64_vec hash_key_64 = poly64_load_dup(challenge + SECURITY_PARAM / 8);
+
+	hasher_gfsecpar_init_key(&state->key_secpar, hash_key_secpar);
+	hasher_gfsecpar_64_init_key(&state->key_64, hash_key_64);
+}
+
+void quicksilver_init_prover(
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
+	size_t num_constraints, const uint8_t* challenge)
+{
+	state->verifier = false;
+
+	quicksilver_init_hash_keys(state, challenge);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
+
+	state->witness = witness;
+	state->macs = macs;
+}
+
+void quicksilver_init_verifier(
+	quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
+	block_secpar delta, const uint8_t* challenge)
+{
+	state->verifier = true;
+	state->delta = poly_secpar_load_dup(&delta);
+	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
+
+	quicksilver_init_hash_keys(state, challenge);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+
+	state->macs = macs;
+}
+
+static void quicksilver_final(
 	const quicksilver_state* state,
 	const hasher_gfsecpar_state* state_secpar, const hasher_gfsecpar_64_state* state_64,
-	poly_2secpar_vec mask)
+	poly_2secpar_vec mask, uint8_t* output)
 {
 	poly_secpar_vec hashes[2];
 	hashes[0] = hasher_gfsecpar_final(state_secpar);
@@ -16,9 +58,7 @@ static block_secpar compute_universal_hash(
 	for (size_t i = 0; i < 2; ++i)
 		sum = poly_2secpar_add(sum, poly_secpar_mul(state->hash_combination[i], hashes[i]));
 
-	block_secpar output;
-	poly_secpar_store1(&output, poly_2secpar_reduce_secpar(sum));
-	return output;
+	poly_secpar_store1(output, poly_2secpar_reduce_secpar(sum));
 }
 
 // Output in vector index 0.
@@ -57,7 +97,8 @@ static poly_2secpar_vec combine_mask_macs(const quicksilver_state* state, size_t
 	return total;
 }
 
-void quicksilver_prove(const quicksilver_state* state, size_t witness_bits, uint8_t* proof)
+void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
+                       uint8_t* restrict proof, uint8_t* restrict check)
 {
 	assert(!state->verifier);
 	assert(witness_bits % 8 == 0);
@@ -66,37 +107,23 @@ void quicksilver_prove(const quicksilver_state* state, size_t witness_bits, uint
 		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
-	block_secpar check_const = compute_universal_hash(
-		state, &state->state_secpar_const, &state->state_64_const, mac_mask);
-	block_secpar check_linear = compute_universal_hash(
-		state, &state->state_secpar_linear, &state->state_64_linear, value_mask);
-
-	// TODO
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
+	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof);
 }
 
-bool quicksilver_verify(const quicksilver_state* state, size_t witness_bits, const uint8_t* proof)
+void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
+                        const uint8_t* restrict proof, uint8_t* restrict check)
 {
 	assert(state->verifier);
 
-	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
-	block_secpar check_const = compute_universal_hash(
-		state, &state->state_secpar_const, &state->state_64_const, mac_mask);
+	poly_secpar_vec linear_term = poly_secpar_load_dup(proof);
 
-	// TODO
-	return true;
+	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 }
 
-extern inline void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge);
-extern inline void quicksilver_init_prover(
-    quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
-    size_t num_constraints, const uint8_t* challenge);
-extern inline void quicksilver_init_verifier(
-    quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
-    block_secpar delta, const uint8_t* challenge);
 extern inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* state, size_t index);
-extern inline void quicksilver_final(const quicksilver_state* state, bool verifier,
-        poly_secpar_vec* hash_const_secpar, poly_secpar_vec* hash_linear_secpar,
-        poly_secpar_vec* hash_const_64, poly_secpar_vec* hash_linear_64);
 extern inline poly_secpar_vec quicksilver_get_delta(const quicksilver_state* state);
 extern inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y);
 extern inline quicksilver_vec_gfsecpar quicksilver_add_gfsecpar(const quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);

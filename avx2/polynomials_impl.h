@@ -658,7 +658,7 @@ inline poly256_vec poly1x256_mul(poly1_vec x, poly256_vec y)
 
 inline void poly_shift_left_1(clmul_block* x, size_t chunks)
 {
-	clmul_block low[4], high[4], high_shifted[4], out[4];
+	clmul_block low[4], high[4], high_shifted[4];
 	for (size_t i = 0; i < chunks; ++i)
 	{
 #if POLY_VEC_LEN == 1
@@ -720,6 +720,29 @@ inline poly512_vec poly512_shift_left_8(poly512_vec x)
 {
 	poly512_vec out;
 	poly_shift_left_8(&out.data[0], &x.data[0], 4);
+	return out;
+}
+
+inline poly64_vec poly64_set_zero()
+{
+	return clmul_block_set_zero();
+}
+inline poly128_vec poly128_set_zero()
+{
+	return clmul_block_set_zero();
+}
+inline poly192_vec poly192_set_zero()
+{
+	poly192_vec out;
+	out.data[0] = poly128_set_zero();
+	out.data[1] = poly128_set_zero();
+	return out;
+}
+inline poly256_vec poly256_set_zero()
+{
+	poly256_vec out;
+	out.data[0] = poly128_set_zero();
+	out.data[1] = poly128_set_zero();
 	return out;
 }
 

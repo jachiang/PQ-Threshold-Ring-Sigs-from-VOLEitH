@@ -11,7 +11,9 @@
 #include <vector>
 
 extern "C" {
+#define restrict __restrict__
 #include "polynomials.h"
+#include "quicksilver.h"
 }
 
 inline std::string poly_vec_to_string(const uint8_t* buf, size_t poly_size) {
@@ -173,5 +175,57 @@ inline std::vector<T> random_vector(std::size_t size) {
     std::generate(v.begin(), v.end(), rand<T>);
     return v;
 }
+
+std::pair<std::vector<block_secpar>, std::vector<block_secpar>>
+inline gen_vole_correlation(size_t n, const uint8_t* witness, block_secpar delta) {
+    const auto keys = random_vector<block_secpar>(n);
+    auto tags = keys;
+    for (size_t i = 0; i < n; ++i) {
+        if ((witness[i / 8] >> (i % 8)) & 1) {
+            tags[i] = block_secpar_xor(tags[i], delta);
+        }
+    }
+    return std::make_pair(keys, tags);
+}
+
+struct quicksilver_test_state
+{
+    quicksilver_state prover_state;
+    quicksilver_state verifier_state;
+    std::vector<uint8_t> witness;
+    std::vector<block_secpar> tags;
+    std::vector<block_secpar> keys;
+
+    quicksilver_test_state(size_t num_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta) :
+        witness(witness_in, witness_in + witness_bits / 8)
+    {
+        auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
+        witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
+
+        auto correlation = gen_vole_correlation(witness_bits + SECURITY_PARAM, witness.data(), delta);
+        keys = std::move(correlation.first);
+        tags = std::move(correlation.second);
+
+        std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
+        std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
+        quicksilver_init_prover(&prover_state, witness.data(), tags.data(),
+                                num_constraints, challenge.data());
+        quicksilver_init_verifier(&verifier_state, keys.data(),
+                                  num_constraints, delta, challenge.data());
+    }
+
+    std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
+    compute_check() const
+    {
+        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof;
+        std::array<uint8_t, QUICKSILVER_CHECK_BYTES> check_prover, check_verifier;
+
+        size_t witness_bits = 8 * witness.size() - SECURITY_PARAM;
+        quicksilver_prove(&prover_state, witness_bits, proof.data(), check_prover.data());
+        quicksilver_verify(&verifier_state, witness_bits, proof.data(), check_verifier.data());
+
+        return {check_prover, check_verifier};
+    }
+};
 
 #endif

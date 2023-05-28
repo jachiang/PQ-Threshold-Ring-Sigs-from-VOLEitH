@@ -30,6 +30,15 @@ inline block192 block192_and(block192 x, block192 y)
 	return out;
 }
 
+inline block192 block192_set_all_8(uint8_t x)
+{
+	uint64_t x64 = x;
+	x64 *= UINT64_MAX / 0xff;
+
+	block192 out = {{x64, x64, x64}};
+	return out;
+}
+
 inline block192 block192_set_low64(uint64_t x)
 {
 	block192 out = {{x, 0, 0}};
@@ -81,6 +90,11 @@ inline block384 block384_and(block384 x, block384 y);
 inline block512 block512_and(block512 x, block512 y);
 inline vole_block vole_block_and(vole_block x, vole_block y);
 
+inline block128 block128_set_zero();
+inline block256 block256_set_zero();
+inline block384 block384_set_zero();
+inline block512 block512_set_zero();
+
 inline block128 block128_set_all_8(uint8_t x);
 inline block256 block256_set_all_8(uint8_t x);
 inline block384 block384_set_all_8(uint8_t x);
@@ -109,26 +123,32 @@ typedef block128 block_secpar;
 typedef block256 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block128_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block128_and(x, y); }
+inline block_secpar block_secpar_set_all_8(uint8_t x) { return block128_set_all_8(x); }
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block128_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block128_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block128_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block256_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block256_and(x, y); }
+inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block256_set_all_8(x); }
 inline block_2secpar block_2secpar_set_low32(uint32_t x) { return block256_set_low32(x); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
+inline block_2secpar block_2secpar_set_zero() { return block256_set_zero(); }
 #elif SECURITY_PARAM == 192
 #define BLOCK_2SECPAR_LEN 3
 typedef block192 block_secpar;
 typedef block384 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block192_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block192_and(x, y); }
+inline block_secpar block_secpar_set_all_8(uint8_t x) { return block192_set_all_8(x); }
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block192_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block192_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block192_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block384_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block384_and(x, y); }
+inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block384_set_all_8(x); }
 inline block_2secpar block_2secpar_set_low32(uint32_t x) { return block384_set_low32(x); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block384_set_low64(x); }
+inline block_2secpar block_2secpar_set_zero() { return block384_set_zero(); }
 #elif SECURITY_PARAM == 256
 #define BLOCK_SECPAR_LEN_SHIFT 1
 #define BLOCK_2SECPAR_LEN 4
@@ -136,13 +156,16 @@ typedef block256 block_secpar;
 typedef block512 block_2secpar;
 inline block_secpar block_secpar_xor(block_secpar x, block_secpar y) { return block256_xor(x, y); }
 inline block_secpar block_secpar_and(block_secpar x, block_secpar y) { return block256_and(x, y); }
+inline block_secpar block_secpar_set_all_8(uint8_t x) { return block256_set_all_8(x); }
 inline block_secpar block_secpar_set_low32(uint32_t x) { return block256_set_low32(x); }
 inline block_secpar block_secpar_set_low64(uint64_t x) { return block256_set_low64(x); }
 inline block_secpar block_secpar_set_zero() { return block256_set_zero(); }
 inline block_2secpar block_2secpar_xor(block_2secpar x, block_2secpar y) { return block512_xor(x, y); }
 inline block_2secpar block_2secpar_and(block_2secpar x, block_2secpar y) { return block512_and(x, y); }
+inline block_2secpar block_2secpar_set_all_8(uint8_t x) { return block512_set_all_8(x); }
 inline block_2secpar block_2secpar_set_low32(uint32_t x) { return block512_set_low32(x); }
 inline block_2secpar block_2secpar_set_low64(uint64_t x) { return block512_set_low64(x); }
+inline block_2secpar block_2secpar_set_zero() { return block512_set_zero(); }
 #endif
 
 // Number of block128s in a block_secpar, assuming that this is a whole number.

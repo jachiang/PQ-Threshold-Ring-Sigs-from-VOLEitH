@@ -74,6 +74,22 @@ inline block512 block512_and(block512 x, block512 y)
 	return out;
 }
 
+inline block384 block384_set_zero()
+{
+	block384 out;
+	out.data[0] = block128_set_zero();
+	out.data[1] = block128_set_zero();
+	out.data[2] = block128_set_zero();
+	return out;
+}
+inline block512 block512_set_zero()
+{
+	block512 out;
+	out.data[0] = block256_set_zero();
+	out.data[1] = block256_set_zero();
+	return out;
+}
+
 inline block384 block384_set_all_8(uint8_t x)
 {
 	block384 out;

@@ -53,6 +53,12 @@ inline poly128_vec poly128_load_dup(const void* s);
 inline poly192_vec poly192_load_dup(const void* s);
 inline poly256_vec poly256_load_dup(const void* s);
 
+// Return the 0 polynomial.
+inline poly64_vec poly64_set_zero();
+inline poly128_vec poly128_set_zero();
+inline poly192_vec poly192_set_zero();
+inline poly256_vec poly256_set_zero();
+
 // Set the low 32 bits in all components.
 inline poly64_vec poly64_set_low32(uint32_t x);
 inline poly128_vec poly128_set_low32(uint32_t x);
@@ -172,6 +178,10 @@ inline poly_secpar_vec poly_secpar_load_dup(const void* s)
 {
 	return poly128_load_dup(s);
 }
+inline poly_secpar_vec poly_secpar_set_zero()
+{
+	return poly128_set_zero();
+}
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {
 	return poly128_set_low32(x);
@@ -262,6 +272,10 @@ inline poly_secpar_vec poly_secpar_load_dup(const void* s)
 {
 	return poly192_load_dup(s);
 }
+inline poly_secpar_vec poly_secpar_set_zero()
+{
+	return poly192_set_zero();
+}
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {
 	return poly192_set_low32(x);
@@ -351,6 +365,10 @@ inline poly_secpar_vec poly_secpar_load(const void* s)
 inline poly_secpar_vec poly_secpar_load_dup(const void* s)
 {
 	return poly256_load_dup(s);
+}
+inline poly_secpar_vec poly_secpar_set_zero()
+{
+	return poly256_set_zero();
 }
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {

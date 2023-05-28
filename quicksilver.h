@@ -5,7 +5,8 @@
 #include "universal_hash.h"
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
-#define QUICKSILVER_PROOF_BYTES (2 * SECURITY_PARAM / 8)
+#define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)
+#define QUICKSILVER_CHECK_BYTES (SECURITY_PARAM / 8)
 
 typedef struct
 {
@@ -39,50 +40,16 @@ typedef struct
 	const block_secpar* macs;
 } quicksilver_state;
 
-inline void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge)
-{
-	for (size_t i = 0; i < 2; ++i, challenge += SECURITY_PARAM / 8)
-		state->hash_combination[i] = poly_secpar_load_dup(challenge);
-	poly_secpar_vec hash_key_secpar = poly_secpar_load_dup(challenge);
-	poly64_vec hash_key_64 = poly64_load_dup(challenge + SECURITY_PARAM / 8);
-
-	hasher_gfsecpar_init_key(&state->key_secpar, hash_key_secpar);
-	hasher_gfsecpar_64_init_key(&state->key_64, hash_key_64);
-}
-
 // Initialize a prover's quicksilver_state. challenge must have length QUICKSILVER_CHALLENGE_BYTES.
-inline void quicksilver_init_prover(
+void quicksilver_init_prover(
 	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
-	size_t num_constraints, const uint8_t* challenge)
-{
-	state->verifier = false;
-
-	quicksilver_init_hash_keys(state, challenge);
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
-	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_constraints);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
-	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_constraints);
-
-	state->witness = witness;
-	state->macs = macs;
-}
+	size_t num_constraints, const uint8_t* challenge);
 
 // Initialize a verifier's quicksilver_state. challenge must have length
 // QUICKSILVER_CHALLENGE_BYTES.
-inline void quicksilver_init_verifier(
+void quicksilver_init_verifier(
 	quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
-	block_secpar delta, const uint8_t* challenge)
-{
-	state->verifier = true;
-	state->delta = poly_secpar_load_dup(&delta);
-	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
-
-	quicksilver_init_hash_keys(state, challenge);
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
-
-	state->macs = macs;
-}
+	block_secpar delta, const uint8_t* challenge);
 
 inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* state, size_t index)
 {
@@ -91,17 +58,6 @@ inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* 
 		out.value = poly1_load(&state->witness[index / 8], index % 8);
 	out.mac = poly_secpar_load(&state->macs[index]);
 	return out;
-}
-
-inline void quicksilver_final(const quicksilver_state* state, bool verifier,
-        poly_secpar_vec* hash_const_secpar, poly_secpar_vec* hash_linear_secpar,
-        poly_secpar_vec* hash_const_64, poly_secpar_vec* hash_linear_64) {
-    *hash_const_64 = hasher_gfsecpar_64_final(&state->state_64_const);
-    *hash_const_secpar = hasher_gfsecpar_final(&state->state_secpar_const);
-    if (!verifier) {
-        *hash_linear_64 = hasher_gfsecpar_64_final(&state->state_64_linear);
-        *hash_linear_secpar = hasher_gfsecpar_final(&state->state_secpar_linear);
-    }
 }
 
 inline poly_secpar_vec quicksilver_get_delta(const quicksilver_state* state) {
@@ -131,15 +87,15 @@ inline quicksilver_vec_gf2 quicksilver_zero_gf2()
 {
 	quicksilver_vec_gf2 out;
 	out.value = 0;
-	out.mac = poly_secpar_set_low32(0);
+	out.mac = poly_secpar_set_zero();
 	return out;
 }
 
 inline quicksilver_vec_gfsecpar quicksilver_zero_gfsecpar()
 {
 	quicksilver_vec_gfsecpar out;
-	out.value = poly_secpar_set_low32(0);
-	out.mac = poly_secpar_set_low32(0);
+	out.value = poly_secpar_set_zero();
+	out.mac = poly_secpar_set_zero();
 	return out;
 }
 
@@ -150,7 +106,7 @@ inline quicksilver_vec_gf2 quicksilver_one_gf2(const quicksilver_state* state)
 		out.mac = state->delta;
 	else
 	{
-		out.mac = poly_secpar_set_low32(0);
+		out.mac = poly_secpar_set_zero();
 		out.value = poly1_set_all(0xff);
 	}
 	return out;
@@ -163,7 +119,7 @@ inline quicksilver_vec_gfsecpar quicksilver_one_gfsecpar(const quicksilver_state
 		out.mac = state->delta;
 	else
 	{
-		out.mac = poly_secpar_set_low32(0);
+		out.mac = poly_secpar_set_zero();
 		out.value = poly_secpar_set_low32(1);
 	}
 	return out;
@@ -176,7 +132,7 @@ inline quicksilver_vec_gf2 quicksilver_const_gf2(const quicksilver_state* state,
 		out.mac = poly1xsecpar_mul(c, state->delta);
 	else
 	{
-		out.mac = poly_secpar_set_low32(0);
+		out.mac = poly_secpar_set_zero();
 		out.value = c;
 	}
 	return out;
@@ -189,7 +145,7 @@ inline quicksilver_vec_gfsecpar quicksilver_const_gfsecpar(const quicksilver_sta
 		out.mac = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, c));
 	else
 	{
-		out.mac = poly_secpar_set_low32(0);
+		out.mac = poly_secpar_set_zero();
 		out.value = c;
 	}
 	return out;
@@ -256,7 +212,9 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 	}
 }
 
-void quicksilver_prove(const quicksilver_state* state, size_t witness_bits, uint8_t* proof);
-bool quicksilver_verify(const quicksilver_state* state, size_t witness_bits, const uint8_t* proof);
+void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
+                       uint8_t* restrict proof, uint8_t* restrict check);
+void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
+                        const uint8_t* restrict proof, uint8_t* restrict check);
 
 #endif

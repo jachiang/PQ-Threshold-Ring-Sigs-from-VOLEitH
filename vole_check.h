@@ -1,19 +1,21 @@
 #ifndef VOLE_CHECK_H
 #define VOLE_CHECK_H
 
+#include <inttypes.h>
 #include "universal_hash.h"
 
 #define VOLE_CHECK_HASH_BYTES (SECURITY_PARAM + 1) /* TODO */
 #define VOLE_CHECK_CHALLENGE_BYTES ((5 * SECURITY_PARAM + 64) / 8)
-#define VOLE_CHECK_RESPONSE_BYTES (VOLE_CHECK_HASH_BYTES + 2 * SECURITY_PARAM)
+#define VOLE_CHECK_PROOF_BYTES VOLE_CHECK_HASH_BYTES
+#define VOLE_CHECK_CHECK_BYTES (2 * SECURITY_PARAM)
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,
-	const unsigned char* restrict challenge, unsigned char* restrict response);
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check);
 
-bool vole_check_receiver(
+void vole_check_receiver(
 	const vole_block* restrict q, const uint8_t* restrict delta,
-	const unsigned char* restrict challenge, const unsigned char* restrict response);
+	const uint8_t* restrict challenge, const uint8_t* restrict response, uint8_t* restrict check);
 
 
 #endif
