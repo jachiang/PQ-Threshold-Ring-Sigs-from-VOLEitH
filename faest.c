@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "quicksilver.h"
 #include "owf_proof.h"
+#include "small_vole.h"
 #include "vector_com.h"
 #include "vole_commit.h"
 #include "vole_check.h"
@@ -117,6 +118,7 @@ bool faest_sign(
 
 	block_secpar seed;
 	hash_init(&hasher);
+	hash_update(&hasher, &sk.sk, sizeof(sk.sk));
 	hash_update(&hasher, &mu, sizeof(mu));
 	if (random_seed)
 		hash_update(&hasher, &random_seed, random_seed_len);
@@ -184,23 +186,23 @@ bool faest_sign(
 	free(macs);
 	free(u);
 
-	uint8_t delta[SECURITY_PARAM / 8];
+	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
+	uint8_t* delta = veccom_open_start + VECTOR_OPEN_SIZE;
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
-	hash_final(&hasher, &delta, sizeof(delta));
+	hash_final(&hasher, &delta, sizeof(block_secpar));
 
 	uint8_t delta_bytes[SECURITY_PARAM];
 	for (size_t i = 0; i < SECURITY_PARAM; ++i)
 		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
 
-	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
 	vector_open(forest, hashed_leaves, delta_bytes, veccom_open_start);
 	free(forest);
 	free(hashed_leaves);
 
-	assert(veccom_open_start + VECTOR_OPEN_SIZE == signature + FAEST_SIGNATURE_BYTES);
+	assert(delta + sizeof(block_secpar) == signature + FAEST_SIGNATURE_BYTES);
 
 	return true;
 }
@@ -208,5 +210,80 @@ bool faest_sign(
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed)
 {
-	// TODO
+	block_2secpar mu;
+	hash_state hasher;
+	hash_init(&hasher);
+	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
+	hash_update(&hasher, msg, msg_len);
+	hash_final(&hasher, &mu, sizeof(mu));
+
+	const uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
+	const uint8_t* qs_proof = correction + WITNESS_BITS / 8;
+	const uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
+	const uint8_t* delta = veccom_open_start + VECTOR_OPEN_SIZE;
+
+	uint8_t delta_bytes[SECURITY_PARAM];
+	for (size_t i = 0; i < SECURITY_PARAM; ++i)
+		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
+
+	vole_block* q =
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
+	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
+
+	vole_reconstruct(q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+
+	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &mu, sizeof(mu));
+	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
+	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_final(&hasher, &chal1[0], sizeof(chal1));
+
+	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+
+	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &chal1, sizeof(chal1));
+	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+	hash_update(&hasher, correction, WITNESS_BITS / 8);
+	hash_final(&hasher, &chal2[0], sizeof(chal2));
+
+	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
+	vole_receiver_apply_correction(WITNESS_BLOCKS - (remainder != 0), SECURITY_PARAM,
+	                               (const vole_block*) correction, q, delta_bytes);
+	if (remainder)
+	{
+		vole_block last_correction = vole_block_set_zero();
+		memcpy(&last_correction, correction + (WITNESS_BLOCKS - 1) * sizeof(vole_block), remainder);
+		vole_receiver_apply_correction(1, SECURITY_PARAM,
+		                               &last_correction, q + (WITNESS_BLOCKS - 1), delta_bytes);
+	}
+
+	block_secpar* macs =
+		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
+	transpose_secpar(q, macs, VOLE_COL_STRIDE, VOLE_ROWS_PADDED);
+	free(q);
+
+	block_secpar delta_block;
+	memcpy(&delta_block, delta, sizeof(delta_block));
+
+	quicksilver_state qs;
+	quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
+	owf_constraints_verifier(&qs);
+
+	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
+	quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);
+	free(macs);
+
+	block_secpar delta_check;
+	hash_init(&hasher);
+	hash_update(&hasher, &chal2, sizeof(chal2));
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
+	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_final(&hasher, &delta_check, sizeof(delta_check));
+
+	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }

@@ -51,7 +51,7 @@ static ALWAYS_INLINE void vole(
 	vole_block accum[COL_LEN];
 	memset(&accum[0], 0, COL_LEN * sizeof(vole_block));
 
-	if (receiver)
+	if (receiver && u_or_c_in)
 	{
 		vole_block* q_ptr = vq;
 		for (unsigned int col = 0; col < k; ++col)
@@ -154,6 +154,16 @@ void vole_receiver(
 	const uint8_t* restrict delta)
 {
 	vole(true, k, keys, fixed_key, c, q, NULL, delta);
+}
+
+void vole_receiver_apply_correction(
+	size_t row_blocks, size_t cols,
+	const vole_block* restrict c, vole_block* restrict q, const uint8_t* restrict delta)
+{
+	for (unsigned int col = 0; col < cols; ++col)
+		for (size_t j = 0; j < row_blocks; ++j)
+			q[col * COL_LEN + j] = vole_block_xor(q[col * COL_LEN + j],
+				vole_block_and(c[j], vole_block_set_all_8(delta[col])));
 }
 
 extern inline size_t vole_permute_key_index(size_t i);

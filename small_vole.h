@@ -26,6 +26,10 @@ void vole_receiver(
 	const vole_block* restrict c, vole_block* restrict q,
 	const uint8_t* restrict delta);
 
+void vole_receiver_apply_correction(
+	size_t row_blocks, size_t cols,
+	const vole_block* restrict c, vole_block* restrict q, const uint8_t* restrict delta);
+
 inline size_t vole_permute_key_index(size_t i)
 {
 	// Convert the high bits of i (indicating which chunk of VOLE_WIDTH keys) to Gray's code, while

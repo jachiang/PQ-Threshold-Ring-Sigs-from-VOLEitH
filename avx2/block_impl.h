@@ -133,6 +133,7 @@ inline block512 block512_set_low64(uint64_t x)
 
 #define VOLE_BLOCK_SHIFT 1
 typedef block256 vole_block;
+inline vole_block vole_block_set_zero() { return block256_set_zero(); }
 inline vole_block vole_block_xor(vole_block x, vole_block y) { return block256_xor(x, y); }
 inline vole_block vole_block_and(vole_block x, vole_block y) { return block256_and(x, y); }
 inline vole_block vole_block_set_all_8(uint8_t x) { return block256_set_all_8(x); }

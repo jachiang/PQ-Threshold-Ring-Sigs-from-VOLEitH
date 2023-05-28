@@ -11,4 +11,8 @@ void vole_commit(
 	vole_block* restrict u, vole_block* restrict v,
 	uint8_t* restrict commitment, uint8_t* restrict check);
 
+void vole_reconstruct(
+	vole_block* restrict q, const uint8_t* delta_bytes,
+	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check);
+
 #endif

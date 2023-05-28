@@ -14,7 +14,7 @@ void vole_check_sender(
 	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check);
 
 void vole_check_receiver(
-	const vole_block* restrict q, const uint8_t* restrict delta,
+	const vole_block* restrict q, const uint8_t* restrict delta_bytes,
 	const uint8_t* restrict challenge, const uint8_t* restrict response, uint8_t* restrict check);
 
 
