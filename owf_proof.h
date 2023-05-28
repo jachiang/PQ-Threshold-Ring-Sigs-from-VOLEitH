@@ -1,6 +1,7 @@
 #ifndef OWF_PROOF_H
 #define OWF_PROOF_H
 
+#include "aes.h"
 #include "quicksilver.h"
 
 #if defined(OWF_AES_CTR)
