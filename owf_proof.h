@@ -6,16 +6,22 @@
 
 #if defined(OWF_AES_CTR)
 
+// Number of applications of the round function per encryption (need OWF_ROUNDS + 1 round keys).
 #define OWF_ROUNDS AES_ROUNDS
+// Block size of the cipher
 #define OWF_BLOCK_SIZE 16
+// Number of blocks encrypted in the OWF.
+// (1 for 128 bit, 2 for 192/256 bit to compensate for the 128 bit block size)
 #define OWF_BLOCKS ((SECURITY_PARAM + 127) / 128)
 
+// Spacing in bytes of the sub_words operation in the key schedule.
 #if SECURITY_PARAM == 256
 #define OWF_KEY_SCHEDULE_PERIOD 16
 #else
 #define OWF_KEY_SCHEDULE_PERIOD (SECURITY_PARAM / 8)
 #endif
 
+// Number of S-boxes in the key schedule.
 #define OWF_KEY_SCHEDULE_CONSTRAINTS (4 * (((AES_ROUNDS + 1) * 16 - 1) / OWF_KEY_SCHEDULE_PERIOD))
 
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
