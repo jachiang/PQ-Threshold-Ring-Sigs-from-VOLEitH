@@ -27,8 +27,8 @@ int crypto_sign(
 	memmove(sm, m, mlen);
 
 	uint8_t random_seed[SECURITY_PARAM / 8];
-	random_seed(random_seed, sizeof(random_seed));
-	faest_sign(sm + mlen, sm, mlen, sk, random_seed, sizeof(random_seed);
+	randombytes(random_seed, sizeof(random_seed));
+	faest_sign(sm + mlen, sm, mlen, sk, random_seed, sizeof(random_seed));
 	return 0;
 }
 
