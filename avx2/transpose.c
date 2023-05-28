@@ -182,6 +182,6 @@ void transpose_secpar(const void* input, void* output, size_t stride, size_t row
 {
 	const uint8_t* in = input;
 	uint8_t* out = output;
-	for (size_t i = 0; i < rows; i += TRANSPOSE_BITS_ROWS)
+	for (size_t i = 0; i < rows / 8; i += TRANSPOSE_BITS_ROWS / 8)
 		transposeVxN(in + i, out + i * SECURITY_PARAM, stride);
 }
