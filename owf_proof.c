@@ -89,6 +89,7 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
 }
 
 void key_sched_constraints(quicksilver_state* state) {
+#if defined(OWF_AES_CTR)
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
@@ -127,6 +128,7 @@ void key_sched_constraints(quicksilver_state* state) {
             }
         }
     }
+#endif
 }
 
 ALWAYS_INLINE void owf_constraints(quicksilver_state* state)
