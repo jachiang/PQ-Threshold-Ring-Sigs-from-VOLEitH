@@ -53,6 +53,38 @@ extern inline poly_secpar_vec poly_2secpar_reduce_secpar(poly_2secpar_vec x);
 extern inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus_64_vec x);
 extern inline poly_secpar_plus_64_vec poly_secpar_plus_64_from_secpar(poly_secpar_vec x);
 extern inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x);
+extern inline poly_secpar_vec poly_secpar_from_64(poly64_vec x);
 extern inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index);
 extern inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits);
 extern inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys);
+extern inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power);
+
+#define DEFINE_POLY_EXP(n, n2) \
+	poly##n##_vec poly##n##_exp(poly##n##_vec base, size_t power) \
+	{ \
+		poly##n##_vec base_exp_pow2 = base; \
+		poly##n##_vec base_exp = poly##n##_set_low32(1); \
+		bool first = true; \
+		for (size_t i = 1; i <= power; i <<= 1) \
+		{ \
+			if (power & i) \
+			{ \
+				if (first) \
+				{ \
+					base_exp = base_exp_pow2; \
+					first = false; \
+				} \
+				else \
+					base_exp = poly##n2##_reduce##n(poly##n##_mul(base_exp, base_exp_pow2)); \
+			} \
+ \
+			if ((i << 1) <= power) \
+				base_exp_pow2 = poly##n2##_reduce##n(poly##n##_mul(base_exp_pow2, base_exp_pow2)); \
+		} \
+		return base_exp; \
+	}
+
+DEFINE_POLY_EXP(64, 128)
+DEFINE_POLY_EXP(128, 256)
+DEFINE_POLY_EXP(192, 384)
+DEFINE_POLY_EXP(256, 512)

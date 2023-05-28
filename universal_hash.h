@@ -110,33 +110,17 @@ inline poly_secpar_vec hasher_gfsecpar_64_final(const hasher_gfsecpar_64_state* 
 	return poly_secpar_plus_64_reduce_secpar(state->state);
 }
 
-// Input key and output hash are in index 0 of their respective polynomial vectors.
-// TODO: probably should go into .c file instead.
-inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key, poly_secpar_vec hash, size_t num_coefficients)
+// Input key and output hash are in index 0 of their respective polynomial vectors. key_exp should
+// be set to poly_secpar_exp(key, num_coefficients), where num_coefficients is the number of
+// polynomial coefficients the vector elements are separated by.
+inline poly_secpar_vec gfsecpar_combine_hashes(poly_secpar_vec key_exp, poly_secpar_vec hash)
 {
-	// Compute offset using exponentiation by squaring.
-	poly_secpar_vec key_pow2 = key;
-	poly_secpar_vec key_pow = poly_secpar_set_low32(1);
-	bool first = true;
-	for (size_t i = 1; i < num_coefficients; i <<= 1)
+	poly_secpar_vec output = poly_secpar_extract(hash, 0);
+	for (size_t i = 1; i < POLY_VEC_LEN; ++i)
 	{
-		key_pow2 = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow2, key_pow2));
-		if (first)
-		{
-			key_pow = key_pow2;
-			first = false;
-		}
-		else
-			key_pow = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, key_pow2));
-	}
-
-	poly_secpar_vec output = poly_secpar_extract(hash, POLY_VEC_LEN - 1);
-	for (int i = POLY_VEC_LEN - 2; i >= 0; --i)
-	{
-		output = poly_2secpar_reduce_secpar(poly_secpar_mul(key_pow, output));
+		output = poly_2secpar_reduce_secpar(poly_secpar_mul(key_exp, output));
 		output = poly_secpar_add(output, poly_secpar_extract(hash, i));
 	}
-
 	return output;
 }
 
@@ -183,6 +167,17 @@ inline poly64_vec hasher_gf64_final(const hasher_gf64_state* state)
 {
 	assert(state->pow == -1);
 	return poly128_reduce64(state->state);
+}
+
+inline poly64_vec gf64_combine_hashes(poly64_vec key_exp, poly64_vec hash)
+{
+	poly64_vec output = poly64_extract(hash, 0);
+	for (size_t i = 1; i < POLY_VEC_LEN; ++i)
+	{
+		output = poly128_reduce64(poly64_mul(key_exp, output));
+		output = poly64_add(output, poly64_extract(hash, i));
+	}
+	return output;
 }
 
 #endif

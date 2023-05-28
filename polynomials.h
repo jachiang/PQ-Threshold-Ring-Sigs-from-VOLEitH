@@ -148,6 +148,12 @@ inline poly128_vec poly128_from_8_poly128(const poly128_vec* polys);
 inline poly192_vec poly192_from_8_poly192(const poly192_vec* polys);
 inline poly256_vec poly256_from_8_poly256(const poly256_vec* polys);
 
+// Exponentiation in GF(2**n)
+poly64_vec poly64_exp(poly64_vec base, size_t power);
+poly128_vec poly128_exp(poly128_vec base, size_t power);
+poly192_vec poly192_exp(poly192_vec base, size_t power);
+poly256_vec poly256_exp(poly256_vec base, size_t power);
+
 // Test two vectors of polynomials for equality
 inline bool poly64_eq(poly64_vec x, poly64_vec y);
 inline bool poly128_eq(poly128_vec x, poly128_vec y);
@@ -159,6 +165,7 @@ inline bool poly512_eq(poly512_vec x, poly512_vec y);
 
 // Move single polynomial with given index into the first slot of a new vector and zero the other
 // components.
+inline poly64_vec poly64_extract(poly64_vec x, size_t index);
 inline poly128_vec poly128_extract(poly128_vec x, size_t index);
 inline poly192_vec poly192_extract(poly192_vec x, size_t index);
 inline poly256_vec poly256_extract(poly256_vec x, size_t index);
@@ -242,6 +249,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 {
     return poly256_from_128(x);
 }
+inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
+{
+    return poly128_from_64(x);
+}
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly128_extract(x, index);
@@ -257,6 +268,10 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
 {
 	return poly128_from_8_poly128(polys);
+}
+inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power)
+{
+	return poly128_exp(base, power);
 }
 
 #elif SECURITY_PARAM == 192
@@ -336,6 +351,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 {
     return poly384_from_192(x);
 }
+inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
+{
+    return poly192_from_128(poly128_from_64(x));
+}
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly192_extract(x, index);
@@ -351,6 +370,10 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
 {
 	return poly192_from_8_poly192(polys);
+}
+inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power)
+{
+	return poly192_exp(base, power);
 }
 
 #elif SECURITY_PARAM == 256
@@ -430,6 +453,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 {
     return poly512_from_256(x);
 }
+inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
+{
+    return poly256_from_128(poly128_from_64(x));
+}
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly256_extract(x, index);
@@ -445,6 +472,10 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 inline poly_secpar_vec poly_secpar_from_8_poly_secpar(const poly_secpar_vec* polys)
 {
 	return poly256_from_8_poly256(polys);
+}
+inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power)
+{
+	return poly256_exp(base, power);
 }
 
 #endif
