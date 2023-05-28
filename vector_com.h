@@ -5,7 +5,6 @@
 #include "aes.h"
 #include "block.h"
 #include "vole_params.h"
-#include "random_oracle.h"
 
 #define VECTOR_COMMIT_LEAVES ((VOLES_MIN_K << VOLE_MIN_K) + (VOLES_MAX_K << VOLE_MAX_K))
 #define VECTOR_COMMIT_NODES (2 * (VECTOR_COMMIT_LEAVES - BITS_PER_WITNESS))
