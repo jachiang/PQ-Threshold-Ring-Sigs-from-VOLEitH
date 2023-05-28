@@ -98,20 +98,35 @@ void key_sched_constraints(quicksilver_state* state) {
 
     // byte index of the current word to read from the round keys
     size_t i_wd = 4 * (N_WD - 1);
+    // for 256 bit we only rotate every second time
+    bool rotate_word = true;
     quicksilver_vec_gfsecpar lhss[4];
     quicksilver_vec_gfsecpar rhss[4];
     for (size_t sboxwd_j = 0; sboxwd_j < OWF_KEY_SCHEDULE_CONSTRAINTS / 4; ++sboxwd_j) {
-        for (size_t row_k = 0; row_k < 4; ++row_k) {
-            lhss[(row_k + 3) % 4] = round_key_bytes[i_wd + row_k];
-            rhss[row_k] = key_schedule_inv_outs[4 * sboxwd_j + row_k];
+        if (rotate_word) {
+            for (size_t row_k = 0; row_k < 4; ++row_k) {
+                lhss[(row_k + 3) % 4] = round_key_bytes[i_wd + row_k];
+                rhss[row_k] = key_schedule_inv_outs[4 * sboxwd_j + row_k];
+            }
+        } else {
+            for (size_t row_k = 0; row_k < 4; ++row_k) {
+                lhss[row_k] = round_key_bytes[i_wd + row_k];
+                rhss[row_k] = key_schedule_inv_outs[4 * sboxwd_j + row_k];
+            }
         }
         for (size_t row_k = 0; row_k < 4; ++row_k) {
             quicksilver_add_product_constraints(state, lhss[row_k], rhss[row_k]);
         }
-        break;
-        // XXX: incr i_wd
+        // increase i_wd to point to the next word
+        if (SECURITY_PARAM == 192) {
+            i_wd += 24;
+        } else {
+            i_wd += 16;
+            if (SECURITY_PARAM == 256) {
+                rotate_word = !rotate_word;
+            }
+        }
     }
-
 }
 
 ALWAYS_INLINE void owf_constraints(quicksilver_state* state)
