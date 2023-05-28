@@ -65,16 +65,14 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
         }
 
         quicksilver_vec_gf2 inv_out[8];
-        inv_out[0] = quicksilver_add_gf2(state, sbox_out[5], quicksilver_add_gf2(state, sbox_out[2],
-                    quicksilver_add_gf2(state, sbox_out[0], qs_one)));
-        inv_out[1] = quicksilver_add_gf2(state, sbox_out[7], quicksilver_add_gf2(state, sbox_out[4], sbox_out[1]));
-        inv_out[2] = quicksilver_add_gf2(state, sbox_out[6], quicksilver_add_gf2(state, sbox_out[3],
-                    quicksilver_add_gf2(state, sbox_out[0], qs_one)));
-        inv_out[3] = quicksilver_add_gf2(state, sbox_out[7], quicksilver_add_gf2(state, sbox_out[5], sbox_out[2]));
-        inv_out[4] = quicksilver_add_gf2(state, sbox_out[6], quicksilver_add_gf2(state, sbox_out[4], sbox_out[1]));
-        inv_out[5] = quicksilver_add_gf2(state, sbox_out[5], quicksilver_add_gf2(state, sbox_out[3], sbox_out[0]));
-        inv_out[6] = quicksilver_add_gf2(state, sbox_out[7], quicksilver_add_gf2(state, sbox_out[4], sbox_out[2]));
-        inv_out[7] = quicksilver_add_gf2(state, sbox_out[6], quicksilver_add_gf2(state, sbox_out[3], sbox_out[1]));
+        for (size_t i = 0; i < 8; ++i)
+            inv_out[(i + 1) % 8] = sbox_out[i];
+        for (size_t i = 0; i < 8; ++i)
+            inv_out[(i + 3) % 8] = quicksilver_add_gf2(state, inv_out[(i + 3) % 8], sbox_out[i]);
+        for (size_t i = 0; i < 8; ++i)
+            inv_out[(i + 6) % 8] = quicksilver_add_gf2(state, inv_out[(i + 6) % 8], sbox_out[i]);
+        inv_out[0] = quicksilver_add_gf2(state, inv_out[0], qs_one);
+        inv_out[2] = quicksilver_add_gf2(state, inv_out[2], qs_one);
 
         // lift into a field element and store in the output buffer
         output[sbox_j] = quicksilver_combine_8_bits(state, inv_out);
