@@ -1,13 +1,10 @@
+#include "config.h"
+
+#include "aes.h"
 #include "owf_proof.h"
 #include "quicksilver.h"
 
-#include "config.h"
-
 #define N_WD (SECURITY_PARAM / 32)
-
-const uint8_t round_constants[15] = {
-    0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d
-};
 
 void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     for (size_t bit_i = 0; bit_i < SECURITY_PARAM; ++bit_i) {
@@ -57,7 +54,7 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
         if (sbox_j % 4 == 0 && remove_rcon) {
             // remove the round constant from the first byte of every word coming through the sboxes
             for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
-                if ((round_constants[i_rcon] >> bit_i) & 1) {
+                if ((aes_round_constants[i_rcon] >> bit_i) & 1) {
                     sbox_out[bit_i] = quicksilver_add_gf2(state, sbox_out[bit_i], qs_one);
                 }
             }
