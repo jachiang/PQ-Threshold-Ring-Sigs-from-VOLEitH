@@ -21,6 +21,11 @@ TEST_CASE( "aes128", "[owf proof]" ) {
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
+    const auto one_p = quicksilver_one_gfsecpar(&qs_state_prover);
+    const auto one_v = quicksilver_one_gfsecpar(&qs_state_verifier);
+    quicksilver_add_product_constraints(&qs_state_prover, one_p, one_p);
+    quicksilver_add_product_constraints(&qs_state_verifier, one_v, one_v);
+
     owf_constraints_prover(&qs_state_prover);
     owf_constraints_verifier(&qs_state_verifier);
 
