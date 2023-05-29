@@ -40,3 +40,16 @@ TEST_CASE( "unpack sk", "[faest]" ) {
 }
 
 #endif
+
+
+TEST_CASE( "keygen/sign/verify", "[faest]" ) {
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+    std::array<uint8_t, FAEST_SIGNATURE_BYTES> signature;
+    test_gen_keypair(packed_pk.data(), packed_sk.data());
+
+    const std::string message = "This document describes and specifies the FAEST digital signature algorithm.";
+
+    REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), NULL, 0) );
+    REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk.data()) );
+}
