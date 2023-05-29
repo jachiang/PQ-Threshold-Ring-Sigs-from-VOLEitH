@@ -43,11 +43,11 @@ bool faest_compute_witness(secret_key* sk)
 {
 	uint8_t* w_ptr = (uint8_t*) &sk->witness;
 
-#if defined(OWF_AES_CTR)
 	// Extract witness for key schedule.
 	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
 	w_ptr += sizeof(sk->sk);
 
+#if defined(OWF_AES_CTR)
 	uint32_t prev_word;
 	memcpy(&prev_word, w_ptr - 4, 4);
 
