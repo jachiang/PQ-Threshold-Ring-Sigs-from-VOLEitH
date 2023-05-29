@@ -234,7 +234,7 @@ bool faest_sign(
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update_byte(&hasher, 2);
-	hash_final(&hasher, &delta, sizeof(block_secpar));
+	hash_final(&hasher, delta, sizeof(block_secpar));
 
 	uint8_t delta_bytes[SECURITY_PARAM];
 	for (size_t i = 0; i < SECURITY_PARAM; ++i)
