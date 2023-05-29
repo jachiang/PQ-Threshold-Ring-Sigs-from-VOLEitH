@@ -139,6 +139,11 @@ inline poly256_vec poly512_reduce256(poly512_vec x);
 inline poly64_vec poly64_mul_a64_reduce64(poly64_vec x);
 
 // Convert 8 bits into a GF(2^8) element, and embed it into GF(2**n).
+inline poly128_vec poly128_from_byte(uint8_t byte);
+inline poly192_vec poly192_from_byte(uint8_t byte);
+inline poly256_vec poly256_from_byte(uint8_t byte);
+
+// Convert 8 bits into a GF(2^8) element, and embed it into GF(2**n).
 inline poly128_vec poly128_from_8_poly1(const poly1_vec* bits);
 inline poly192_vec poly192_from_8_poly1(const poly1_vec* bits);
 inline poly256_vec poly256_from_8_poly1(const poly1_vec* bits);
@@ -261,6 +266,10 @@ inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
 {
     return poly256_extract(x, index);
 }
+inline poly_secpar_vec poly_secpar_from_byte(uint8_t byte)
+{
+    return poly128_from_byte(byte);
+}
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
 	return poly128_from_8_poly1(bits);
@@ -363,6 +372,10 @@ inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
 {
     return poly384_extract(x, index);
 }
+inline poly_secpar_vec poly_secpar_from_byte(uint8_t byte)
+{
+    return poly192_from_byte(byte);
+}
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
 	return poly192_from_8_poly1(bits);
@@ -464,6 +477,10 @@ inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 inline poly_2secpar_vec poly_2secpar_extract(poly_2secpar_vec x, size_t index)
 {
     return poly512_extract(x, index);
+}
+inline poly_secpar_vec poly_secpar_from_byte(uint8_t byte)
+{
+    return poly256_from_byte(byte);
 }
 inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 {
