@@ -147,11 +147,9 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
     size_t round_key_byte_offset = OWF_BLOCK_SIZE;
     size_t output_byte_offset = OWF_BLOCK_SIZE;
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
-        quicksilver_vec_gfsecpar col_rk_bytes[4];
         quicksilver_vec_gfsecpar col_wit_bytes[4];
         for (size_t row_k = 0; row_k < 4; ++row_k) {
             col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
-            col_rk_bytes[round_key_byte_offset + row_k];
         }
         for (size_t row_k = 0; row_k < 4; ++row_k) {
             output[output_byte_offset + row_k] =
@@ -160,7 +158,8 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
                     quicksilver_add_gfsecpar(state,
                         quicksilver_mul_const(state, col_wit_bytes[(row_k + 1) % 4], c_three),
                         quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
-                            quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4], col_rk_bytes[row_k]))));
+                            quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4],
+                                                     round_key_bytes[round_key_byte_offset + row_k]))));
         }
         witness_bit_offset += 32;
         round_key_byte_offset += 4;
@@ -168,8 +167,45 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
    }
 }
 
-void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out) {
-    // TODO
+void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
+    const uint8_t* out_bytes = (uint8_t*)&out;
+    const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
+
+    for (size_t round_i = 0; round_i < OWF_ROUNDS; ++round_i) {
+        for (size_t col_j = 0; col_j < 4; ++col_j) {
+            for (size_t row_k = 0; row_k < 4; ++row_k) {
+                quicksilver_vec_gf2 witness_bits[8];
+                if (round_i < OWF_ROUNDS - 1) {
+                    // read witness bits directly
+                    for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
+                        witness_bits[bit_i] = quicksilver_get_witness_vec(state, witness_bit_offset + bit_i);
+                    }
+                } else {
+                    // compute witness bits from the last round key and the output
+                    for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
+                        witness_bits[bit_i] = quicksilver_add_gf2(state,
+                                quicksilver_const_gf2(state, poly1_load(out_bytes[4 * col_j + row_k], bit_i)),
+                                round_key_bits[last_round_key_bit_offset + 32 * col_j + 8 * row_k + bit_i]);
+                    }
+                }
+
+                quicksilver_vec_gf2 qs_one = quicksilver_one_gf2(state);
+                quicksilver_vec_gf2 inv_out[8];
+                for (size_t i = 0; i < 8; ++i)
+                    inv_out[(i + 1) % 8] = witness_bits[i];
+                for (size_t i = 0; i < 8; ++i)
+                    inv_out[(i + 3) % 8] = quicksilver_add_gf2(state, inv_out[(i + 3) % 8], witness_bits[i]);
+                for (size_t i = 0; i < 8; ++i)
+                    inv_out[(i + 6) % 8] = quicksilver_add_gf2(state, inv_out[(i + 6) % 8], witness_bits[i]);
+                inv_out[0] = quicksilver_add_gf2(state, inv_out[0], qs_one);
+                inv_out[2] = quicksilver_add_gf2(state, inv_out[2], qs_one);
+
+                // lift into a field element and store in the output buffer
+                output[round_i * OWF_BLOCK_SIZE + 4 * col_j + row_k] = quicksilver_combine_8_bits(state, inv_out);
+                witness_bit_offset += 8;
+            }
+        }
+    }
 }
 
 void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
@@ -179,7 +215,13 @@ void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1);
 
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar inv_outputs[S_ENC];
     enc_fwd(state, round_key_bytes, witness_bit_offset, in, inv_inputs);
+    enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
+
+    for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
+        quicksilver_add_product_constraints(state, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+    }
 }
 
 ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)

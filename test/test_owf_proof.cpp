@@ -22,8 +22,7 @@ TEST_CASE( "aes-ctr", "[owf proof]" ) {
 
     const auto delta = rand<block_secpar>();
     REQUIRE( WITNESS_BITS == 1600 );
-    const size_t num_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS;
-    quicksilver_test_state qs_test(num_constraints, witness, WITNESS_BITS, delta);
+    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS, witness, WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
