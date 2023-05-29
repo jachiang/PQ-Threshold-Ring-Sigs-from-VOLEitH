@@ -147,23 +147,25 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
     size_t round_key_byte_offset = OWF_BLOCK_SIZE;
     size_t output_byte_offset = OWF_BLOCK_SIZE;
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
-        quicksilver_vec_gfsecpar col_wit_bytes[4];
-        for (size_t row_k = 0; row_k < 4; ++row_k) {
-            col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
-        }
-        for (size_t row_k = 0; row_k < 4; ++row_k) {
-            output[output_byte_offset + row_k] =
-                quicksilver_add_gfsecpar(state,
-                    quicksilver_mul_const(state, col_wit_bytes[row_k], c_two),
+        for (size_t col_j = 0; col_j < 4; ++col_j) {
+            quicksilver_vec_gfsecpar col_wit_bytes[4];
+            for (size_t row_k = 0; row_k < 4; ++row_k) {
+                col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
+            }
+            for (size_t row_k = 0; row_k < 4; ++row_k) {
+                output[output_byte_offset + row_k] =
                     quicksilver_add_gfsecpar(state,
-                        quicksilver_mul_const(state, col_wit_bytes[(row_k + 1) % 4], c_three),
-                        quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
-                            quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4],
-                                                     round_key_bytes[round_key_byte_offset + row_k]))));
+                        quicksilver_mul_const(state, col_wit_bytes[row_k], c_two),
+                        quicksilver_add_gfsecpar(state,
+                            quicksilver_mul_const(state, col_wit_bytes[(row_k + 1) % 4], c_three),
+                            quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
+                                quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4],
+                                                         round_key_bytes[round_key_byte_offset + row_k]))));
+            }
+            witness_bit_offset += 32;
+            round_key_byte_offset += 4;
+            output_byte_offset += 4;
         }
-        witness_bit_offset += 32;
-        round_key_byte_offset += 4;
-        output_byte_offset += 4;
    }
 }
 
