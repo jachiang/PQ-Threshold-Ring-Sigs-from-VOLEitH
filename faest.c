@@ -71,12 +71,14 @@ bool faest_compute_witness(secret_key* sk)
 	}
 #endif
 
+#if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		sk->pk.owf_output[i] =
-#if defined(OWF_AES_CTR)
 			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-			owf_block_xor(sk->pk.fixed_key.keys[0], owf_block_xor(owf_block_set_low32(i), sk->sk));
+    static_assert(OWF_BLOCKS == 1);
+    sk->pk.owf_output[0] =
+        owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 #endif
 
 	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
