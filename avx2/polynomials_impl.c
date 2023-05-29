@@ -4,7 +4,7 @@
 
 
 extern inline poly1_vec poly1_set_all(uint8_t x);
-extern inline poly1_vec poly1_load(const void* s, unsigned int bit_offset);
+extern inline poly1_vec poly1_load(unsigned long s, unsigned int bit_offset);
 extern inline poly1_vec poly1_load_offset8(const void* s, unsigned int bit_offset);
 extern inline poly64_vec poly64_load(const void* s);
 extern inline poly128_vec poly128_load(const void* s);

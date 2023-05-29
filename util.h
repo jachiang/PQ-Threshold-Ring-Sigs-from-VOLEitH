@@ -38,7 +38,7 @@ inline unsigned int count_trailing_zeros(uint64_t x)
 }
 
 // Expands bit i of x to a whole byte, either 0 or 0xff.
-inline uint8_t expand_bit_to_byte(size_t x, unsigned int i)
+inline uint8_t expand_bit_to_byte(unsigned long x, unsigned int i)
 {
 	return -((x >> i) & 1);
 }

@@ -40,8 +40,8 @@ inline poly320_vec poly320_load(const void* s);
 inline poly384_vec poly384_load(const void* s);
 inline poly512_vec poly512_load(const void* s);
 
-// Load POLY_VEC_LEN consecutive bits from s, starting from offset bit_offset, which should be at most 8.
-inline poly1_vec poly1_load(const void* s, unsigned int bit_offset);
+// Load POLY_VEC_LEN consecutive bits from x, starting from offset bit_offset.
+inline poly1_vec poly1_load(unsigned long x, unsigned int bit_offset);
 
 // Load POLY_VEC_LEN bits with a stride of 8 bits from s, starting from offset bit_offset, which should be at
 // most 7.

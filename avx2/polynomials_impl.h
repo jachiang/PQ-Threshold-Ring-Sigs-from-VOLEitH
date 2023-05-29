@@ -54,14 +54,12 @@ inline poly1_vec poly1_set_all(uint8_t x)
 #endif
 }
 
-inline poly1_vec poly1_load(const void* s, unsigned int bit_offset)
+inline poly1_vec poly1_load(unsigned long x, unsigned int bit_offset)
 {
-	uint16_t tmp;
-	memcpy(&tmp, s, sizeof(tmp));
-	tmp = (tmp >> bit_offset) & ((1 << POLY_VEC_LEN) - 1);
+	x = (x >> bit_offset) & ((1 << POLY_VEC_LEN) - 1);
 
 	// Split each bit out into its own byte.
-	poly1_vec poly = tmp * (((1UL << 7 * POLY_VEC_LEN) - 1) / 0x7f);
+	poly1_vec poly = x * (((1UL << 7 * POLY_VEC_LEN) - 1) / 0x7f);
 	poly &= ((1UL << 8 * POLY_VEC_LEN) - 1) / 0xff;
 	poly *= 0xff;
 	return poly;

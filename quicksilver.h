@@ -55,7 +55,14 @@ inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* 
 {
 	quicksilver_vec_gf2 out;
 	if (!state->verifier)
-		out.value = poly1_load(&state->witness[index / 8], index % 8);
+	{
+		uint16_t tmp;
+
+		// This won't overflow the bounds of witness because the are extra masking bits at the end,
+		// which won't get accessed through this function.
+		memcpy(&tmp, &state->witness[index / 8], sizeof(tmp));
+		out.value = poly1_load(tmp, index % 8);
+	}
 	out.mac = poly_secpar_load(&state->macs[index]);
 	return out;
 }
