@@ -171,14 +171,15 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
     const uint8_t* out_bytes = (uint8_t*)&out;
     const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
 
-    for (size_t round_i = 0; round_i < OWF_ROUNDS; ++round_i) {
+    for (size_t round_i = 0; round_i < OWF_ROUNDS; ++round_i, witness_bit_offset += OWF_BLOCK_SIZE * 8) {
         for (size_t col_j = 0; col_j < 4; ++col_j) {
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 quicksilver_vec_gf2 witness_bits[8];
                 if (round_i < OWF_ROUNDS - 1) {
                     // read witness bits directly
                     for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
-                        witness_bits[bit_i] = quicksilver_get_witness_vec(state, witness_bit_offset + bit_i);
+                        size_t inv_shifted_index = witness_bit_offset + 32 * ((col_j - row_k) % 4) + 8 * row_k + bit_i;
+                        witness_bits[bit_i] = quicksilver_get_witness_vec(state, inv_shifted_index);
                     }
                 } else {
                     // compute witness bits from the last round key and the output
@@ -202,7 +203,6 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
 
                 // lift into a field element and store in the output buffer
                 output[round_i * OWF_BLOCK_SIZE + 4 * col_j + row_k] = quicksilver_combine_8_bits(state, inv_out);
-                witness_bit_offset += 8;
             }
         }
     }
