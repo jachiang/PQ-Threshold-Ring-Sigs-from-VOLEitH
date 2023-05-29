@@ -200,7 +200,7 @@ inline quicksilver_vec_gfsecpar quicksilver_const_8_bits(const quicksilver_state
 {
     quicksilver_vec_gf2 input_bits[8];
     for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
-        input_bits[bit_j] = quicksilver_const_gf2(state, poly1_load(s, bit_j));
+        input_bits[bit_j] = quicksilver_const_gf2(state, poly1_load(*(uint8_t*)s, bit_j));
     }
     return quicksilver_combine_8_bits(state, input_bits);
 }
