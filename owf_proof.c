@@ -180,7 +180,7 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
                 if (round_i < OWF_ROUNDS - 1) {
                     // read witness bits directly
                     for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
-                        size_t inv_shifted_index = witness_bit_offset + 32 * ((col_j - row_k) % 4) + 8 * row_k + bit_i;
+                        size_t inv_shifted_index = witness_bit_offset + 32 * ((col_j - row_k) & 3) + 8 * row_k + bit_i;
                         witness_bits[bit_i] = quicksilver_get_witness_vec(state, inv_shifted_index);
                     }
                 } else {
