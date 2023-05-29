@@ -208,8 +208,8 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
                 quicksilver_vec_gf2 witness_bits[8];
 #if OWF_BLOCK_SIZE == 32
                 size_t inv_shifted_index;
-                if (row_k == 3) {
-                    inv_shifted_index = 4 * ((col_j + NUM_COLS - 4) % NUM_COLS) + 3;
+                if (row_k >= 2) {
+                    inv_shifted_index = 4 * ((col_j + NUM_COLS - row_k - 1) % NUM_COLS) + row_k;
                 } else {
                     inv_shifted_index = 4 * ((col_j + NUM_COLS - row_k) % NUM_COLS) + row_k;
                 }
