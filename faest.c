@@ -20,6 +20,7 @@ void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
+    faest_compute_witness(unpacked);
 }
 
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
