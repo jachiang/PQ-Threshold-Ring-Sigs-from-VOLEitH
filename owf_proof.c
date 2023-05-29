@@ -134,11 +134,21 @@ void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_
 
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 
+// load the round keys into quicksilver values and "bake" EM secret key into the first round key
 void load_fixed_round_key(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* round_key_bytes, const rijndael_round_keys* fixed_key) {
     const uint8_t* rk_bytes = (const uint8_t*) fixed_key;
-    // load the round keys into quicksilver values
-    for (size_t byte_j = 0; byte_j < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_j) {
+
+    for (size_t byte_j = 0; byte_j < OWF_BLOCK_SIZE; ++byte_j) {
+        for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
+            round_key_bits[8 * byte_j + bit_i] = quicksilver_add_gf2(state,
+                    quicksilver_const_gf2(state, poly1_load(rk_bytes[byte_j], bit_i)),
+                    quicksilver_get_witness_vec(state, 8 * byte_j + bit_i));
+        }
+        round_key_bytes[byte_j] = quicksilver_combine_8_bits(state, &round_key_bits[8 * byte_j]);
+    }
+
+    for (size_t byte_j = OWF_BLOCK_SIZE; byte_j < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_j) {
         for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
             round_key_bits[8 * byte_j + bit_i] = quicksilver_const_gf2(state, poly1_load(rk_bytes[byte_j], bit_i));
         }
@@ -208,6 +218,10 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
                         witness_bits[bit_i] = quicksilver_add_gf2(state,
                                 quicksilver_const_gf2(state, poly1_load(out_bytes[inv_shifted_index], bit_i)),
                                 round_key_bits[last_round_key_bit_offset + 8 * inv_shifted_index + bit_i]);
+#if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+                        witness_bits[bit_i] = quicksilver_add_gf2(state, witness_bits[bit_i],
+                                quicksilver_get_witness_vec(state, 32 * col_j + 8 * row_k + bit_i));
+#endif
                     }
                 }
 
@@ -233,7 +247,12 @@ void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
+#if defined(OWF_AES_CTR)
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    assert(block_num == 0);
+    const size_t witness_bit_offset = SECURITY_PARAM;
+#endif
 
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar inv_outputs[S_ENC];
