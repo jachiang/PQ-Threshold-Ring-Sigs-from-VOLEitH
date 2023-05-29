@@ -8,6 +8,8 @@
 #define N_WD (SECURITY_PARAM / 32)
 #define S_ENC OWF_BLOCK_SIZE * OWF_ROUNDS
 
+#if defined(OWF_AES_CTR)
+
 void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     for (size_t bit_i = 0; bit_i < SECURITY_PARAM; ++bit_i) {
         output[bit_i] = quicksilver_get_witness_vec(state, bit_i);
@@ -92,7 +94,6 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
 
 void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* round_key_bytes) {
-#if defined(OWF_AES_CTR)
     quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
     key_sched_fwd(state, round_key_bits);
     key_sched_bkwd(state, round_key_bits, key_schedule_inv_outs);
@@ -129,8 +130,25 @@ void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_
             }
         }
     }
-#endif
 }
+
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+
+void load_fixed_round_key(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
+        quicksilver_vec_gfsecpar* round_key_bytes, const rijndael_round_keys* fixed_key) {
+    const uint8_t* rk_bytes = (const uint8_t*) fixed_key;
+    // load the round keys into quicksilver values
+    for (size_t byte_j = 0; byte_j < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_j) {
+        for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
+            round_key_bits[8 * byte_j + bit_i] = quicksilver_const_gf2(state, poly1_load(rk_bytes[byte_j], bit_i));
+        }
+        round_key_bytes[byte_j] = quicksilver_combine_8_bits(state, &round_key_bits[8 * byte_j]);
+    }
+}
+
+#else
+#error "undefined OWF"
+#endif
 
 void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output) {
     const uint8_t* in_bytes = (uint8_t*)&in;
@@ -229,10 +247,15 @@ void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_
 
 ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
 {
-	// TODO
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
+#if defined(OWF_AES_CTR)
     key_sched_constraints(state, round_key_bits, round_key_bytes);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
+#else
+#error "unsupported OWF"
+#endif
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
     }
