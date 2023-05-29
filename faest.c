@@ -77,7 +77,6 @@ bool faest_compute_witness(secret_key* sk)
 	for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
 		sk->pk.owf_output[i] = owf_block_xor(owf_block_set_low32(i), key0_combined);
 
-	// TODO: pack witness into sk->witness.
 	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round, w_ptr += sizeof(owf_block))
 	{
 		for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)

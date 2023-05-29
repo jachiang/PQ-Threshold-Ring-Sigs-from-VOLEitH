@@ -8,14 +8,13 @@
 
 // TODO: probably can ditch most of the "restrict"s in inlined functions.
 
-// Two different methods for efficiently reducing the PRG outputs to a single value:
-//
-// - Divide and conquer algorithm.
-// - Straight-line method based on Gray's code. (TODO: figure out what paper I got this from.)
-//
-// This implementation combines these two methods. Divide and conquer is used at the lowest level,
-// as it is inherently parallel and has a fixed access pattern when unrolled. Above it, the Gray's
-// code method is used, as it needs very little temporary storage.
+// There are two different methods for efficiently reducing the PRG outputs (equivalent to computing
+// a Hamming code syndrome): Divide and conquer, and a straight-line method based on Gray's code.
+// These are both transposes of Hadamard encoding circuits given in "the Exact Lower Bounds of
+// Encoding Circuit Sizes of Hamming Codes and Hadamard Codes". This implementation combines these
+// two methods. Divide and conquer is used at the lowest level, as it is inherently parallel and has
+// a fixed access pattern when unrolled. Above it, the Gray's code method is used, as it needs very
+// little temporary storage.
 
 // Output: v (or q) in in_out[1, ..., depth], and u in in_out[0].
 static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
