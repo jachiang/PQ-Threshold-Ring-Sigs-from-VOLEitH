@@ -124,6 +124,7 @@ void vole_reconstruct(
 
 		leaves_iter += (size_t) 1 << k;
 		q += VOLE_COL_BLOCKS * k;
+		delta_bytes += k;
 	}
 
 	free(leaves);

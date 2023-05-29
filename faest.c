@@ -43,7 +43,6 @@ bool faest_compute_witness(secret_key* sk)
 {
 	uint8_t* w_ptr = (uint8_t*) &sk->witness;
 
-	// Extract witness for key schedule.
 	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
 	w_ptr += sizeof(sk->sk);
 
@@ -51,6 +50,7 @@ bool faest_compute_witness(secret_key* sk)
 	uint32_t prev_word;
 	memcpy(&prev_word, w_ptr - 4, 4);
 
+	// Extract witness for key schedule.
 	for (size_t i = SECURITY_PARAM / 8; i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1);
 	     i += OWF_KEY_SCHEDULE_PERIOD, w_ptr += 4)
 	{
@@ -76,9 +76,8 @@ bool faest_compute_witness(secret_key* sk)
 		sk->pk.owf_output[i] =
 			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    static_assert(OWF_BLOCKS == 1);
-    sk->pk.owf_output[0] =
-        owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+	static_assert(OWF_BLOCKS == 1);
+	sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 #endif
 
 	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
@@ -161,7 +160,7 @@ bool faest_sign(
 	hash_update(&hasher, &sk.sk, sizeof(sk.sk));
 	hash_update(&hasher, &mu, sizeof(mu));
 	if (random_seed)
-		hash_update(&hasher, &random_seed, random_seed_len);
+		hash_update(&hasher, random_seed, random_seed_len);
 	hash_update_byte(&hasher, 3);
 	hash_final(&hasher, &seed, sizeof(seed));
 
