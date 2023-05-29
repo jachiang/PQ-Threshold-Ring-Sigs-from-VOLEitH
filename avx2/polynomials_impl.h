@@ -969,6 +969,30 @@ inline poly256_vec poly256_from_8_poly256(const poly256_vec* polys)
 	return poly512_reduce256(out);
 }
 
+inline poly128_vec poly128_from_byte(uint8_t byte)
+{
+	poly1_vec bits[8];
+	for (size_t i = 0; i < 8; ++i)
+		bits[i] = poly1_set_all(expand_bit_to_byte(byte, i));
+	return poly128_from_8_poly1(bits);
+}
+
+inline poly192_vec poly192_from_byte(uint8_t byte)
+{
+	poly1_vec bits[8];
+	for (size_t i = 0; i < 8; ++i)
+		bits[i] = poly1_set_all(expand_bit_to_byte(byte, i));
+	return poly192_from_8_poly1(bits);
+}
+
+inline poly256_vec poly256_from_byte(uint8_t byte)
+{
+	poly1_vec bits[8];
+	for (size_t i = 0; i < 8; ++i)
+		bits[i] = poly1_set_all(expand_bit_to_byte(byte, i));
+	return poly256_from_8_poly1(bits);
+}
+
 inline bool poly64_eq(poly64_vec x, poly64_vec y)
 {
 #if POLY_VEC_LEN == 1
