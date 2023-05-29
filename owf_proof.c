@@ -212,7 +212,7 @@ void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
-    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1);
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
 
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar inv_outputs[S_ENC];
