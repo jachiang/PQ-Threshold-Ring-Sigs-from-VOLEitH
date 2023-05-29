@@ -63,7 +63,7 @@ static void vole_check_both(
 		// Apply inital padding.
 		if (padded_vole_rows - VOLE_ROWS >= SECURITY_PARAM)
 		{
-			size_t extra_blocks = (VOLE_ROWS - padded_vole_rows) / SECURITY_PARAM;
+			size_t extra_blocks = (padded_vole_rows - VOLE_ROWS) / SECURITY_PARAM;
 			uint8_t first_chunk[POLY_VEC_LEN * sizeof(block_secpar)];
 			memset(first_chunk, 0, extra_blocks * sizeof(block_secpar));
 			memcpy(first_chunk + extra_blocks * sizeof(block_secpar), to_hash,
