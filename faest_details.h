@@ -27,7 +27,7 @@ typedef struct
 	vole_block witness[WITNESS_BLOCKS];
 } secret_key;
 
-void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed);
+bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed);
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk);

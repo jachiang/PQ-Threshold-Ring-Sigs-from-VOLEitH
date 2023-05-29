@@ -10,7 +10,7 @@
 #include "vole_commit.h"
 
 
-void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
+bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 {
 	memcpy(&unpacked->pk.owf_input, packed, sizeof(unpacked->pk.owf_input));
 	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.owf_input), sizeof(unpacked->sk));
@@ -20,7 +20,8 @@ void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
-    faest_compute_witness(unpacked);
+
+	return faest_compute_witness(unpacked);
 }
 
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
@@ -117,8 +118,7 @@ bool faest_compute_witness(secret_key* sk)
 
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {
-	faest_unpack_secret_key(sk, sk_packed);
-	if (!faest_compute_witness(sk))
+	if (!faest_unpack_secret_key(sk, sk_packed))
 		return false;
 
 	faest_pack_public_key(pk_packed, &sk->pk);
@@ -311,8 +311,8 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	block_secpar delta_block;
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
-    public_key pk;
-    faest_unpack_public_key(&pk, pk_packed);
+	public_key pk;
+	faest_unpack_public_key(&pk, pk_packed);
 
 	quicksilver_state qs;
 	quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
