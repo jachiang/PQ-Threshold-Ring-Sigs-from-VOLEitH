@@ -12,6 +12,7 @@
 
 extern "C" {
 #define restrict __restrict__
+#include "faest.h"
 #include "polynomials.h"
 #include "quicksilver.h"
 }
@@ -227,5 +228,13 @@ struct quicksilver_test_state
         return {check_prover, check_verifier};
     }
 };
+
+inline void test_gen_keypair(unsigned char* pk, unsigned char* sk)
+{
+	do
+	{
+        std::generate(sk, sk + FAEST_SECRET_KEY_BYTES, rand<uint8_t>);
+	} while (!faest_pubkey(pk, sk));
+}
 
 #endif

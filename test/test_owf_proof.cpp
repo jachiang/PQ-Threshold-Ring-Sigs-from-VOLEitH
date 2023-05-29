@@ -5,6 +5,8 @@
 
 extern "C" {
 
+#include "api.h"
+#include "faest.h"
 #include "faest_details.h"
 #include "owf_proof.h"
 
@@ -13,22 +15,19 @@ extern "C" {
 #include "catch_amalgamated.hpp"
 
 
-#if defined(OWF_AES_CTR) && SECURITY_PARAM == 128
-
 TEST_CASE( "aes-ctr", "[owf proof]" ) {
-    const auto* input = AES_CTR_128_INPUT.data();
-    const auto* output = AES_CTR_128_OUTPUT.data();
-    const auto* witness = AES_CTR_128_EXTENDED_WITNESS.data();
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+    test_gen_keypair(packed_pk.data(), packed_sk.data());
+    public_key pk;
+    secret_key sk;
+    faest_unpack_secret_key(&sk, packed_sk.data());
+    faest_unpack_public_key(&pk, packed_pk.data());
 
     const auto delta = rand<block_secpar>();
-    REQUIRE( WITNESS_BITS == 1600 );
-    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS, witness, WITNESS_BITS, delta);
+    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.witness), WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
-
-    public_key pk;
-    memcpy(pk.owf_input, input, OWF_BLOCKS * OWF_BLOCK_SIZE);
-    memcpy(pk.owf_output, output, OWF_BLOCKS * OWF_BLOCK_SIZE);
 
     owf_constraints_prover(&qs_state_prover, &pk);
     owf_constraints_verifier(&qs_state_verifier, &pk);
@@ -36,5 +35,3 @@ TEST_CASE( "aes-ctr", "[owf proof]" ) {
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
 }
-
-#endif
