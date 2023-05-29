@@ -296,16 +296,11 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
-	vole_receiver_apply_correction(WITNESS_BLOCKS - (remainder != 0), SECURITY_PARAM,
-	                               (const vole_block*) correction, q, delta_bytes);
-	if (remainder)
-	{
-		vole_block last_correction = vole_block_set_zero();
-		memcpy(&last_correction, correction + (WITNESS_BLOCKS - 1) * sizeof(vole_block), remainder);
-		vole_receiver_apply_correction(1, SECURITY_PARAM,
-		                               &last_correction, q + (WITNESS_BLOCKS - 1), delta_bytes);
-	}
+	vole_block correction_blocks[WITNESS_BLOCKS];
+	memcpy(&correction_blocks, correction, WITNESS_BITS / 8);
+	memset(((uint8_t*) &correction_blocks) + WITNESS_BITS / 8, 0,
+	       sizeof(correction_blocks) - WITNESS_BITS / 8);
+	vole_receiver_apply_correction(WITNESS_BLOCKS, SECURITY_PARAM, correction_blocks, q, delta_bytes);
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
