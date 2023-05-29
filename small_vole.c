@@ -97,7 +97,7 @@ static ALWAYS_INLINE void vole(
 		i = VOLE_WIDTH;
 	}
 
-	for (; i < (1 << k); i += VOLE_WIDTH)
+	for (; i < (size_t) 1 << k; i += VOLE_WIDTH)
 	{
 		prg_vole_key prgs[VOLE_WIDTH];
 		prg_vole_iv ivs[VOLE_WIDTH];
