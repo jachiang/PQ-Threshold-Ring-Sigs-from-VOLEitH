@@ -194,6 +194,28 @@ inline quicksilver_vec_gfsecpar quicksilver_combine_8_bits(const quicksilver_sta
 	return out;
 }
 
+// load 8 consecutive bits from s into QS GF(2) values, then combine them into a GF(2^secpar) value
+// in the GF(2^8) subfield
+inline quicksilver_vec_gfsecpar quicksilver_const_8_bits(const quicksilver_state* state, const void* s)
+{
+    quicksilver_vec_gf2 input_bits[8];
+    for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
+        input_bits[bit_j] = quicksilver_const_gf2(state, poly1_load(s, bit_j));
+    }
+    return quicksilver_combine_8_bits(state, input_bits);
+}
+
+// load 8 consecutive bits from the witness and combine them into a GF(2^secpar) value in the
+// GF(2^8) subfield
+inline quicksilver_vec_gfsecpar quicksilver_get_witness_8_bits(const quicksilver_state* state, size_t bit_index)
+{
+    quicksilver_vec_gf2 input_bits[8];
+    for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
+        input_bits[bit_j] = quicksilver_get_witness_vec(state, bit_index + bit_j);
+    }
+    return quicksilver_combine_8_bits(state, input_bits);
+}
+
 // Add a constraint of the form x*y == 1.
 inline void quicksilver_add_product_constraints(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
 {
