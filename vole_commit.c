@@ -19,6 +19,7 @@ static void hash_hashed_leaves_all_same_size(
 		hash_state_x4 leaves_hasher;
 		hash_init_x4(&leaves_hasher);
 		hash_update_x4(&leaves_hasher, to_hash, num_leaves * sizeof(block_2secpar));
+		hash_update_x4_1_byte(&leaves_hasher, 1);
 		hash_final_x4_4(&leaves_hasher, &leaves_hashes[0], &leaves_hashes[1],
 		                &leaves_hashes[2], &leaves_hashes[3], sizeof(leaves_hashes[0]));
 
@@ -31,6 +32,7 @@ static void hash_hashed_leaves_all_same_size(
 		hash_state leaves_hasher;
 		hash_init(&leaves_hasher);
 		hash_update(&leaves_hasher, hashed_leaves, num_leaves * sizeof(block_2secpar));
+		hash_update_byte(&leaves_hasher, 1);
 		hash_final(&leaves_hasher, &leaves_hash, sizeof(leaves_hash));
 
 		hash_update(hasher, &leaves_hash, sizeof(leaves_hash));
@@ -46,6 +48,7 @@ static void hash_hashed_leaves(block_2secpar* hashed_leaves, uint8_t* restrict h
 	hash_hashed_leaves_all_same_size(
 		&hasher, hashed_leaves + ((size_t) VOLES_MAX_K << VOLE_MAX_K),
 		VOLES_MIN_K, (size_t) 1 << VOLE_MIN_K);
+	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, hash_of_hashes, VOLE_COMMIT_CHECK_SIZE);
 }
 
@@ -60,9 +63,9 @@ void vole_commit(
 
 	hash_hashed_leaves(hashed_leaves, check);
 
-    block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
+	block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
 	prg_vole_fixed_key fixed_key;
-    vole_fixed_key_init(&fixed_key, fixed_key_iv);
+	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
 	vole_block correction[VOLE_COL_BLOCKS];
 	block_secpar* leaves_iter = leaves;
@@ -98,9 +101,9 @@ void vole_reconstruct(
 	hash_hashed_leaves(hashed_leaves, check);
 	free(hashed_leaves);
 
-    block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
+	block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
 	prg_vole_fixed_key fixed_key;
-    vole_fixed_key_init(&fixed_key, fixed_key_iv);
+	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
 	vole_block correction[VOLE_COL_BLOCKS];
 	if (VOLE_COL_BLOCKS * sizeof(vole_block) != VOLE_ROWS / 8)

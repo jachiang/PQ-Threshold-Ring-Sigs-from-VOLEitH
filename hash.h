@@ -28,6 +28,11 @@ inline int hash_update(hash_state* ctx, const void* input, size_t bytes)
 	return Keccak_HashUpdate(ctx, (const uint8_t*) input, bytes * 8);
 }
 
+inline int hash_update_byte(hash_state* ctx, uint8_t b)
+{
+	return hash_update(ctx, &b, 1);
+}
+
 inline int hash_final(hash_state* ctx, void* digest, size_t bytes)
 {
 	int ret = Keccak_HashFinal(ctx, NULL);
@@ -70,6 +75,11 @@ inline void hash_update_x4_1(hash_state_x4* ctx, const void* data, size_t size)
 	hash_update_x4_4(ctx, data, data, data, data, size);
 }
 
+inline void hash_update_x4_1_byte(hash_state_x4* ctx, uint8_t b)
+{
+	hash_update_x4_1(ctx, &b, 1);
+}
+
 inline void hash_init_prefix_x4(hash_state_x4* ctx, const uint8_t prefix)
 {
 	hash_init_x4(ctx);
@@ -110,6 +120,7 @@ inline void shake_prg(
 		hash_state_x4 hasher;
 		hash_init_x4(&hasher);
 		hash_update_x4(&hasher, key_arr, sizeof(keys[i]));
+		hash_update_x4_1_byte(&hasher, 0);
 		hash_final_x4(&hasher, output_arr, num_bytes);
 	}
 
@@ -118,6 +129,7 @@ inline void shake_prg(
 		hash_state hasher;
 		hash_init(&hasher);
 		hash_update(&hasher, &keys[i], sizeof(keys[i]));
+		hash_update_byte(&hasher, 0);
 		hash_final(&hasher, output + i * num_bytes, num_bytes);
 	}
 }

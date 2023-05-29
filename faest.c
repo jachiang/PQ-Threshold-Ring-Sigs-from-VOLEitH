@@ -140,8 +140,6 @@ bool faest_sign(
 	if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
 		return false;
 
-	// TODO: Domain separation.
-
 	// TODO: Do we need to domain separate by the faest parameters?
 
 	block_2secpar mu;
@@ -149,6 +147,7 @@ bool faest_sign(
 	hash_init(&hasher);
 	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
+	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
 
 	block_secpar seed;
@@ -157,6 +156,7 @@ bool faest_sign(
 	hash_update(&hasher, &mu, sizeof(mu));
 	if (random_seed)
 		hash_update(&hasher, &random_seed, random_seed_len);
+	hash_update_byte(&hasher, 3);
 	hash_final(&hasher, &seed, sizeof(seed));
 
 	block_secpar* forest =
@@ -176,6 +176,7 @@ bool faest_sign(
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
 	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
@@ -201,6 +202,7 @@ bool faest_sign(
 	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
 	hash_update(&hasher, correction, WITNESS_BITS / 8);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	block_secpar* macs =
@@ -227,6 +229,7 @@ bool faest_sign(
 	hash_update(&hasher, &chal2, sizeof(chal2));
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta, sizeof(block_secpar));
 
 	uint8_t delta_bytes[SECURITY_PARAM];
@@ -250,6 +253,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_init(&hasher);
 	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
+	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
 
 	const uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
@@ -273,6 +277,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
 	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
@@ -284,6 +289,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
 	hash_update(&hasher, correction, WITNESS_BITS / 8);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -318,6 +324,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_update(&hasher, &chal2, sizeof(chal2));
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta_check, sizeof(delta_check));
 
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;

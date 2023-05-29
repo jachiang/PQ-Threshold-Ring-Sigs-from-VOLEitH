@@ -126,6 +126,8 @@ static void vole_check_both(
 
 	if (!verifier)
 		memcpy(proof, &u_hash[0], VOLE_CHECK_HASH_BYTES);
+
+	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, check, VOLE_CHECK_CHECK_BYTES);
 }
 
