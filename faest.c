@@ -101,11 +101,11 @@ bool faest_compute_witness(secret_key* sk)
 #endif
 
 			if (round < OWF_ROUNDS)
-			{
 				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
-				w_ptr += sizeof(owf_block);
-			}
 		}
+
+		if (round < OWF_ROUNDS)
+			w_ptr += sizeof(owf_block);
 	}
 
 	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
