@@ -54,6 +54,7 @@ extern inline poly_secpar_vec poly_secpar_plus_64_reduce_secpar(poly_secpar_plus
 extern inline poly_secpar_plus_64_vec poly_secpar_plus_64_from_secpar(poly_secpar_vec x);
 extern inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x);
 extern inline poly_secpar_vec poly_secpar_from_64(poly64_vec x);
+extern inline bool poly_secpar_eq(poly_secpar_vec x, poly_secpar_vec y);
 extern inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index);
 extern inline poly_secpar_vec poly_secpar_from_byte(uint8_t byte);
 extern inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits);

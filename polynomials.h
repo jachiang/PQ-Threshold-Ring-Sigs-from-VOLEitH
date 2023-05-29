@@ -258,6 +258,10 @@ inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
 {
     return poly128_from_64(x);
 }
+inline bool poly_secpar_eq(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly128_eq(x, y);
+}
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly128_extract(x, index);
@@ -364,6 +368,10 @@ inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
 {
     return poly192_from_128(poly128_from_64(x));
 }
+inline bool poly_secpar_eq(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly192_eq(x, y);
+}
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
     return poly192_extract(x, index);
@@ -469,6 +477,10 @@ inline poly_2secpar_vec poly_2secpar_from_secpar(poly_secpar_vec x)
 inline poly_secpar_vec poly_secpar_from_64(poly64_vec x)
 {
     return poly256_from_128(poly128_from_64(x));
+}
+inline bool poly_secpar_eq(poly_secpar_vec x, poly_secpar_vec y)
+{
+	return poly256_eq(x, y);
 }
 inline poly_secpar_vec poly_secpar_extract(poly_secpar_vec x, size_t index)
 {
