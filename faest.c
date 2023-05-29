@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "owf_proof.h"
 #include "small_vole.h"
+#include "vole_commit.h"
 
 
 void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)

@@ -3,26 +3,8 @@
 
 #include "aes.h"
 #include "block.h"
-
-#if defined(OWF_AES_CTR)
-
-#define OWF_OUTPUT_BLOCKS ((SECURITY_PARAM + 127) / 128)
-typedef block128 owf_block;
-inline owf_block owf_block_xor(owf_block x, owf_block y) { return block128_xor(x, y); }
-inline owf_block owf_block_set_low32(uint32_t x) { return block128_set_low32(x); }
-inline bool owf_block_any_zeros(owf_block x) { return block128_any_zeros(x); }
-
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-
-#define OWF_OUTPUT_BLOCKS 1
-typedef block_secpar owf_block;
-inline owf_block owf_block_xor(owf_block x, owf_block y) { return block_secpar_xor(x, y); }
-inline owf_block owf_block_set_low32(uint32_t x) { return block_secpar_set_low32(x); }
-inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x); }
-
-#else
-#error Unsupported OWF configuration.
-#endif
+#include "owf_proof.h"
+#include "vole_params.h"
 
 typedef struct
 {
