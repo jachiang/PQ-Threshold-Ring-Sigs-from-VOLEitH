@@ -18,7 +18,7 @@ void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 #if defined(OWF_AES_CTR)
 	aes_keygen(&unpacked->round_keys, unpacked->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input);
+	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
 }
 
@@ -33,7 +33,7 @@ void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 	memcpy(&unpacked->owf_input, packed, sizeof(unpacked->owf_input));
 	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->owf_input), sizeof(unpacked->owf_output));
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(&unpacked->fixed_key, unpacked->owf_input);
+	rijndael_keygen(&unpacked->fixed_key, unpacked->owf_input[0]);
 #endif
 }
 

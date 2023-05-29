@@ -11,7 +11,7 @@ typedef struct public_key
 #if defined(OWF_AES_CTR)
 	owf_block owf_input[OWF_BLOCKS];
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	block_secpar owf_input;
+	block_secpar owf_input[1];
 	rijndael_round_keys fixed_key;
 #endif
 	owf_block owf_output[OWF_BLOCKS];
