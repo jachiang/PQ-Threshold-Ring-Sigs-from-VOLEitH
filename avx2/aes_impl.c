@@ -528,8 +528,8 @@ void rijndael192_round_function(
 		state[1] = block128_xor(state_after_sbox[1], round_key[1]);
 	}
 
-	memcpy(after_sbox, &state_after_sbox[0], sizeof(after_sbox));
-	memcpy(block, &state[0], sizeof(block));
+	memcpy(after_sbox, &state_after_sbox[0], sizeof(*after_sbox));
+	memcpy(block, &state[0], sizeof(*block));
 }
 
 void rijndael256_round_function(
@@ -537,8 +537,8 @@ void rijndael256_round_function(
 	block256* restrict after_sbox, int round)
 {
 	block128 state[2], state_after_sbox[2], round_key[2];
-	memcpy(&state[0], block, sizeof(block256));
-	memcpy(&round_key[0], &round_keys->keys[round], sizeof(block256));
+	memcpy(&state[0], block, sizeof(*block));
+	memcpy(&round_key[0], &round_keys->keys[round], sizeof(round_key));
 
 	// Use AES-NI to implement the round function.
 	rijndael256_rotate_rows_undo_128(&state[0]);
@@ -556,6 +556,6 @@ void rijndael256_round_function(
 		state[1] = block128_xor(state_after_sbox[1], round_key[1]);
 	}
 
-	memcpy(after_sbox, &state_after_sbox[0], sizeof(after_sbox));
-	memcpy(block, &state[0], sizeof(block));
+	memcpy(after_sbox, &state_after_sbox[0], sizeof(*after_sbox));
+	memcpy(block, &state[0], sizeof(*block));
 }
