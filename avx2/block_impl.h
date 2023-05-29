@@ -146,7 +146,7 @@ inline bool block192_any_zeros(block192 x)
 {
 	block256 b = block256_set_zero();
 	memcpy(&b, &x, sizeof(x));
-	return _mm256_movemask_epi8(_mm256_cmpeq_epi8(b, _mm256_setzero_si256())) & 0x00fffffff;
+	return _mm256_movemask_epi8(_mm256_cmpeq_epi8(b, _mm256_setzero_si256())) & 0x00ffffff;
 }
 
 #define VOLE_BLOCK_SHIFT 1
