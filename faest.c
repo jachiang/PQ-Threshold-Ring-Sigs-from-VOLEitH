@@ -108,6 +108,7 @@ bool faest_compute_witness(secret_key* sk)
 			w_ptr += sizeof(owf_block);
 	}
 
+	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
 	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
 	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 
