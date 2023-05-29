@@ -79,7 +79,7 @@ bool faest_compute_witness(secret_key* sk)
 			owf_block_xor(sk->pk.fixed_key.keys[0], owf_block_xor(owf_block_set_low32(i), sk->sk));
 #endif
 
-	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round, w_ptr += sizeof(owf_block))
+	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
 	{
 		for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		{
@@ -103,8 +103,12 @@ bool faest_compute_witness(secret_key* sk)
 			if (round < OWF_ROUNDS)
 				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
 		}
+
+		if (round < OWF_ROUNDS)
+			w_ptr += sizeof(owf_block);
 	}
 
+	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
 	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
