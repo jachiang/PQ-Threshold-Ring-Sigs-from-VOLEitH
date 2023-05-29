@@ -193,17 +193,17 @@ ALWAYS_INLINE void aes_keygen_impl(
 	aes_keygen_init(keygen_states, aeses, keys, num_keys);
 
 #if SECURITY_PARAM == 128
-	size_t round_start = 1;
-	size_t round_end = AES_ROUNDS - 1;
-	size_t unroll_rounds = 1;
+	int round_start = 1;
+	int round_end = AES_ROUNDS - 1;
+	int unroll_rounds = 1;
 #elif SECURITY_PARAM == 192
-	size_t round_start = 1;
-	size_t round_end = AES_ROUNDS - 1;
-	size_t unroll_rounds = 3;
+	int round_start = 1;
+	int round_end = AES_ROUNDS - 1;
+	int unroll_rounds = 3;
 #elif SECURITY_PARAM == 256
-	size_t round_start = 2;
-	size_t round_end = AES_ROUNDS - 2;
-	size_t unroll_rounds = 2;
+	int round_start = 2;
+	int round_end = AES_ROUNDS - 2;
+	int unroll_rounds = 2;
 #endif
 
 	for (size_t l = 0; l < num_keys; ++l)
