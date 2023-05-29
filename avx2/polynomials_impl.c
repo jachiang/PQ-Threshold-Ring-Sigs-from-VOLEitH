@@ -4,7 +4,7 @@
 
 
 extern inline poly1_vec poly1_set_all(uint8_t x);
-extern inline poly1_vec poly1_load(unsigned long s, unsigned int bit_offset);
+extern inline poly1_vec poly1_load(unsigned long x, unsigned int bit_offset);
 extern inline poly1_vec poly1_load_offset8(const void* s, unsigned int bit_offset);
 extern inline poly64_vec poly64_load(const void* s);
 extern inline poly128_vec poly128_load(const void* s);
@@ -66,6 +66,10 @@ extern inline poly512_vec poly512_shift_left_1(poly512_vec x);
 extern inline poly256_vec poly256_shift_left_8(poly256_vec x);
 extern inline poly384_vec poly384_shift_left_8(poly384_vec x);
 extern inline poly512_vec poly512_shift_left_8(poly512_vec x);
+extern inline poly64_vec poly64_set_zero();
+extern inline poly128_vec poly128_set_zero();
+extern inline poly192_vec poly192_set_zero();
+extern inline poly256_vec poly256_set_zero();
 extern inline poly128_vec poly128_set_low32(uint32_t x);
 extern inline poly64_vec poly64_set_low32(uint32_t x);
 extern inline poly192_vec poly192_set_low32(uint32_t x);
@@ -100,6 +104,9 @@ extern inline bool poly256_eq(poly256_vec x, poly256_vec y);
 extern inline bool poly320_eq(poly320_vec x, poly320_vec y);
 extern inline bool poly384_eq(poly384_vec x, poly384_vec y);
 extern inline bool poly512_eq(poly512_vec x, poly512_vec y);
+extern inline poly64_vec poly64_extract(poly64_vec x, size_t index);
 extern inline poly128_vec poly128_extract(poly128_vec x, size_t index);
 extern inline poly192_vec poly192_extract(poly192_vec x, size_t index);
 extern inline poly256_vec poly256_extract(poly256_vec x, size_t index);
+extern inline poly384_vec poly384_extract(poly384_vec x, size_t index);
+extern inline poly512_vec poly512_extract(poly512_vec x, size_t index);

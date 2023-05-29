@@ -1,6 +1,6 @@
 #COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native # Benchmark
 #COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native -ggdb -fsanitize=address # Debug Fast
-COMMON_LD_FLAGS ?= -Og -march=native -mtune=native -ggdb -fsanitize=address -fsanitize=undefined # Debug Slow # TODO: Use -O0 once all extern inline have been defined.
+COMMON_LD_FLAGS ?= -O0 -march=native -mtune=native -ggdb -fsanitize=address -fsanitize=undefined # Debug Slow
 COMMON_CC_FLAGS ?= -pedantic-errors -Wall -Wextra -Wno-ignored-attributes $(COMMON_LD_FLAGS)
 
 CPPFLAGS += -MMD -MP -MF $*.d

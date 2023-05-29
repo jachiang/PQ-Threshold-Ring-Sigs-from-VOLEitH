@@ -249,3 +249,11 @@ void owf_constraints_verifier(quicksilver_state* state, const public_key* pk)
 	assert(state->verifier);
 	owf_constraints(state, pk);
 }
+
+
+extern inline owf_block owf_block_xor(owf_block x, owf_block y);
+extern inline owf_block owf_block_set_low32(uint32_t x);
+extern inline bool owf_block_any_zeros(owf_block x);
+extern inline owf_block owf_block_xor(owf_block x, owf_block y);
+extern inline owf_block owf_block_set_low32(uint32_t x);
+extern inline bool owf_block_any_zeros(owf_block x);
