@@ -88,7 +88,6 @@ $(1)/% : %.in | $(1)/
 	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),$(if $(findstring 128,$(security_param)),128,256)),\
 	$(let sk_bytes,$(shell expr "(" $(security_param) "+" $(iv_bits) ")" "/" 8),\
 	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),64,$(sk_bytes)),\
-	$(let sig_bytes,$(shell python3 scripts/get_signature_size.py $(security_param) $(tau) $(owf_letter)),\
 	sed $(foreach substitution,\
 		"%VERSION%/$(name)"\
 		"%SECURITY_PARAM%/$(security_param)"\
@@ -99,10 +98,10 @@ $(1)/% : %.in | $(1)/
 		"%TAU%/$(tau)"
 		"%SECRETKEYBYTES%/$(sk_bytes)"\
 		"%PUBLICKEYBYTES%/$(pk_bytes)"\
-		"%SIGBYTES%/$(sig_bytes)",\
+		,\
 		-e "s/"$(substitution)"/g" \
-	) $$< > $$@ \
-	)))))
+	) -e "s/%SIGBYTES%/`python3 scripts/get_signature_size.py $(security_param) $(tau) $(owf_letter)`/g" $$< > $$@ \
+	))))
 endef
 
 
