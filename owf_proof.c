@@ -220,7 +220,7 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
                                 round_key_bits[last_round_key_bit_offset + 8 * inv_shifted_index + bit_i]);
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
                         witness_bits[bit_i] = quicksilver_add_gf2(state, witness_bits[bit_i],
-                                quicksilver_get_witness_vec(state, 32 * col_j + 8 * row_k + bit_i));
+                                quicksilver_get_witness_vec(state, 8 * inv_shifted_index + bit_i));
 #endif
                     }
                 }
@@ -270,14 +270,15 @@ ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* p
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #if defined(OWF_AES_CTR)
     key_sched_constraints(state, round_key_bits, round_key_bytes);
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
-#else
-#error "unsupported OWF"
-#endif
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
     }
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0]);
+#else
+#error "unsupported OWF"
+#endif
 }
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk)
