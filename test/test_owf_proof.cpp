@@ -15,7 +15,7 @@ extern "C" {
 #include "catch_amalgamated.hpp"
 
 
-TEST_CASE( "aes-ctr", "[owf proof]" ) {
+TEST_CASE( "owf proof", "[owf proof]" ) {
     std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
     test_gen_keypair(packed_pk.data(), packed_sk.data());
