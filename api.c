@@ -2,7 +2,6 @@
 #include "faest.h"
 #include <assert.h>
 #include <string.h>
-#include <stdio.h>
 
 static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES);
 static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES);
@@ -12,7 +11,6 @@ void randombytes(unsigned char *x, unsigned long long xlen);
 
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {
-	printf("%d", FAEST_SIGNATURE_BYTES);
 	do
 	{
 		randombytes(sk, FAEST_SECRET_KEY_BYTES);
