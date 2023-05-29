@@ -77,7 +77,7 @@ static void vole_check_both(
 		}
 
 		// TODO: Maybe better to chunk the loop by HASHER_GFSECPAR_KEY_POWS.
-		for (; i < VOLE_ROWS; i += hasher_chunk_size)
+		for (; i + hasher_chunk_size <= VOLE_ROWS; i += hasher_chunk_size)
 		{
 			hasher_gfsecpar_update(&chal.hasher_key_secpar, &state_secpar, poly_secpar_load(to_hash + i / 8));
 			for (size_t j = 0; j < hasher_chunk_size; j += POLY_VEC_LEN * 64)
@@ -85,6 +85,7 @@ static void vole_check_both(
 		}
 
 		assert(i == VOLE_ROWS - (VOLE_ROWS % SECURITY_PARAM));
+		i = VOLE_ROWS - (VOLE_ROWS % SECURITY_PARAM); // Let the compiler know it's constant.
 
 		// Apply final padding.
 		if (VOLE_ROWS % SECURITY_PARAM)
