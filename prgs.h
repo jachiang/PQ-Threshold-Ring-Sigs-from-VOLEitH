@@ -70,7 +70,11 @@
 	{ \
 		/* This PRG is only used to generate leafs of size 3*secpar, which */ \
 		/* should be small enough * that it's handled by just prg_init. */ \
-		assert(0); \
+		(void) prgs; \
+		(void) fixed_key; \
+		(void) counter; \
+		(void) output; \
+		assert(num_keys == 0 || num_blocks == 0); \
 	}
 
 #if defined(PRG_AES_CTR)
