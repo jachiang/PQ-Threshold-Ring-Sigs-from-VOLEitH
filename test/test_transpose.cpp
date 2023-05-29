@@ -1,4 +1,5 @@
 #include <array>
+#include <bitset>
 
 #include "test.hpp"
 
@@ -93,4 +94,41 @@ TEST_CASE( "transpose 2x2 128", "[transpose]" ) {
     memcpy(in.data(), transpose2x2_128_in.data(), sizeof(in));
     transpose2x2_128(out.data(), in[0], in[1]);
     REQUIRE( memcmp(&out, &transpose2x2_128_out, sizeof(transpose2x2_128_out)) == 0 );
+}
+
+void print_bit_matrix(const uint8_t* mat, size_t stride, size_t rows, size_t cols)
+{
+	for (size_t i = 0; i < rows; ++i)
+	{
+		for (size_t j = 0; j < cols / 8; ++j)
+		{
+			std::bitset<8> byte = mat[i * stride + j];
+			std::string str = byte.to_string();
+			std::reverse(str.begin(), str.end());
+			std::cout << str;
+		}
+		std::cout << '\n';
+	}
+}
+
+TEST_CASE( "transpose 1536x" STRINGIZE(SECURITY_PARAM), "[transpose]" ) {
+	size_t rows = 1536;
+	auto in = random_vector<uint8_t>(1536 * SECURITY_PARAM / 8);
+    std::vector<uint8_t> out1(in.size(), 0);
+    std::vector<uint8_t> out2(in.size(), 0);
+
+	for (size_t i = 0; i < rows; ++i)
+		for (size_t j = 0; j < SECURITY_PARAM; ++j)
+			out1[(i * SECURITY_PARAM + j) / 8] |= ((in[(j * rows + i) / 8] >> i % 8) & 1) << j % 8;
+
+    transpose_secpar(in.data(), out2.data(), rows / 8, rows);
+
+	//print_bit_matrix(in.data(), rows / 8, 64, 64);
+	//std::cout << '\n';
+	//print_bit_matrix(out1.data(), SECURITY_PARAM / 8, 64, 64);
+	//std::cout << '\n';
+	//print_bit_matrix(out2.data(), SECURITY_PARAM / 8, 64, 64);
+	//std::cout << '\n';
+
+    REQUIRE( memcmp(out1.data(), out2.data(), sizeof(out2.size())) == 0 );
 }
