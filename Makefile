@@ -85,9 +85,9 @@ endef
 define config-recipe
 $(1)/% : %.in | $(1)/
 	$(let name security_param owf owf_letter prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
-	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),128),\
+	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),$(if $(findstring 128,$(security_param)),128,256)),\
 	$(let sk_bytes,$(shell expr "(" $(security_param) "+" $(iv_bits) ")" "/" 8),\
-	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),48,$(sk_bytes)),\
+	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),64,$(sk_bytes)),\
 	$(let sig_bytes,$(shell python3 scripts/get_signature_size.py $(security_param) $(tau) $(owf_letter)),\
 	sed $(foreach substitution,\
 		"%VERSION%/$(name)"\

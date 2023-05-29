@@ -10,7 +10,7 @@
 #include "vole_commit.h"
 
 #if defined(OWF_AES_CTR)
-#define FAEST_IV_BYTES 16
+#define FAEST_IV_BYTES (OWF_BLOCKS * OWF_BLOCK_SIZE)
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 #define FAEST_IV_BYTES (SECURITY_PARAM / 8)
 #endif

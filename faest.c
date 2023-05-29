@@ -12,28 +12,28 @@
 
 void faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 {
-	memcpy(&unpacked->pk.iv, packed, sizeof(unpacked->pk.iv));
-	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.iv), sizeof(unpacked->sk));
+	memcpy(&unpacked->pk.owf_input, packed, sizeof(unpacked->pk.owf_input));
+	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.owf_input), sizeof(unpacked->sk));
 
 #if defined(OWF_AES_CTR)
 	aes_keygen(&unpacked->round_keys, unpacked->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.iv);
+	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input);
 #endif
 }
 
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
 {
-	memcpy(packed, &unpacked->iv, sizeof(unpacked->iv));
-	memcpy(packed + sizeof(unpacked->iv), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
+	memcpy(packed, &unpacked->owf_input, sizeof(unpacked->owf_input));
+	memcpy(packed + sizeof(unpacked->owf_input), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
 }
 
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 {
-	memcpy(&unpacked->iv, packed, sizeof(unpacked->iv));
-	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->iv), sizeof(unpacked->owf_output));
+	memcpy(&unpacked->owf_input, packed, sizeof(unpacked->owf_input));
+	memcpy(&unpacked->owf_output[0], packed + sizeof(unpacked->owf_input), sizeof(unpacked->owf_output));
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(&unpacked->fixed_key, unpacked->iv);
+	rijndael_keygen(&unpacked->fixed_key, unpacked->owf_input);
 #endif
 }
 
@@ -76,7 +76,12 @@ bool faest_compute_witness(secret_key* sk)
 #endif
 
 	for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
-		sk->pk.owf_output[i] = owf_block_xor(owf_block_set_low32(i), key0_combined);
+		sk->pk.owf_output[i] =
+#if defined(OWF_AES_CTR)
+			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+			owf_block_xor(sk->pk.fixed_key.keys[0], owf_block_xor(owf_block_set_low32(i), sk->sk));
+#endif
 
 	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round, w_ptr += sizeof(owf_block))
 	{

@@ -9,9 +9,9 @@
 typedef struct
 {
 #if defined(OWF_AES_CTR)
-	block128 iv;
+	owf_block owf_input[OWF_OUTPUT_BLOCKS];
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	block_secpar iv;
+	block_secpar owf_input;
 	rijndael_round_keys fixed_key;
 #endif
 	owf_block owf_output[OWF_OUTPUT_BLOCKS];
