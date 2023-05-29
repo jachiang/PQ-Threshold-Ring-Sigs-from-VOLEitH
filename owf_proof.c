@@ -5,8 +5,9 @@
 #include "owf_proof.h"
 #include "quicksilver.h"
 
+#define NUM_COLS (OWF_BLOCK_SIZE / 4)
 #define N_WD (SECURITY_PARAM / 32)
-#define S_ENC OWF_BLOCK_SIZE * OWF_ROUNDS
+#define S_ENC (OWF_BLOCK_SIZE * OWF_ROUNDS)
 
 #if defined(OWF_AES_CTR)
 
@@ -175,7 +176,7 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
     size_t round_key_byte_offset = OWF_BLOCK_SIZE;
     size_t output_byte_offset = OWF_BLOCK_SIZE;
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
-        for (size_t col_j = 0; col_j < 4; ++col_j) {
+        for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             quicksilver_vec_gfsecpar col_wit_bytes[4];
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
@@ -202,10 +203,19 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
     const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
 
     for (size_t round_i = 0; round_i < OWF_ROUNDS; ++round_i, witness_bit_offset += OWF_BLOCK_SIZE * 8) {
-        for (size_t col_j = 0; col_j < 4; ++col_j) {
+        for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 quicksilver_vec_gf2 witness_bits[8];
-                size_t inv_shifted_index = 4 * ((col_j - row_k) & 3) + row_k;
+#if OWF_BLOCK_SIZE == 32
+                size_t inv_shifted_index;
+                if (row_k == 3) {
+                    inv_shifted_index = 4 * ((col_j + NUM_COLS - 4) % NUM_COLS) + 3;
+                } else {
+                    inv_shifted_index = 4 * ((col_j + NUM_COLS - row_k) % NUM_COLS) + row_k;
+                }
+#else
+                size_t inv_shifted_index = 4 * ((col_j + NUM_COLS - row_k) % NUM_COLS) + row_k;
+#endif
                 if (round_i < OWF_ROUNDS - 1) {
                     // read witness bits directly
                     for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
