@@ -6,6 +6,7 @@
 #include "quicksilver.h"
 
 #define N_WD (SECURITY_PARAM / 32)
+#define S_ENC OWF_BLOCK_SIZE * OWF_ROUNDS
 
 void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     for (size_t bit_i = 0; bit_i < SECURITY_PARAM; ++bit_i) {
@@ -131,14 +132,54 @@ void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_
 #endif
 }
 
-void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in) {
+void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output) {
+    const uint8_t* in_bytes = (uint8_t*)&in;
+
+    // first round: only add the round key
+    for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
+        quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
+        output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
+    }
+
+    const poly_secpar_vec c_two = poly_secpar_from_byte(0x02);
+    const poly_secpar_vec c_three = poly_secpar_from_byte(0x03);
+
+    size_t round_key_byte_offset = OWF_BLOCK_SIZE;
+    size_t output_byte_offset = OWF_BLOCK_SIZE;
+    for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
+        quicksilver_vec_gfsecpar col_rk_bytes[4];
+        quicksilver_vec_gfsecpar col_wit_bytes[4];
+        for (size_t row_k = 0; row_k < 4; ++row_k) {
+            col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
+            col_rk_bytes[round_key_byte_offset + row_k];
+        }
+        for (size_t row_k = 0; row_k < 4; ++row_k) {
+            output[output_byte_offset + row_k] =
+                quicksilver_add_gfsecpar(state,
+                    quicksilver_mul_const(state, col_wit_bytes[row_k], c_two),
+                    quicksilver_add_gfsecpar(state,
+                        quicksilver_mul_const(state, col_wit_bytes[(row_k + 1) % 4], c_three),
+                        quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
+                            quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4], col_rk_bytes[row_k]))));
+        }
+        witness_bit_offset += 32;
+        round_key_byte_offset += 4;
+        output_byte_offset += 4;
+   }
 }
 
-void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t block_num, owf_block out) {
+void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out) {
+    // TODO
 }
 
 void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+    // compute the starting index of the witness bits corresponding to the s-boxes in this round of
+    // encryption
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1);
+
+    quicksilver_vec_gfsecpar inv_inputs[S_ENC];
+    enc_fwd(state, round_key_bytes, witness_bit_offset, in, inv_inputs);
 }
 
 ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
