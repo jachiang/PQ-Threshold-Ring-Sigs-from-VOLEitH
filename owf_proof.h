@@ -24,7 +24,6 @@
 	       OWF_KEY_SCHEDULE_PERIOD - 1) / OWF_KEY_SCHEDULE_PERIOD))
 #define OWF_KEY_WITNESS_BITS (SECURITY_PARAM + 8 * OWF_KEY_SCHEDULE_CONSTRAINTS)
 
-#define OWF_OUTPUT_BLOCKS ((SECURITY_PARAM + 127) / 128)
 typedef block128 owf_block;
 inline owf_block owf_block_xor(owf_block x, owf_block y) { return block128_xor(x, y); }
 inline owf_block owf_block_set_low32(uint32_t x) { return block128_set_low32(x); }
@@ -45,7 +44,6 @@ inline bool owf_block_any_zeros(owf_block x) { return block128_any_zeros(x); }
 #define OWF_ROUNDS RIJNDAEL256_ROUNDS
 #endif
 
-#define OWF_OUTPUT_BLOCKS 1
 typedef block_secpar owf_block;
 inline owf_block owf_block_xor(owf_block x, owf_block y) { return block_secpar_xor(x, y); }
 inline owf_block owf_block_set_low32(uint32_t x) { return block_secpar_set_low32(x); }
@@ -56,13 +54,17 @@ inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x);
 #error "Unsupported one-way function."
 #endif
 
+
 #define OWF_NUM_CONSTRAINTS (OWF_BLOCKS * OWF_BLOCK_SIZE * OWF_ROUNDS + OWF_KEY_SCHEDULE_CONSTRAINTS)
 #define WITNESS_BITS (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1) + OWF_KEY_WITNESS_BITS)
 
 #include "aes.h"
 #include "quicksilver.h"
 
-void owf_constraints_prover(quicksilver_state* state);
-void owf_constraints_verifier(quicksilver_state* state);
+struct public_key;
+typedef struct public_key public_key;
+
+void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
+void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
 
 #endif

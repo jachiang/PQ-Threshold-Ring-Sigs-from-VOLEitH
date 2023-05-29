@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include "aes.h"
+#include "faest_details.h"
 #include "owf_proof.h"
 #include "quicksilver.h"
 
@@ -88,10 +89,9 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
     }
 }
 
-void key_sched_constraints(quicksilver_state* state) {
+void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
+        quicksilver_vec_gfsecpar* round_key_bytes) {
 #if defined(OWF_AES_CTR)
-    quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
-    quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
     key_sched_fwd(state, round_key_bits);
     key_sched_bkwd(state, round_key_bits, key_schedule_inv_outs);
@@ -131,20 +131,35 @@ void key_sched_constraints(quicksilver_state* state) {
 #endif
 }
 
-ALWAYS_INLINE void owf_constraints(quicksilver_state* state)
+void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in) {
+}
+
+void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t block_num, owf_block out) {
+}
+
+void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+}
+
+ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
 {
 	// TODO
-    key_sched_constraints(state);
+    quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
+    quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
+    key_sched_constraints(state, round_key_bits, round_key_bytes);
+    for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
+    }
 }
 
-void owf_constraints_prover(quicksilver_state* state)
+void owf_constraints_prover(quicksilver_state* state, const public_key* pk)
 {
 	assert(!state->verifier);
-	owf_constraints(state);
+	owf_constraints(state, pk);
 }
 
-void owf_constraints_verifier(quicksilver_state* state)
+void owf_constraints_verifier(quicksilver_state* state, const public_key* pk)
 {
 	assert(state->verifier);
-	owf_constraints(state);
+	owf_constraints(state, pk);
 }

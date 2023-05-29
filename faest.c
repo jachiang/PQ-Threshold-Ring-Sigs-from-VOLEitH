@@ -39,12 +39,6 @@ void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 
 bool faest_compute_witness(secret_key* sk)
 {
-#if defined(OWF_AES_CTR)
-	owf_block key0_combined = sk->round_keys.keys[0];
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	owf_block key0_combined = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
-#endif
-
 	uint8_t* w_ptr = (uint8_t*) &sk->witness;
 
 #if defined(OWF_AES_CTR)
@@ -75,7 +69,7 @@ bool faest_compute_witness(secret_key* sk)
 	}
 #endif
 
-	for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
+	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		sk->pk.owf_output[i] =
 #if defined(OWF_AES_CTR)
 			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
@@ -85,7 +79,7 @@ bool faest_compute_witness(secret_key* sk)
 
 	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round, w_ptr += sizeof(owf_block))
 	{
-		for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
+		for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		{
 			// The block is about to go into the SBox, so check for zeros.
 			if (owf_block_any_zeros(sk->pk.owf_output[i]))
@@ -113,7 +107,7 @@ bool faest_compute_witness(secret_key* sk)
 	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	for (uint32_t i = 0; i < OWF_OUTPUT_BLOCKS; ++i)
+	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 #endif
 
@@ -220,7 +214,7 @@ bool faest_sign(
 
 	quicksilver_state qs;
 	quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
-	owf_constraints_prover(&qs);
+	owf_constraints_prover(&qs, &sk.pk);
 
 	uint8_t* qs_proof = correction + WITNESS_BITS / 8;
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -316,9 +310,12 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	block_secpar delta_block;
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
+    public_key pk;
+    faest_unpack_public_key(&pk, pk_packed);
+
 	quicksilver_state qs;
 	quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
-	owf_constraints_verifier(&qs);
+	owf_constraints_verifier(&qs, &pk);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);

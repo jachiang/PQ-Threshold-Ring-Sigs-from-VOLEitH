@@ -6,15 +6,15 @@
 #include "owf_proof.h"
 #include "vole_params.h"
 
-typedef struct
+typedef struct public_key
 {
 #if defined(OWF_AES_CTR)
-	owf_block owf_input[OWF_OUTPUT_BLOCKS];
+	owf_block owf_input[OWF_BLOCKS];
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	block_secpar owf_input;
 	rijndael_round_keys fixed_key;
 #endif
-	owf_block owf_output[OWF_OUTPUT_BLOCKS];
+	owf_block owf_output[OWF_BLOCKS];
 } public_key;
 
 typedef struct
