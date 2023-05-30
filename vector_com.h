@@ -7,7 +7,7 @@
 #include "vole_params.h"
 
 #define VECTOR_COMMIT_LEAVES ((VOLES_MIN_K << VOLE_MIN_K) + (VOLES_MAX_K << VOLE_MAX_K))
-#define VECTOR_COMMIT_NODES (2 * (VECTOR_COMMIT_LEAVES - BITS_PER_WITNESS))
+#define VECTOR_COMMIT_NODES (2 * VECTOR_COMMIT_LEAVES - BITS_PER_WITNESS)
 #define VECTOR_OPEN_BITS (SECURITY_PARAM * SECURITY_PARAM + 2 * SECURITY_PARAM * BITS_PER_WITNESS)
 #define VECTOR_OPEN_SIZE (VECTOR_OPEN_BITS / 8)
 
@@ -21,7 +21,7 @@ void vector_commit(
 
 /// Create vector commitments given the roots instead of deriving the roots from a seed.
 /// Same interface as `vector_commit`, except that
-/// - `roots` is of length `2 * BITS_PER_WITNESS`
+/// - `roots` is of length `BITS_PER_WITNESS`
 /// - `fixed_key_tree` and `fixed_key_leaf` are initialized (if used)
 void vector_commit_from_roots(
     block_secpar* roots, block_secpar* restrict forest,
