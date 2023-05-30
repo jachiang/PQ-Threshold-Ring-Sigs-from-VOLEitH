@@ -398,10 +398,6 @@ TEST_CASE( "aes ctr", "[aes]" ) {
     for (size_t i = 0; i < num_keys; ++i) {
         std::array<std::array<uint8_t, 16>, AES_ROUNDS + 1> round_key_bytes = {0};
         memcpy(round_key_bytes.data(), &aeses[i], sizeof(round_key_bytes));
-        // remove the baked in IVs for the check
-        for (size_t j = 0; j < 16; ++j) {
-            round_key_bytes[0][j] ^= aes_ctr_ivs[i][j];
-        }
         REQUIRE( round_key_bytes == expected_aes_round_keys[i] );
 
         memcpy(&expected_output[i * 16 * 4], &expected_aes_ctr_output[i][0], 16 * 4);
