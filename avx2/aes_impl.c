@@ -502,7 +502,7 @@ void rijndael192_encrypt_block(
 	state[0] = _mm_aesenclast_si128(state[0], round_key[0]);
 	state[1] = _mm_aesenclast_si128(state[1], round_key[1]);
 
-	memcpy(block, &state[0], sizeof(block));
+	memcpy(block, &state[0], sizeof(*block));
 }
 
 void rijndael192_round_function(
