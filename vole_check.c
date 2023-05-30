@@ -112,6 +112,8 @@ static void vole_check_both(
 					poly_secpar_mul(chal.matrix[2 * j + 0], poly_hashes[0]),
 					poly_secpar_mul(chal.matrix[2 * j + 1], poly_hashes[1])));
 
+		// TODO: Load last VOLE_CHECK_HASH_BYTES bytes separately, to make it hiding.
+
 		block_secpar hash_output[2];
 		for (size_t j = 0; j < 2; ++j)
 			poly_secpar_store1((col == -1 ? u_hash : hash_output) + j, mapped_hashes[j]);
