@@ -79,8 +79,8 @@ TEST_CASE("vole_permute_key_index", "[small vole]") {
 }
 
 TEST_CASE("vole_permute_inv_increment", "[small vole]") {
-    for (size_t i = 0; i < (size_t) 1 << VOLE_MAX_K; ++i)
-        for (size_t offset = 1; offset <= VOLE_WIDTH; offset <<= 1)
+    for (size_t offset = 1; offset <= VOLE_WIDTH; offset <<= 1)
+        for (size_t i = 0; i < ((size_t) 1 << VOLE_MAX_K) - offset; ++i)
             REQUIRE((vole_permute_key_index_inv(i) ^ vole_permute_key_index_inv(i + offset)) ==
                     vole_permute_inv_increment(i, offset));
 }
