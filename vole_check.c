@@ -50,20 +50,20 @@ static void vole_check_both(
 		const uint8_t* to_hash = (const uint8_t*) (col == -1 ? u : vq + VOLE_COL_BLOCKS * col);
 
 		size_t hasher_chunk_size = POLY_VEC_LEN * SECURITY_PARAM;
-		size_t padded_vole_rows =
-			((VOLE_ROWS + hasher_chunk_size - 1) / hasher_chunk_size) * hasher_chunk_size;
+		size_t padded_rows =
+			((QUICKSILVER_ROWS + hasher_chunk_size - 1) / hasher_chunk_size) * hasher_chunk_size;
 
 		hasher_gfsecpar_state state_secpar;
 		hasher_gf64_state state_64;
-		hasher_gfsecpar_init_state(&state_secpar, padded_vole_rows / hasher_chunk_size);
-		hasher_gf64_init_state(&state_64, padded_vole_rows / (POLY_VEC_LEN * 64));
+		hasher_gfsecpar_init_state(&state_secpar, padded_rows / hasher_chunk_size);
+		hasher_gf64_init_state(&state_64, padded_rows / (POLY_VEC_LEN * 64));
 
 		size_t i = 0;
 
 		// Apply inital padding.
-		if (padded_vole_rows - VOLE_ROWS >= SECURITY_PARAM)
+		if (padded_rows - QUICKSILVER_ROWS >= SECURITY_PARAM)
 		{
-			size_t extra_blocks = (padded_vole_rows - VOLE_ROWS) / SECURITY_PARAM;
+			size_t extra_blocks = (padded_rows - QUICKSILVER_ROWS) / SECURITY_PARAM;
 			uint8_t first_chunk[POLY_VEC_LEN * sizeof(block_secpar)];
 			memset(first_chunk, 0, extra_blocks * sizeof(block_secpar));
 			memcpy(first_chunk + extra_blocks * sizeof(block_secpar), to_hash,
@@ -77,22 +77,22 @@ static void vole_check_both(
 		}
 
 		// TODO: Maybe better to chunk the loop by HASHER_GFSECPAR_KEY_POWS.
-		for (; i + hasher_chunk_size <= VOLE_ROWS; i += hasher_chunk_size)
+		for (; i + hasher_chunk_size <= QUICKSILVER_ROWS; i += hasher_chunk_size)
 		{
 			hasher_gfsecpar_update(&chal.hasher_key_secpar, &state_secpar, poly_secpar_load(to_hash + i / 8));
 			for (size_t j = 0; j < hasher_chunk_size; j += POLY_VEC_LEN * 64)
 				hasher_gf64_update(&chal.hasher_key_64, &state_64, poly64_load(to_hash + (i + j) / 8));
 		}
 
-		assert(i == VOLE_ROWS - (VOLE_ROWS % SECURITY_PARAM));
-		i = VOLE_ROWS - (VOLE_ROWS % SECURITY_PARAM); // Let the compiler know it's constant.
+		assert(i == QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM));
+		i = QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM); // Let the compiler know it's constant.
 
 		// Apply final padding.
-		if (VOLE_ROWS % SECURITY_PARAM)
+		if (QUICKSILVER_ROWS % SECURITY_PARAM)
 		{
 			uint8_t last_chunk[POLY_VEC_LEN * sizeof(block_secpar)];
-			memcpy(last_chunk, to_hash + i / 8, (VOLE_ROWS - i) / 8);
-			memset(last_chunk + (VOLE_ROWS - i) / 8, 0, sizeof(last_chunk) - (VOLE_ROWS - i) / 8);
+			memcpy(last_chunk, to_hash + i / 8, (QUICKSILVER_ROWS - i) / 8);
+			memset(last_chunk + (QUICKSILVER_ROWS - i) / 8, 0, sizeof(last_chunk) - (QUICKSILVER_ROWS - i) / 8);
 
 			hasher_gfsecpar_update(&chal.hasher_key_secpar, &state_secpar, poly_secpar_load(last_chunk));
 			for (size_t j = 0; j < hasher_chunk_size; j += POLY_VEC_LEN * 64)
@@ -112,11 +112,16 @@ static void vole_check_both(
 					poly_secpar_mul(chal.matrix[2 * j + 0], poly_hashes[0]),
 					poly_secpar_mul(chal.matrix[2 * j + 1], poly_hashes[1])));
 
-		// TODO: Load last VOLE_CHECK_HASH_BYTES bytes separately, to make it hiding.
-
-		block_secpar hash_output[2];
+		block_secpar hash_output_storage[2];
+		block_secpar* hash_output = col == -1 ? u_hash : hash_output_storage;
 		for (size_t j = 0; j < 2; ++j)
-			poly_secpar_store1((col == -1 ? u_hash : hash_output) + j, mapped_hashes[j]);
+			poly_secpar_store1(&hash_output[j], mapped_hashes[j]);
+
+		// Apply the mask so that this check will hide u.
+		block_secpar mask[2] = { block_secpar_set_zero(), block_secpar_set_zero() };
+		memcpy(mask, to_hash + QUICKSILVER_ROWS / 8, VOLE_CHECK_HASH_BYTES);
+		for (size_t j = 0; j < 2; ++j)
+			hash_output[j] = block_secpar_xor(hash_output[j], mask[j]);
 
 		if (verifier)
 			for (size_t j = 0; j < 2; ++j)

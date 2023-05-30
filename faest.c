@@ -211,11 +211,11 @@ bool faest_sign(
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	block_secpar* macs =
-		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
+		aligned_alloc(alignof(block_secpar), QUICKSILVER_ROWS_PADDED * sizeof(block_secpar));
 
 	memcpy(&u[0], &sk.witness[0], WITNESS_BITS / 8);
-	static_assert(VOLE_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0);
-	transpose_secpar(v, macs, VOLE_COL_STRIDE, VOLE_ROWS_PADDED);
+	static_assert(QUICKSILVER_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0);
+	transpose_secpar(v, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
 	free(v);
 
 	quicksilver_state qs;
