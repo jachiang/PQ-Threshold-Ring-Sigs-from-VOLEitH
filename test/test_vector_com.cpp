@@ -154,7 +154,7 @@ namespace tv128 {
     };
 }
 
-TEST_CASE( "compare against tv128", "[vec com]" ) {
+TEST_CASE( "compare against tv128", "[vector com]" ) {
     std::vector<block_secpar> roots(BITS_PER_WITNESS);
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
