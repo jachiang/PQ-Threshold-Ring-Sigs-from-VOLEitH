@@ -114,4 +114,18 @@ DEFINE_PRG_SHAKE(leaf)
 #undef DEFINE_PRG_AES_CTR
 #undef DEFINE_PRG_RIJNDAEL_FIXED_KEY_CTR
 
+inline void init_fixed_keys(
+	prg_tree_fixed_key* fixed_key_tree, prg_leaf_fixed_key* fixed_key_leaf,
+	block_secpar iv)
+{
+	(void) fixed_key_tree, (void) fixed_key_leaf, (void) iv;
+#if defined(TREE_PRG_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(fixed_key_tree, iv);
+#endif
+#if defined(LEAF_PRG_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(fixed_key_leaf, iv);
+#endif
+}
+
+
 #endif

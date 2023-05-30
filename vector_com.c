@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "util.h"
+#include "prgs.h"
 #include "small_vole.h"
+#include "util.h"
 
 // TODO: probably can ditch most of the "restrict"s in inlined functions.
 
@@ -17,19 +18,6 @@
 #define MAX_CHUNK_SIZE_SHIFT \
 	(LEAF_CHUNK_SIZE_SHIFT > TREE_CHUNK_SIZE_SHIFT ? LEAF_CHUNK_SIZE_SHIFT : TREE_CHUNK_SIZE_SHIFT)
 #define MAX_CHUNK_SIZE (LEAF_CHUNK_SIZE > TREE_CHUNK_SIZE ? LEAF_CHUNK_SIZE : TREE_CHUNK_SIZE)
-
-static void init_fixed_keys(
-	prg_tree_fixed_key* fixed_key_tree, prg_leaf_fixed_key* fixed_key_leaf,
-	block_secpar iv)
-{
-	(void) fixed_key_tree, (void) fixed_key_leaf, (void) iv;
-#if defined(TREE_PRG_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(fixed_key_tree, iv);
-#endif
-#if defined(LEAF_PRG_RIJNDAEL_EVEN_MANSOUR)
-	rijndael_keygen(fixed_key_leaf, iv);
-#endif
-}
 
 static ALWAYS_INLINE void copy_prg_output(
 	bool leaf, size_t n, uint32_t j, uint32_t num_blocks, size_t num_bytes,
