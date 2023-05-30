@@ -125,10 +125,10 @@ TEST_CASE( "transpose 1536x" STRINGIZE(SECURITY_PARAM), "[transpose]" ) {
 
 	//print_bit_matrix(in.data(), rows / 8, 64, 64);
 	//std::cout << '\n';
-	//print_bit_matrix(out1.data(), SECURITY_PARAM / 8, 64, 64);
+	//print_bit_matrix(out1.data(), SECURITY_PARAM / 8, 64, 128);
 	//std::cout << '\n';
-	//print_bit_matrix(out2.data(), SECURITY_PARAM / 8, 64, 64);
+	//print_bit_matrix(out2.data(), SECURITY_PARAM / 8, 64, 128);
 	//std::cout << '\n';
 
-    REQUIRE( memcmp(out1.data(), out2.data(), sizeof(out2.size())) == 0 );
+    REQUIRE( memcmp(out1.data(), out2.data(), out2.size()) == 0 );
 }

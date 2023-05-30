@@ -166,7 +166,8 @@ static ALWAYS_INLINE void transposeVxN(
 	#endif
 	for (unsigned int i_start = 3; i_start < 8; i_start += TRANSPOSE_CHUNK_SHIFT)
 	{
-		unsigned int i_end = i_start + 3 < 8 ? i_start + 3 : 8;
+		unsigned int i_end =
+			i_start + TRANSPOSE_CHUNK_SHIFT < 8 ? i_start + TRANSPOSE_CHUNK_SHIFT : 8;
 		for (size_t j_chunk = 0; j_chunk < TRANSPOSE_BITS_COLS; j_chunk += TRANSPOSE_CHUNK_SIZE)
 		{
 			#ifdef __GNUC__
