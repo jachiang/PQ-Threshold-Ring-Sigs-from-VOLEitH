@@ -125,9 +125,7 @@ ALWAYS_INLINE void rijndael256_round(
 ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_ctr_key* aes, uint32_t ctr)
 {
 	__uint128_t sum = aes->iv + ctr;
-	block128 b;
-	memcpy(&b, &sum, sizeof(sum));
-	return block128_byte_reverse(b);
+	return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
 }
 
 inline block128 aes_ctr_prepare_iv(block128 iv)
