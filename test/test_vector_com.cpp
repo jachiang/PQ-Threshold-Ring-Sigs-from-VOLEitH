@@ -488,7 +488,7 @@ namespace tv256 {
 
 #endif
 
-#if ((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 32)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 48)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 52))
+#if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 32)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 48)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 52)))
 
 TEST_CASE( "compare against tv", "[vector com]" ) {
     INFO( "SECURITY_PARAM = " << SECURITY_PARAM );
