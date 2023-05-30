@@ -19,6 +19,15 @@ void vector_commit(
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
+/// Create vector commitments given the roots instead of deriving the roots from a seed.
+/// Same interface as `vector_commit`, except that
+/// - `roots` is of length `2 * BITS_PER_WITNESS`
+/// - `fixed_key_tree` and `fixed_key_leaf` are initialized (if used)
+void vector_commit_from_roots(
+    block_secpar* roots, block_secpar* restrict forest,
+    block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves,
+    const prg_tree_fixed_key* fixed_key_tree, const prg_leaf_fixed_key* fixed_key_leaf);
+
 // Using decommitment data from vector_commit, open at delta. delta is represented as SECURITY_PARAM
 // bytes, each 0 or 0xff, with each segment (corresponding to a single VOLE) ordered in little
 // endian. opening must be VECTOR_OPEN_SIZE bytes long.

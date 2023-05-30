@@ -320,16 +320,23 @@ void vector_commit(
 
 	block_secpar roots[2 * BITS_PER_WITNESS];
 	expand_chunk(false, 1, 2 * BITS_PER_WITNESS, &fixed_key_tree, NULL, &seed, &roots[0]);
+    vector_commit_from_roots(roots, forest, leaves, hashed_leaves, &fixed_key_tree, &fixed_key_leaf);
+}
 
+void vector_commit_from_roots(
+    block_secpar* roots, block_secpar* restrict forest,
+    block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves,
+    const prg_tree_fixed_key* fixed_key_tree, const prg_leaf_fixed_key* fixed_key_leaf)
+{
 	memcpy(forest, roots, TREES_IN_FOREST(false) * sizeof(block_secpar));
 
 	// First expand each tree far enough to have TREE_CHUNK_SIZE nodes.
 	static_assert(VOLE_MIN_K >= TREE_CHUNK_SIZE_SHIFT);
 	for (size_t i = 0; i + TREE_CHUNK_SIZE <= TREES_IN_FOREST(false); i += TREE_CHUNK_SIZE)
-		expand_roots_1(false, &fixed_key_tree, forest, i);
+		expand_roots_1(false, fixed_key_tree, forest, i);
 	size_t remaining = TREES_IN_FOREST(false) % TREE_CHUNK_SIZE;
 	if (remaining)
-		expand_roots_1(true, &fixed_key_tree, forest, TREES_IN_FOREST(false) - remaining);
+		expand_roots_1(true, fixed_key_tree, forest, TREES_IN_FOREST(false) - remaining);
 
 	// Expand each tree, now that they are each 1 chunk in size.
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
@@ -338,7 +345,7 @@ void vector_commit(
 		unsigned int height = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 
 		size_t root = FIRST_DESCENDENT_DEPTH(2 * i, TREE_CHUNK_SIZE_SHIFT - 1, false);
-		expand_tree(false, 0, &fixed_key_tree, &fixed_key_leaf, forest,
+		expand_tree(false, 0, fixed_key_tree, fixed_key_leaf, forest,
 		            height - TREE_CHUNK_SIZE_SHIFT, root, 0, leaves, hashed_leaves);
 
 		size_t pow_height = (size_t) 1 << height;
