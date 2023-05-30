@@ -149,6 +149,12 @@ inline bool block192_any_zeros(block192 x)
 	return _mm256_movemask_epi8(_mm256_cmpeq_epi8(b, _mm256_setzero_si256())) & 0x00ffffff;
 }
 
+inline block128 block128_byte_reverse(block128 x)
+{
+	block128 shuffle = _mm_setr_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+	return _mm_shuffle_epi8(x, shuffle);
+}
+
 #define VOLE_BLOCK_SHIFT 1
 typedef block256 vole_block;
 inline vole_block vole_block_set_zero() { return block256_set_zero(); }

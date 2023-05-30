@@ -41,7 +41,7 @@ ALWAYS_INLINE void shift4_mod8(block128* x)
 
 // Starts the key schedule on num_keys keys.
 ALWAYS_INLINE void aes_keygen_init(
-	aes_keygen_state* keygen_states, aes_round_keys* aeses,
+	aes_keygen_state* keygen_states, aes_ctr_key* aeses,
 	const block_secpar* keys_in, size_t num_keys)
 {
 	#ifdef __GNUC__
@@ -61,7 +61,7 @@ ALWAYS_INLINE void aes_keygen_init(
 			keys[j] = keys_in[j];
 
 			// Copy out the first round keys
-			memcpy(&aeses[j].keys[0], &keys[j], sizeof(block_secpar));
+			memcpy(&aeses[j].round_keys.keys[0], &keys[j], sizeof(block_secpar));
 		}
 		for (size_t j = chunk_size; j < KEYGEN_WIDTH; ++j)
 			keys[j] = block_secpar_set_zero();
@@ -112,7 +112,7 @@ ALWAYS_INLINE void aes_keygen_init(
 }
 
 ALWAYS_INLINE void aes_keygen_round(
-	aes_keygen_state* keygen_states, aes_round_keys* aeses, size_t num_keys, int round)
+	aes_keygen_state* keygen_states, aes_ctr_key* aeses, size_t num_keys, int round)
 {
 	if (round < SECURITY_PARAM / 128) return;
 
@@ -165,7 +165,7 @@ ALWAYS_INLINE void aes_keygen_round(
 		_Pragma(STRINGIZE(GCC unroll (KEYGEN_WIDTH)))
 		#endif
 		for (size_t j = 0; j < chunk_size; ++j)
-			aeses[j].keys[round] = round_keys[j];
+			aeses[j].round_keys.keys[round] = round_keys[j];
 
 		// Update round keys slices for next round.
 		if (SECURITY_PARAM == 192)
@@ -185,9 +185,12 @@ ALWAYS_INLINE void aes_keygen_round(
 }
 
 ALWAYS_INLINE void aes_keygen_impl(
-	aes_round_keys* aeses, const block_secpar* keys, const block128* ivs,
+	aes_ctr_key* aeses, const block_secpar* keys, const block128* ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output)
 {
+	for (size_t l = 0; l < num_keys; ++l)
+		memcpy(&aeses->iv, &ivs[l], sizeof(ivs[l]));
+
 	// Upper bound just to avoid VLAs.
 	aes_keygen_state keygen_states[2 * AES_PREFERRED_WIDTH / KEYGEN_WIDTH];
 	aes_keygen_init(keygen_states, aeses, keys, num_keys);
@@ -208,16 +211,12 @@ ALWAYS_INLINE void aes_keygen_impl(
 
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
-			output[l * num_blocks + m] = block128_set_low32(counter + m);
-
-	// Bake the ivs into the round keys.
-	for (size_t i = 0; i < num_keys; ++i)
-		aeses[i].keys[0] = block128_xor(aeses[i].keys[0], ivs[i]);
+			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
 
 	// Separate out the first and last rounds, as they work differently.
-	aes_round(aeses, output, num_keys, num_blocks, 0);
+	aes_round_ctr(aeses, output, num_keys, num_blocks, 0);
 	if (round_start > 1)
-		aes_round(aeses, output, num_keys, num_blocks, 1);
+		aes_round_ctr(aeses, output, num_keys, num_blocks, 1);
 
 	for (int round = round_start; round <= round_end; round += unroll_rounds)
 	{
@@ -225,36 +224,36 @@ ALWAYS_INLINE void aes_keygen_impl(
 		// iterations.
 
 		aes_keygen_round(keygen_states, aeses, num_keys, round);
-		aes_round(aeses, output, num_keys, num_blocks, round);
+		aes_round_ctr(aeses, output, num_keys, num_blocks, round);
 		if (unroll_rounds > 1)
 		{
 			if (round_end < round + 1)
 				break;
 			aes_keygen_round(keygen_states, aeses, num_keys, round + 1);
-			aes_round(aeses, output, num_keys, num_blocks, round + 1);
+			aes_round_ctr(aeses, output, num_keys, num_blocks, round + 1);
 		}
 		if (unroll_rounds > 2)
 		{
 			if (round_end < round + 2)
 				break;
 			aes_keygen_round(keygen_states, aeses, num_keys, round + 2);
-			aes_round(aeses, output, num_keys, num_blocks, round + 2);
+			aes_round_ctr(aeses, output, num_keys, num_blocks, round + 2);
 		}
 	}
 
 	aes_keygen_round(keygen_states, aeses, num_keys, round_end + 1);
-	aes_round(aeses, output, num_keys, num_blocks, round_end + 1);
+	aes_round_ctr(aeses, output, num_keys, num_blocks, round_end + 1);
 	if (round_end + 2 <= AES_ROUNDS)
 	{
 		aes_keygen_round(keygen_states, aeses, num_keys, round_end + 2);
-		aes_round(aeses, output, num_keys, num_blocks, round_end + 2);
+		aes_round_ctr(aeses, output, num_keys, num_blocks, round_end + 2);
 	}
 }
 
 // Allow num_keys and num_blocks to be hardcoded by the compiler.
 #define DEF_AES_KEYGEN_IMPL_KB(num_keys,num_blocks) \
 	void aes_keygen_impl_##num_keys##_##num_blocks( \
-		aes_round_keys* restrict aeses, const block_secpar* restrict keys, \
+		aes_ctr_key* restrict aeses, const block_secpar* restrict keys, \
 		const block128* restrict ivs, uint32_t counter, block128* restrict output) \
 	{ \
 		assert(num_keys <= 2 * AES_PREFERRED_WIDTH && num_blocks <= 4);\
@@ -308,7 +307,9 @@ void aes_keygen(aes_round_keys* round_keys, block_secpar key)
 	// isn't used much anyway.
 	block128 iv = block128_set_zero();
 	block128 empty_output;
-	aes_keygen_impl(round_keys, &key, &iv, 1, 0, 0, &empty_output);
+	aes_ctr_key ctr_key;
+	aes_keygen_impl(&ctr_key, &key, &iv, 1, 0, 0, &empty_output);
+	*round_keys = ctr_key.round_keys;
 }
 
 static inline block128 load_high_128(const block256* block)

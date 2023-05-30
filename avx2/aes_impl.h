@@ -12,6 +12,12 @@
 #define AES_PREFERRED_WIDTH_SHIFT 3
 #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT 2
 
+typedef struct
+{
+	aes_round_keys round_keys;
+	__uint128_t iv;
+} aes_ctr_key;
+
 void rijndael192_encrypt_block(
 	const rijndael192_round_keys* restrict fixed_key, block192* restrict block);
 
@@ -43,6 +49,16 @@ ALWAYS_INLINE void aes_round(
 			state[i] = _mm_aesenc_si128(state[i], aeses[i / evals_per_key].keys[round]);
 		else
 			state[i] = _mm_aesenclast_si128(state[i], aeses[i / evals_per_key].keys[round]);
+}
+
+ALWAYS_INLINE void aes_round_ctr(
+	const aes_ctr_key* aeses, block128* state, size_t num_keys, size_t evals_per_key, int round)
+{
+	assert(num_keys <= 2 * AES_PREFERRED_WIDTH);
+	aes_round_keys keys[2 * AES_PREFERRED_WIDTH];
+	for (size_t i = 0; i < num_keys; ++i)
+		keys[i] = aeses[i].round_keys;
+	aes_round(keys, state, num_keys, evals_per_key, round);
 }
 
 // This implements the rijndael256 RotateRows step, then cancels out the RotateRows of AES so
@@ -106,8 +122,21 @@ ALWAYS_INLINE void rijndael256_round(
 	}
 }
 
+ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_ctr_key* aes, uint32_t ctr)
+{
+	__uint128_t sum = aes->iv + ctr;
+	block128 b;
+	memcpy(&b, &sum, sizeof(sum));
+	return block128_byte_reverse(b);
+}
+
+inline block128 aes_ctr_prepare_iv(block128 iv)
+{
+	return block128_byte_reverse(iv);
+}
+
 ALWAYS_INLINE void aes_keygen_ctr(
-	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
+	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
 	assert(num_keys <= 2 * AES_PREFERRED_WIDTH);
@@ -121,7 +150,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	case (num_keys * 4 + num_blocks): \
 	{ \
 		void aes_keygen_impl_##num_keys##_##num_blocks( \
-			aes_round_keys*, const block_secpar*, const block128*, uint32_t, block128*); \
+			aes_ctr_key*, const block_secpar*, const block128*, uint32_t, block128*); \
 		aes_keygen_impl_##num_keys##_##num_blocks(aeses, keys, ivs, counter, output); \
 		break; \
 	}
@@ -169,7 +198,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 }
 
 inline void aes_ctr(
-	const aes_round_keys* restrict aeses,
+	const aes_ctr_key* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
 	// Upper bound just to avoid VLAs.
@@ -177,14 +206,14 @@ inline void aes_ctr(
 	block128 state[8 * AES_PREFERRED_WIDTH];
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
-			state[l * num_blocks + m] = block128_set_low32(counter + m);
+			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
 
 	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
 	// aren't asking it to unwind the whole loop.)
-	aes_round(aeses, state, num_keys, num_blocks, 0);
+	aes_round_ctr(aeses, state, num_keys, num_blocks, 0);
 	for (int round = 1; round < AES_ROUNDS; ++round)
-		aes_round(aeses, state, num_keys, num_blocks, round);
-	aes_round(aeses, state, num_keys, num_blocks, AES_ROUNDS);
+		aes_round_ctr(aeses, state, num_keys, num_blocks, round);
+	aes_round_ctr(aeses, state, num_keys, num_blocks, AES_ROUNDS);
 
 	memcpy(output, state, num_keys * num_blocks * sizeof(block128));
 }

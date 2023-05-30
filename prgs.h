@@ -5,7 +5,7 @@
 #include "hash.h"
 
 #define DEFINE_PRG_AES_CTR(name) \
-	typedef aes_round_keys prg_##name##_key; \
+	typedef aes_ctr_key prg_##name##_key; \
 	typedef block128 prg_##name##_iv; \
 	typedef block128 prg_##name##_block; \
 	typedef char prg_##name##_fixed_key; /* Unused. */ \

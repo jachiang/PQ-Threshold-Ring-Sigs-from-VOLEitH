@@ -46,9 +46,7 @@ extern unsigned char aes_round_constants[];
 
 // Interface defined by aes_impl.h:
 
-// typedef /**/ aes_round_keys;
-// typedef /**/ rijndael192_round_keys;
-// typedef /**/ rijndael256_round_keys;
+// typedef /**/ aes_ctr_key;
 //
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
@@ -73,18 +71,20 @@ void rijndael256_round_function(
 	const rijndael256_round_keys* restrict round_keys, block256* restrict block,
 	block256* restrict after_sbox, int round);
 
+// The iv must be prepared before it is passed to aes_keygen_ctr.
+inline block128 aes_ctr_prepare_iv(block128 iv);
+
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
-// Each key has it's own iv, which gets baked into the round keys. Outputs from the same key are
-// grouped together in output.
+// Each key has it's own iv. Outputs from the same key are grouped together in output.
 ALWAYS_INLINE void aes_keygen_ctr(
-	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
+	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys AES keys, generate num_blocks block128s of output from each, starting at
-// counter. Outputs from the same key are grouped together in output.
+// counter. Each key has it's own iv. Outputs from the same key are grouped together in output.
 // Need 1 <= num_blocks <= 4.
 inline void aes_ctr(
-	const aes_round_keys* restrict aeses,
+	const aes_ctr_key* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys Even-Mansour keys, generate num_blocks block_secpars of output from each in CTR

@@ -121,6 +121,8 @@ inline bool block128_any_zeros(block128 x);
 inline bool block192_any_zeros(block192 x);
 inline bool block256_any_zeros(block256 x);
 
+inline block128 block128_byte_reverse(block128 x);
+
 #if SECURITY_PARAM == 128
 #define BLOCK_SECPAR_LEN_SHIFT 0
 #define BLOCK_2SECPAR_LEN 2
