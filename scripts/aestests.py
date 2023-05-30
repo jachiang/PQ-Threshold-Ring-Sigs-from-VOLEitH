@@ -69,8 +69,9 @@ def print_array(bs):
 def aesctr(key, iv, counter):
     R = Rijndael(key)
     blocks = []
+    iv = int.from_bytes(iv, 'big')
     for c in range(counter, counter + num_ctr_blocks):
-        blocks.append(R.encrypt(xor(iv, pack('<I', c) + bytes(12))))
+        blocks.append(R.encrypt((iv + c).to_bytes(16, 'big')))
     return b''.join(blocks)
 
 
