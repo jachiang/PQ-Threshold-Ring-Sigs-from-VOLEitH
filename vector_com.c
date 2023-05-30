@@ -81,7 +81,7 @@ static ALWAYS_INLINE void expand_chunk(
 		else
 			prg_leaf_gen(&prgs_leaf[0], fixed_key_leaf, n, num_blocks, j, &prg_output_leaf[0]);
 
-		if (j + num_blocks < blocks_per_key)
+		if (j + num_blocks < blocks_per_key || bytes_extra_per_key == 0)
 			copy_prg_output(leaf, n, stretch, j, num_blocks, num_blocks * prg_block_size,
 			                prg_output_tree, prg_output_leaf, output);
 		else

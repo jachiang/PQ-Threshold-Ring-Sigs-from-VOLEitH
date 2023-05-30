@@ -534,7 +534,7 @@ TEST_CASE( "compare against tv", "[vector com]" ) {
 	init_fixed_keys(&fixed_key_tree, &fixed_key_leaf, fixed_key_iv);
 
     // init roots (first from tv, other zero)
-    memcpy(&roots[0], tv_root_key, 16);
+    memcpy(&roots[0], tv_root_key, SECURITY_PARAM / 8);
     for (size_t i = 1; i < BITS_PER_WITNESS; ++i) {
         roots[i] = block_secpar_set_zero();
     }
