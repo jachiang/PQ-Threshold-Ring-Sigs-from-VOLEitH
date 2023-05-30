@@ -57,6 +57,9 @@ void aes_keygen(aes_round_keys* round_keys, block_secpar key);
 void rijndael192_keygen(rijndael192_round_keys* round_keys, block192 key);
 void rijndael256_keygen(rijndael256_round_keys* round_keys, block256 key);
 
+void rijndael192_encrypt_block(
+	const rijndael192_round_keys* restrict fixed_key, block192* restrict block);
+
 // Apply 1 round of the cipher, writing the state after the SBox into after_sbox, and writing the
 // new state back into state. round is the index of the round key to use, so it should start from
 // one.
