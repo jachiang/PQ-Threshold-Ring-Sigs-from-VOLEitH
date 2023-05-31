@@ -70,21 +70,43 @@ TEST_CASE( "commit/open/verify", "[vole commit]" ) {
 
 #if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22)))
 
-extern const std::array<uint8_t, 16> seed_128s;
-extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections_128s;
-extern const std::array<uint8_t, VOLE_ROWS / 8> u_128s;
-extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v_128s;
-extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom_128s;
+namespace tv_128s {
+    extern const std::array<uint8_t, SECURITY_PARAM / 8> seed;
+    extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
+    extern const std::array<uint8_t, VOLE_ROWS / 8> u;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
+}
+namespace tv_192s {
+    extern const std::array<uint8_t, SECURITY_PARAM / 8> seed;
+    extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
+    extern const std::array<uint8_t, VOLE_ROWS / 8> u;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
+}
+namespace tv_256s {
+    extern const std::array<uint8_t, SECURITY_PARAM / 8> seed;
+    extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
+    extern const std::array<uint8_t, VOLE_ROWS / 8> u;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
+}
+
 
 TEST_CASE( "commit test vectors", "[vole commit]" ) {
     block_secpar seed;
 #if SECURITY_PARAM == 128
-    memcpy(&seed, seed_128s.data(), SECURITY_PARAM / 8);
-    std::vector<uint8_t> expected_commitment(corrections_128s.begin(), corrections_128s.end());
-    std::vector<uint8_t> expected_u(u_128s.begin(), u_128s.end());
-    std::vector<uint8_t> expected_v(v_128s.begin(), v_128s.end());
-    const auto& expected_hcom = hcom_128s;
+    namespace tv = tv_128s;
+#elif SECURITY_PARAM == 192
+    namespace tv = tv_192s;
+#elif SECURITY_PARAM == 256
+    namespace tv = tv_256s;
 #endif
+    memcpy(&seed, tv::seed.data(), SECURITY_PARAM / 8);
+    std::vector<uint8_t> expected_commitment(tv::corrections.begin(), tv::corrections.end());
+    std::vector<uint8_t> expected_u(tv::u.begin(), tv::u.end());
+    std::vector<uint8_t> expected_v(tv::v.begin(), tv::v.end());
+    const auto& expected_hcom = tv::hcom;
 
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
@@ -100,7 +122,9 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     REQUIRE( VOLE_COL_BLOCKS == (VOLE_ROWS + 8 * sizeof(vole_block) - 1) / sizeof(vole_block) / 8 );
     std::vector<uint8_t> u_vec(reinterpret_cast<uint8_t*>(u.data()),
                                reinterpret_cast<uint8_t*>(u.data()) + VOLE_ROWS / 8);
+    // std::cerr << "commitment = " << commitment << "\n";
     CHECK( commitment == expected_commitment );
+    // std::cerr << "u = " << u_vec << "\n";
     CHECK( u_vec == expected_u );
 
     std::vector<uint8_t> v_vec(SECURITY_PARAM * VOLE_ROWS / 8, 0);
@@ -109,6 +133,7 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     }
     // std::cerr << "v = " << v_vec << "\n";
     CHECK( v_vec == expected_v );
+    // std::cerr << "h_com = " << check_sender << "\n";
     CHECK( check_sender == expected_hcom );
 }
 

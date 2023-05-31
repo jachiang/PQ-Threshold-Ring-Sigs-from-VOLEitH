@@ -42,8 +42,8 @@ security_params = 128 192 256
 #taus_192 = 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 32 34 36 38 40 42 44 46 48
 #taus_256 = 20 22 24 26 28 30 32 34 36 38 40 44 48 52 56 60 64
 taus_128 = 10 11 16 32
-taus_192 = 15 24 48
-taus_256 = 20 32 52 64
+taus_192 = 15 16 24 48
+taus_256 = 20 22 32 52 64
 
 # Format: long name (for macro definition), single letter name.
 ciphers = AES_CTR,c RIJNDAEL_EVEN_MANSOUR,e
