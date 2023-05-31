@@ -50,7 +50,7 @@
 
 #define DEFINE_PRG_SHAKE(name) \
 	typedef char prg_##name##_key; /* Unused. */ \
-	typedef char prg_##name##_iv; /* Unused. */ \
+	typedef block128 prg_##name##_iv; /* Unused. */ \
 	typedef block_secpar prg_##name##_block; \
 	typedef char prg_##name##_fixed_key; /* Unused. */ \
 	inline void prg_##name##_init( \
@@ -60,9 +60,8 @@
 	{ \
 		(void) prgs; \
 		(void) fixed_key; \
-		(void) ivs; \
 		assert(counter == 0); \
-		shake_prg(keys, num_keys, num_blocks * sizeof(block_secpar), (uint8_t*) output); \
+		shake_prg(keys, ivs, num_keys, num_blocks * sizeof(block_secpar), (uint8_t*) output); \
 	} \
 	inline void prg_##name##_gen( \
 		const prg_##name##_key* restrict prgs, const prg_##name##_fixed_key* restrict fixed_key, \
