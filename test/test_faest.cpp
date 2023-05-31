@@ -12,14 +12,34 @@ extern "C" {
 #include "catch_amalgamated.hpp"
 
 
-#if defined(OWF_AES_CTR) && SECURITY_PARAM == 128
+#if defined(OWF_AES_CTR)
 
 TEST_CASE( "unpack sk", "[faest]" ) {
+#if SECURITY_PARAM == 128
     const auto* key = AES_CTR_128_KEY.data();
     const auto* input = AES_CTR_128_INPUT.data();
     const auto* output = AES_CTR_128_OUTPUT.data();
     const auto* witness = AES_CTR_128_EXTENDED_WITNESS.data();
     REQUIRE( AES_CTR_128_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 16 );
+    static_assert( OWF_BLOCKS == 1 );
+#elif SECURITY_PARAM == 192
+    const auto* key = AES_CTR_192_KEY.data();
+    const auto* input = AES_CTR_192_INPUT.data();
+    const auto* output = AES_CTR_192_OUTPUT.data();
+    const auto* witness = AES_CTR_192_EXTENDED_WITNESS.data();
+    REQUIRE( AES_CTR_192_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 16 );
+    static_assert( OWF_BLOCKS == 2 );
+#elif SECURITY_PARAM == 256
+    const auto* key = AES_CTR_256_KEY.data();
+    const auto* input = AES_CTR_256_INPUT.data();
+    const auto* output = AES_CTR_256_OUTPUT.data();
+    const auto* witness = AES_CTR_256_EXTENDED_WITNESS.data();
+    REQUIRE( AES_CTR_256_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 16 );
+    static_assert( OWF_BLOCKS == 2 );
+#endif
 
     std::array<uint8_t, OWF_BLOCKS * OWF_BLOCK_SIZE + SECURITY_PARAM / 8> packed_sk;
     memcpy(packed_sk.data(), input, OWF_BLOCKS * OWF_BLOCK_SIZE);
