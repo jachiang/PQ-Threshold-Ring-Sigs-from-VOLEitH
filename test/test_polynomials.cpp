@@ -1920,8 +1920,6 @@ TEST_CASE("poly192_from_8_poly1", "[polynomial]") {
     const auto& inputs = poly192_from_8_poly1_input;
     const auto& outputs = poly192_from_8_poly1_output;
 
-    CHECK(inputs != inputs);
-
     for (size_t index = 0; index < TEST_VEC_LEN; index += POLY_VEC_LEN)
     {
         poly1_vec bits[8];
