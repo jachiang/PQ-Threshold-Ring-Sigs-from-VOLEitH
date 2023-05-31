@@ -7,8 +7,6 @@ extern "C" {
 
 #define restrict __restrict__
 #include "vole_commit.h"
-// #include "vector_com.h"
-// #include "small_vole.h"
 
 }
 
@@ -68,3 +66,50 @@ TEST_CASE( "commit/open/verify", "[vole commit]" ) {
         }
     }
 }
+
+
+#if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22)))
+
+extern const std::array<uint8_t, 16> seed_128s;
+extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections_128s;
+extern const std::array<uint8_t, VOLE_ROWS / 8> u_128s;
+extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v_128s;
+extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom_128s;
+
+TEST_CASE( "commit test vectors", "[vole commit]" ) {
+    block_secpar seed;
+#if SECURITY_PARAM == 128
+    memcpy(&seed, seed_128s.data(), SECURITY_PARAM / 8);
+    std::vector<uint8_t> expected_commitment(corrections_128s.begin(), corrections_128s.end());
+    std::vector<uint8_t> expected_u(u_128s.begin(), u_128s.end());
+    std::vector<uint8_t> expected_v(v_128s.begin(), v_128s.end());
+    const auto& expected_hcom = hcom_128s;
+#endif
+
+    std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
+    std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
+    std::vector<block_2secpar> hashed_leaves_sender(VECTOR_COMMIT_LEAVES);
+
+    std::vector<vole_block> u(VOLE_COL_BLOCKS);
+    std::vector<vole_block> v(SECURITY_PARAM * VOLE_COL_BLOCKS);
+    std::vector<uint8_t> commitment((BITS_PER_WITNESS - 1) * VOLE_ROWS / 8);
+    std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_sender;
+
+    vole_commit(seed, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
+
+    REQUIRE( VOLE_COL_BLOCKS == (VOLE_ROWS + 8 * sizeof(vole_block) - 1) / sizeof(vole_block) / 8 );
+    std::vector<uint8_t> u_vec(reinterpret_cast<uint8_t*>(u.data()),
+                               reinterpret_cast<uint8_t*>(u.data()) + VOLE_ROWS / 8);
+    CHECK( commitment == expected_commitment );
+    CHECK( u_vec == expected_u );
+
+    std::vector<uint8_t> v_vec(SECURITY_PARAM * VOLE_ROWS / 8, 0);
+    for (size_t i = 0; i < SECURITY_PARAM; ++i) {
+        memcpy(&v_vec[i * VOLE_ROWS / 8], v.data() + i * VOLE_COL_BLOCKS, VOLE_ROWS / 8);
+    }
+    // std::cerr << "v = " << v_vec << "\n";
+    CHECK( v_vec == expected_v );
+    CHECK( check_sender == expected_hcom );
+}
+
+#endif
