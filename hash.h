@@ -104,22 +104,26 @@ inline void hash_final_x4_4(
 }
 
 inline void shake_prg(
-	const block_secpar* restrict keys, size_t num_keys, size_t num_bytes, uint8_t* restrict output)
+	const block_secpar* restrict keys, const block128* restrict ivs,
+	size_t num_keys, size_t num_bytes, uint8_t* restrict output)
 {
 	size_t i;
 	for (i = 0; i + 4 <= num_keys; i += 4)
 	{
 		const void* key_arr[4];
+		const void* iv_arr[4];
 		void* output_arr[4];
 		for (size_t j = 0; j < 4; ++j)
 		{
 			key_arr[j] = &keys[i + j];
+			iv_arr[j] = &ivs[i + j];
 			output_arr[j] = output + (i + j) * num_bytes;
 		}
 
 		hash_state_x4 hasher;
 		hash_init_x4(&hasher);
 		hash_update_x4(&hasher, key_arr, sizeof(keys[i]));
+		hash_update_x4(&hasher, iv_arr, sizeof(ivs[i]));
 		hash_update_x4_1_byte(&hasher, 0);
 		hash_final_x4(&hasher, output_arr, num_bytes);
 	}
@@ -129,6 +133,7 @@ inline void shake_prg(
 		hash_state hasher;
 		hash_init(&hasher);
 		hash_update(&hasher, &keys[i], sizeof(keys[i]));
+		hash_update(&hasher, &ivs[i], sizeof(ivs[i]));
 		hash_update_byte(&hasher, 0);
 		hash_final(&hasher, output + i * num_bytes, num_bytes);
 	}
