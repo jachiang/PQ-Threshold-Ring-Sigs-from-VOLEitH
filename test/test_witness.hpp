@@ -9,4 +9,14 @@ extern const std::array<uint8_t, 16> AES_CTR_128_INPUT;
 extern const std::array<uint8_t, 16> AES_CTR_128_OUTPUT;
 extern const std::array<uint8_t, 200> AES_CTR_128_EXTENDED_WITNESS;
 
+extern const std::array<uint8_t, 24> AES_CTR_192_KEY;
+extern const std::array<uint8_t, 32> AES_CTR_192_INPUT;
+extern const std::array<uint8_t, 32> AES_CTR_192_OUTPUT;
+extern const std::array<uint8_t, 408> AES_CTR_192_EXTENDED_WITNESS;
+
+extern const std::array<uint8_t, 32> AES_CTR_256_KEY;
+extern const std::array<uint8_t, 32> AES_CTR_256_INPUT;
+extern const std::array<uint8_t, 32> AES_CTR_256_OUTPUT;
+extern const std::array<uint8_t, 500> AES_CTR_256_EXTENDED_WITNESS;
+
 #endif // TEST_EXT_WITNESS_HPP
