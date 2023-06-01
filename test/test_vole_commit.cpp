@@ -164,7 +164,7 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     for (size_t i = 0; i < SECURITY_PARAM; ++i) {
         memcpy(&q_vec[i * VOLE_ROWS / 8], q.data() + i * VOLE_COL_BLOCKS, VOLE_ROWS / 8);
     }
-    std::cerr << "q = " << q_vec << "\n";
+    // std::cerr << "q = " << q_vec << "\n";
     CHECK( q_vec == expected_q );
 }
 
