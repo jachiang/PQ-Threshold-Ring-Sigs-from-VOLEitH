@@ -45,13 +45,13 @@ convert_to_us () {
     num="`echo "${input}" | cut -d ' ' -f 1`"
     unit="`echo "${input}" | cut -d ' ' -f 2`"
     if [ "$unit" = "ns" ]; then
-        echo "${num} / 1000"  | bc
+        echo "scale=10; ${num} / 1000"  | bc
     elif [ "$unit" = "us" ]; then
         echo "${num}"
     elif [ "$unit" = "ms" ]; then
-        echo "${num} * 1000"  | bc
+        echo "scale=10; ${num} * 1000"  | bc
     elif [ "$unit" = "s" ]; then
-        echo "${num} * 1000 * 1000"  | bc
+        echo scale=10; "${num} * 1000 * 1000"  | bc
     fi
 }
 
