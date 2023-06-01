@@ -98,6 +98,8 @@ void vole_reconstruct(
 	block_2secpar* hashed_leaves =
 		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
 
+	iv = aes_ctr_prepare_iv(iv);
+
 	vector_verify(iv, opening, delta_bytes, leaves, hashed_leaves);
 	hash_hashed_leaves(hashed_leaves, check);
 	free(hashed_leaves);
