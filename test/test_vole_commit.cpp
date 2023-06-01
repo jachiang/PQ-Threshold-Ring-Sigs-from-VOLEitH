@@ -75,6 +75,7 @@ namespace tv_128s {
     extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
     extern const std::array<uint8_t, VOLE_ROWS / 8> u;
     extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> q;
     extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
 }
 namespace tv_192s {
@@ -82,6 +83,7 @@ namespace tv_192s {
     extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
     extern const std::array<uint8_t, VOLE_ROWS / 8> u;
     extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> q;
     extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
 }
 namespace tv_256s {
@@ -89,6 +91,7 @@ namespace tv_256s {
     extern const std::array<uint8_t, (BITS_PER_WITNESS - 1) * VOLE_ROWS / 8> corrections;
     extern const std::array<uint8_t, VOLE_ROWS / 8> u;
     extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> v;
+    extern const std::array<uint8_t, SECURITY_PARAM * VOLE_ROWS / 8> q;
     extern const std::array<uint8_t, 2 * SECURITY_PARAM / 8> hcom;
 }
 
@@ -106,17 +109,21 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     std::vector<uint8_t> expected_commitment(tv::corrections.begin(), tv::corrections.end());
     std::vector<uint8_t> expected_u(tv::u.begin(), tv::u.end());
     std::vector<uint8_t> expected_v(tv::v.begin(), tv::v.end());
+    std::vector<uint8_t> expected_q(tv::q.begin(), tv::q.end());
     const auto& expected_hcom = tv::hcom;
 
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
-    std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
     std::vector<block_2secpar> hashed_leaves_sender(VECTOR_COMMIT_LEAVES);
 
     std::vector<vole_block> u(VOLE_COL_BLOCKS);
     std::vector<vole_block> v(SECURITY_PARAM * VOLE_COL_BLOCKS);
+    std::vector<vole_block> q(SECURITY_PARAM * VOLE_COL_BLOCKS);
     std::vector<uint8_t> commitment((BITS_PER_WITNESS - 1) * VOLE_ROWS / 8);
+    std::vector<uint8_t> opening(VECTOR_OPEN_SIZE);
     std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_sender;
+    std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_receiver;
 
+    // commit
     vole_commit(seed, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
 
     REQUIRE( VOLE_COL_BLOCKS == (VOLE_ROWS + 8 * sizeof(vole_block) - 1) / sizeof(vole_block) / 8 );
@@ -135,6 +142,28 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     CHECK( v_vec == expected_v );
     // std::cerr << "h_com = " << check_sender << "\n";
     CHECK( check_sender == expected_hcom );
+
+    // open
+    const size_t delta = 42 % (1 << VOLE_MIN_K);
+    std::vector<uint8_t> delta_bytes(SECURITY_PARAM, 0);
+    for (size_t i = 0, dst = 0; i < BITS_PER_WITNESS; ++i)
+    {
+        size_t k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
+        expand_bits_to_bytes(&delta_bytes[dst], k, delta);
+        dst += k;
+    }
+    vector_open(forest.data(), hashed_leaves_sender.data(), delta_bytes.data(), opening.data());
+
+    // reconstruct
+    vole_reconstruct(q.data(), delta_bytes.data(), commitment.data(), opening.data(), check_receiver.data());
+
+    REQUIRE( check_receiver == check_sender );
+    std::vector<uint8_t> q_vec(SECURITY_PARAM * VOLE_ROWS / 8, 0);
+    for (size_t i = 0; i < SECURITY_PARAM; ++i) {
+        memcpy(&q_vec[i * VOLE_ROWS / 8], q.data() + i * VOLE_COL_BLOCKS, VOLE_ROWS / 8);
+    }
+    std::cerr << "q = " << q_vec << "\n";
+    CHECK( q_vec == expected_q );
 }
 
 #endif
