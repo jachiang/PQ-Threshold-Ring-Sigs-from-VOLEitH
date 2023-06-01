@@ -189,7 +189,10 @@ ALWAYS_INLINE void aes_keygen_impl(
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output)
 {
 	for (size_t l = 0; l < num_keys; ++l)
-		memcpy(&aeses[l].iv, &ivs[l], sizeof(ivs[l]));
+	{
+		block128 iv = block128_byte_reverse(ivs[l]);
+		memcpy(&aeses[l].iv, &iv, sizeof(iv));
+	}
 
 	// Upper bound just to avoid VLAs.
 	aes_keygen_state keygen_states[2 * AES_PREFERRED_WIDTH / KEYGEN_WIDTH];

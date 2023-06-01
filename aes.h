@@ -71,9 +71,6 @@ void rijndael256_round_function(
 	const rijndael256_round_keys* restrict round_keys, block256* restrict block,
 	block256* restrict after_sbox, int round);
 
-// The iv must be prepared before it is passed to aes_keygen_ctr.
-inline block128 aes_ctr_prepare_iv(block128 iv);
-
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
 // Each key has it's own iv. Outputs from the same key are grouped together in output.
 ALWAYS_INLINE void aes_keygen_ctr(

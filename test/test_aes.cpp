@@ -394,10 +394,7 @@ TEST_CASE( "aes ctr", "[aes]" ) {
 
     std::array<block128, num_keys> ivs;
     for (size_t i = 0; i < num_keys; ++i)
-    {
         memcpy(&ivs[i], aes_ctr_ivs[i].data(), sizeof(ivs[i]));
-        ivs[i] = aes_ctr_prepare_iv(ivs[i]);
-    }
 
     // test combined keygen and ctr mode
     aes_keygen_ctr(aeses.data(), aes_keys, ivs.data(), num_keys, 4, aes_ctr_counter, output);

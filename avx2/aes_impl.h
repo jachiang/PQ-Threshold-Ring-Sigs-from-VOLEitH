@@ -128,11 +128,6 @@ ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_ctr_key* aes, uint32_t ct
 	return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
 }
 
-inline block128 aes_ctr_prepare_iv(block128 iv)
-{
-	return block128_byte_reverse(iv);
-}
-
 ALWAYS_INLINE void aes_keygen_ctr(
 	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)

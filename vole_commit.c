@@ -57,8 +57,6 @@ void vole_commit(
 	vole_block* restrict u, vole_block* restrict v,
 	uint8_t* restrict commitment, uint8_t* restrict check)
 {
-	iv = aes_ctr_prepare_iv(iv);
-
 	block_secpar* leaves =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_LEAVES * sizeof(block_secpar));
 	vector_commit(seed, iv, forest, leaves, hashed_leaves);
@@ -95,8 +93,6 @@ void vole_reconstruct(
 	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
 	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check)
 {
-	iv = aes_ctr_prepare_iv(iv);
-
 	block_secpar* leaves =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_LEAVES * sizeof(block_secpar));
 	block_2secpar* hashed_leaves =
