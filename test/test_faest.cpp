@@ -14,10 +14,8 @@ extern "C" {
 #include "catch_amalgamated.hpp"
 
 
-#if defined(OWF_AES_CTR)
-
 TEST_CASE( "unpack sk", "[faest]" ) {
-#if SECURITY_PARAM == 128
+#if defined(OWF_AES_CTR) && SECURITY_PARAM == 128
     const auto* key = AES_CTR_128_KEY.data();
     const auto* input = AES_CTR_128_INPUT.data();
     const auto* output = AES_CTR_128_OUTPUT.data();
@@ -25,7 +23,7 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     REQUIRE( AES_CTR_128_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
     static_assert( OWF_BLOCK_SIZE == 16 );
     static_assert( OWF_BLOCKS == 1 );
-#elif SECURITY_PARAM == 192
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 192
     const auto* key = AES_CTR_192_KEY.data();
     const auto* input = AES_CTR_192_INPUT.data();
     const auto* output = AES_CTR_192_OUTPUT.data();
@@ -33,7 +31,7 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     REQUIRE( AES_CTR_192_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
     static_assert( OWF_BLOCK_SIZE == 16 );
     static_assert( OWF_BLOCKS == 2 );
-#elif SECURITY_PARAM == 256
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 256
     const auto* key = AES_CTR_256_KEY.data();
     const auto* input = AES_CTR_256_INPUT.data();
     const auto* output = AES_CTR_256_OUTPUT.data();
@@ -41,6 +39,30 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     REQUIRE( AES_CTR_256_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
     static_assert( OWF_BLOCK_SIZE == 16 );
     static_assert( OWF_BLOCKS == 2 );
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 128
+    const auto* key = RIJNDAEL_EM_128_KEY.data();
+    const auto* input = RIJNDAEL_EM_128_INPUT.data();
+    const auto* output = RIJNDAEL_EM_128_OUTPUT.data();
+    const auto* witness = RIJNDAEL_EM_128_EXTENDED_WITNESS.data();
+    REQUIRE( RIJNDAEL_EM_128_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 16 );
+    static_assert( OWF_BLOCKS == 1 );
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 192
+    const auto* key = RIJNDAEL_EM_192_KEY.data();
+    const auto* input = RIJNDAEL_EM_192_INPUT.data();
+    const auto* output = RIJNDAEL_EM_192_OUTPUT.data();
+    const auto* witness = RIJNDAEL_EM_192_EXTENDED_WITNESS.data();
+    REQUIRE( RIJNDAEL_EM_192_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 24 );
+    static_assert( OWF_BLOCKS == 1 );
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 256
+    const auto* key = RIJNDAEL_EM_256_KEY.data();
+    const auto* input = RIJNDAEL_EM_256_INPUT.data();
+    const auto* output = RIJNDAEL_EM_256_OUTPUT.data();
+    const auto* witness = RIJNDAEL_EM_256_EXTENDED_WITNESS.data();
+    REQUIRE( RIJNDAEL_EM_256_EXTENDED_WITNESS.size() == WITNESS_BITS / 8 );
+    static_assert( OWF_BLOCK_SIZE == 32 );
+    static_assert( OWF_BLOCKS == 1 );
 #endif
 
     std::array<uint8_t, OWF_BLOCKS * OWF_BLOCK_SIZE + SECURITY_PARAM / 8> packed_sk;
@@ -48,7 +70,7 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     memcpy(packed_sk.data() + OWF_BLOCKS * OWF_BLOCK_SIZE, key, SECURITY_PARAM / 8);
 
     secret_key sk;
-    faest_unpack_secret_key(&sk, packed_sk.data());
+    REQUIRE( faest_unpack_secret_key(&sk, packed_sk.data()) );
 
     const auto computed_output = std::vector(reinterpret_cast<uint8_t*>(sk.pk.owf_output),
                                              reinterpret_cast<uint8_t*>(sk.pk.owf_output) + OWF_BLOCKS * OWF_BLOCK_SIZE);
@@ -60,8 +82,6 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     CHECK( computed_output == expected_output );
     CHECK( computed_witness == expected_witness );
 }
-
-#endif
 
 
 TEST_CASE( "keygen/sign/verify", "[faest]" ) {
