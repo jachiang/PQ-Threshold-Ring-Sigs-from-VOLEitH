@@ -123,6 +123,9 @@ ALWAYS_INLINE void set_iv_counter(block128* iv, uint64_t counter)
 
 ALWAYS_INLINE bool aes_are_ivs_bad(const aes_round_keys* aeses, size_t num_keys)
 {
+	#ifdef __GNUC__
+	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+	#endif
 	for (size_t i = 0; i < num_keys; ++i)
 		if (get_iv_counter(&aeses[i].iv) > UINT64_MAX - AES_MAX_CTR)
 			return true;
@@ -159,6 +162,9 @@ ALWAYS_INLINE void aes_keygen_ctr(
 		aeses[l].iv = ivs[l];
 
 	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
+	#ifdef __GNUC__
+	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+	#endif
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
 			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
@@ -215,6 +221,9 @@ inline void aes_ctr(
 	block128 state[3 * AES_PREFERRED_WIDTH];
 
 	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
+	#ifdef __GNUC__
+	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+	#endif
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
 			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
