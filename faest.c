@@ -49,7 +49,7 @@ bool faest_compute_witness(secret_key* sk)
 
 #if defined(OWF_AES_CTR)
 	uint32_t prev_word;
-	memcpy(&prev_word, w_ptr - 4, 4);
+	memcpy(&prev_word, &sk->sk, 4);
 
 	// Extract witness for key schedule.
 	for (size_t i = SECURITY_PARAM / 8; i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1);
@@ -61,7 +61,7 @@ bool faest_compute_witness(secret_key* sk)
 
 		uint32_t sbox_output = word ^ prev_word;
 		if (SECURITY_PARAM != 256 || i % (SECURITY_PARAM / 8) == 0)
-			sbox_output ^= aes_round_constants[i / (SECURITY_PARAM / 8)];
+			sbox_output ^= aes_round_constants[i / (SECURITY_PARAM / 8) - 1];
 
 		// https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
 		sbox_output ^= 0x63636363; // AES SBox maps 0 to 0x63.
