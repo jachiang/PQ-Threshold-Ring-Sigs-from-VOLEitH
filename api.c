@@ -1,19 +1,19 @@
-#include "api.h"
-#include "faest.h"
 #include <assert.h>
 #include <string.h>
+
+#include "api.h"
+#include "faest.h"
+#include "randomness.h"
 
 static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES);
 static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES);
 static_assert(CRYPTO_BYTES == FAEST_SIGNATURE_BYTES);
 
-void randombytes(unsigned char *x, unsigned long long xlen);
-
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {
 	do
 	{
-		randombytes(sk, FAEST_SECRET_KEY_BYTES);
+		rand_bytes(sk, FAEST_SECRET_KEY_BYTES);
 	} while (!faest_pubkey(pk, sk));
 	return 0;
 }
@@ -27,7 +27,7 @@ int crypto_sign(
 	memmove(sm, m, mlen);
 
 	uint8_t random_seed[SECURITY_PARAM / 8];
-	randombytes(random_seed, sizeof(random_seed));
+	rand_bytes(random_seed, sizeof(random_seed));
 	faest_sign(sm + mlen, sm, mlen, sk, random_seed, sizeof(random_seed));
 	return 0;
 }

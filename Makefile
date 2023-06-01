@@ -33,6 +33,7 @@ ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
 avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
 avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
 test_sources = $(wildcard test/*.cpp test/*.hpp) $(common_headers)
+kat_sources = test/rng.c test/rng.h test/PQCgenKAT_sign.c
 
 all:
 .PHONY: all
@@ -120,11 +121,13 @@ $(2)_asm_objects = $$(foreach obj,$$(patsubst %.s,%.o,$$(filter %.s,$$($(1)_sour
 $(2)_headers = $$(foreach header,$$(filter %.h %.inc %.macros,$$(patsubst %.in,%,$$($(1)_sources))),$(3)/$$(notdir $$(header)))
 $(2)_test_headers = $$(foreach header,$$(filter %.hpp,$$(test_sources)),$(3)/$$(notdir $$(header)))
 $(2)_test_objects = $$(foreach obj,$$(patsubst %.cpp,%.o,$$(filter %.cpp,$$(test_sources))) $$(common_objects),$(3)/$$(notdir $$(obj)))
-$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $$($(2)_test_objects) $(3)/$(2)_test
-$(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects)) $$(patsubst %.o,%.d,$$($(2)_test_objects))
+$(2)_kat_headers = $$(foreach header,$$(filter %.h,$$(kat_sources)),$(3)/$$(notdir $$(header)))
+$(2)_kat_objects = $$(foreach obj,$$(patsubst %.c,%.o,$$(filter %.c,$$(kat_sources))),$(3)/$$(notdir $$(obj)))
+$(2)_targets = $$($(2)_objects) $$($(2)_asm_objects) $$($(2)_headers) $(3)/$(2)_test $(3)/PQCgenKAT_sign $(3)/api_test $(3)/Makefile
+$(2)_depfiles = $$(patsubst %.o,%.d,$$($(2)_objects) $$($(2)_test_objects) $$($(2)_kat_objects) api_test.o)
 
 # hard link all source files into the variant directory. Also copy common object files.
-$$(foreach src,$$($(1)_sources) $$(test_sources) $$(common_objects),$$(eval $$(call link-recipe,$(3),$$(src))))
+$$(foreach src,$$($(1)_sources) $$(test_sources) $$(common_objects) $$(kat_sources) test/api_test.c,$$(eval $$(call link-recipe,$(3),$$(src))))
 
 # generate config.h with the setting-specific constants
 $(eval $(call config-recipe,$(3),$(4)))
@@ -135,13 +138,19 @@ headers-$(2) : $$($(2)_headers)
 $$($(2)_objects)) : | headers-$(2)
 
 # same for test files
-test-headers-$(2) : $$($(2)_test_headers)
+test-headers-$(2) : $$($(2)_test_headers) $$($(2)_kat_headers)
 .PHONY: test-headers-$(2)
-$$($(2)_test_objects)) : | headers-$(2) test-headers-$(2)
+$$($(2)_test_objects)) $$($(2)_kat_objects)) $(3)/api_test.o : | headers-$(2) test-headers-$(2)
 
 # target for test binary
 $(3)/$(2)_test : $$($(2)_test_objects) $$($(2)_objects) $$($(2)_asm_objects)
 	$(CXX) -o $$@ $(LDFLAGS) $$^ $(LOADLIBES) $(LDLIBS)
+
+$(3)/PQCgenKAT_sign : $$($(2)_kat_objects) $$($(2)_objects) $$($(2)_asm_objects)
+	$(CC) -o $$@ $(LDFLAGS) $$^ $(LOADLIBES) $(LDLIBS)
+
+$(3)/api_test : $(3)/api_test.o $$($(2)_objects) $$($(2)_asm_objects)
+	$(CC) -o $$@ $(LDFLAGS) $$^ $(LOADLIBES) $(LDLIBS)
 
 # targets to create (sub)directories
 $(3)/:
@@ -150,7 +159,7 @@ $(3)/%/:
 	$$(MKDIR_P) $$@
 
 # target for the variant directory
-$(2) : $$($(2)_targets)
+$(2) : $$($(2)_targets) $(3)/Makefile
 .PHONY : $(2)
 all : $(2)
 
