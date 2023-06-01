@@ -51,7 +51,7 @@ convert_to_us () {
     elif [ "$unit" = "ms" ]; then
         echo "scale=10; ${num} * 1000"  | bc
     elif [ "$unit" = "s" ]; then
-        echo scale=10; "${num} * 1000 * 1000"  | bc
+        echo "scale=10; ${num} * 1000 * 1000"  | bc
     fi
 }
 
