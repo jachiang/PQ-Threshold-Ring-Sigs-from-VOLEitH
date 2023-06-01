@@ -164,7 +164,7 @@ bool faest_sign(
 	if (random_seed)
 		hash_update(&hasher, random_seed, random_seed_len);
 	hash_update_byte(&hasher, 3);
-	hash_final(&hasher, &seed, sizeof(seed_iv));
+	hash_final(&hasher, seed_iv, sizeof(seed_iv));
 
 	memcpy(&seed, seed_iv, sizeof(seed));
 	memcpy(&iv, &seed_iv[sizeof(seed)], sizeof(iv));
