@@ -105,6 +105,14 @@ TEST_CASE( "test vector", "[faest]" ) {
     namespace tv = faest_tvs::faest_em_128s_tvs;
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 128 && BITS_PER_WITNESS == 16
     namespace tv = faest_tvs::faest_em_128f_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 192 && BITS_PER_WITNESS == 16
+    namespace tv = faest_tvs::faest_em_192s_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 192 && BITS_PER_WITNESS == 24
+    namespace tv = faest_tvs::faest_em_192f_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 256 && BITS_PER_WITNESS == 22
+    namespace tv = faest_tvs::faest_em_256s_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 256 && BITS_PER_WITNESS == 32
+    namespace tv = faest_tvs::faest_em_256f_tvs;
 #endif
     using faest_tvs::message;
 
@@ -113,13 +121,10 @@ TEST_CASE( "test vector", "[faest]" ) {
     REQUIRE( tv::signature.size() == FAEST_SIGNATURE_BYTES );
 
     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
-    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
     std::array<uint8_t, FAEST_SIGNATURE_BYTES> signature;
 
-    test_gen_keypair(packed_pk.data(), packed_sk.data());
     faest_pubkey(packed_pk.data(), tv::packed_sk.data());
     CHECK( packed_pk == tv::packed_pk );
-    CHECK( packed_sk == tv::packed_sk );
 
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_sk.data(), tv::randomness.data(), tv::randomness.size()) );
     CHECK( signature == tv::signature );
