@@ -67,4 +67,6 @@ ALWAYS_INLINE size_t rotate_right(size_t x, unsigned int shift, unsigned int n_b
 	return ((x << (n_bits - shift)) & mask) + ((x & mask) >> shift);
 }
 
+void printHex(const char* s, const uint8_t* data, size_t len);
+
 #endif
