@@ -156,8 +156,6 @@ bool faest_sign(
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
 
-    printHex("mu", (uint8_t*)&mu, sizeof(mu));
-
 	block_secpar seed;
 	block128 iv;
 	uint8_t seed_iv[sizeof(seed) + sizeof(iv)];
@@ -172,9 +170,6 @@ bool faest_sign(
 	memcpy(&seed, seed_iv, sizeof(seed));
 	memcpy(&iv, &seed_iv[sizeof(seed)], sizeof(iv));
 
-    printHex("seed", (uint8_t*)&seed, sizeof(seed));
-    printHex("iv", (uint8_t*)&iv, sizeof(iv));
-
 	block_secpar* forest =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_NODES * sizeof(block_secpar));
 	block_2secpar* hashed_leaves =
@@ -186,8 +181,6 @@ bool faest_sign(
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
-    printHex("u[:128]", (uint8_t*)u, 16);
-    printHex("v[:128]", (uint8_t*)v, 16);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -197,8 +190,6 @@ bool faest_sign(
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
-
-    printHex("chall_1", (uint8_t*)&chal1, sizeof(chal1));
 
 	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
@@ -225,7 +216,6 @@ bool faest_sign(
     hash_update(&hasher, correction, WITNESS_BITS / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
-    printHex("chall_2", chal2, sizeof(chal2));
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_ROWS_PADDED * sizeof(block_secpar));
@@ -242,8 +232,6 @@ bool faest_sign(
 	uint8_t* qs_proof = correction + WITNESS_BITS / 8;
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	quicksilver_prove(&qs, WITNESS_BITS, qs_proof, qs_check);
-    printHex("a_tilde", qs_proof, SECURITY_PARAM / 8);
-    printHex("b_tilde", qs_check, SECURITY_PARAM / 8);
 	free(macs);
 	free(u);
 
@@ -251,11 +239,10 @@ bool faest_sign(
 	uint8_t* delta = veccom_open_start + VECTOR_OPEN_SIZE;
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
-	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, delta, sizeof(block_secpar));
-    printHex("chall_3", delta, sizeof(block_secpar));
 
 	uint8_t delta_bytes[SECURITY_PARAM];
 	for (size_t i = 0; i < SECURITY_PARAM; ++i)
