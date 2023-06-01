@@ -195,7 +195,7 @@ ALWAYS_INLINE void aes_keygen_impl(
 	}
 
 	// Upper bound just to avoid VLAs.
-	aes_keygen_state keygen_states[2 * AES_PREFERRED_WIDTH / KEYGEN_WIDTH];
+	aes_keygen_state keygen_states[AES_PREFERRED_WIDTH / KEYGEN_WIDTH];
 	aes_keygen_init(keygen_states, aeses, keys, num_keys);
 
 #if SECURITY_PARAM == 128
@@ -259,16 +259,15 @@ ALWAYS_INLINE void aes_keygen_impl(
 		aes_ctr_key* restrict aeses, const block_secpar* restrict keys, \
 		const block128* restrict ivs, uint32_t counter, block128* restrict output) \
 	{ \
-		assert(num_keys <= 2 * AES_PREFERRED_WIDTH && num_blocks <= 4);\
+		assert(num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4);\
 		/* Silence a gcc warning about UB: */ \
-		if (num_keys <= 2 * AES_PREFERRED_WIDTH && num_blocks <= 4) \
+		if (num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4) \
 			aes_keygen_impl(aeses, keys, ivs, num_keys, num_blocks, counter, output); \
 	}
 #define DEF_AES_KEYGEN_IMPL_K(num_keys) \
 	DEF_AES_KEYGEN_IMPL_KB(num_keys, 1) \
 	DEF_AES_KEYGEN_IMPL_KB(num_keys, 2) \
-	DEF_AES_KEYGEN_IMPL_KB(num_keys, 3) \
-	DEF_AES_KEYGEN_IMPL_KB(num_keys, 4)
+	DEF_AES_KEYGEN_IMPL_KB(num_keys, 3)
 
 // These are mostly unused, but it's easier to list them all than to keep track of all of the ones
 // that are used.
@@ -289,22 +288,6 @@ DEF_AES_KEYGEN_IMPL_K(13)
 DEF_AES_KEYGEN_IMPL_K(14)
 DEF_AES_KEYGEN_IMPL_K(15)
 DEF_AES_KEYGEN_IMPL_K(16)
-DEF_AES_KEYGEN_IMPL_K(17)
-DEF_AES_KEYGEN_IMPL_K(18)
-DEF_AES_KEYGEN_IMPL_K(19)
-DEF_AES_KEYGEN_IMPL_K(20)
-DEF_AES_KEYGEN_IMPL_K(21)
-DEF_AES_KEYGEN_IMPL_K(22)
-DEF_AES_KEYGEN_IMPL_K(23)
-DEF_AES_KEYGEN_IMPL_K(24)
-DEF_AES_KEYGEN_IMPL_K(25)
-DEF_AES_KEYGEN_IMPL_K(26)
-DEF_AES_KEYGEN_IMPL_K(27)
-DEF_AES_KEYGEN_IMPL_K(28)
-DEF_AES_KEYGEN_IMPL_K(29)
-DEF_AES_KEYGEN_IMPL_K(30)
-DEF_AES_KEYGEN_IMPL_K(31)
-DEF_AES_KEYGEN_IMPL_K(32)
 
 void aes_keygen(aes_round_keys* round_keys, block_secpar key)
 {

@@ -54,8 +54,8 @@ ALWAYS_INLINE void aes_round(
 ALWAYS_INLINE void aes_round_ctr(
 	const aes_ctr_key* aeses, block128* state, size_t num_keys, size_t evals_per_key, int round)
 {
-	assert(num_keys <= 2 * AES_PREFERRED_WIDTH);
-	aes_round_keys keys[2 * AES_PREFERRED_WIDTH];
+	assert(num_keys <= AES_PREFERRED_WIDTH);
+	aes_round_keys keys[AES_PREFERRED_WIDTH];
 	for (size_t i = 0; i < num_keys; ++i)
 		keys[i] = aeses[i].round_keys;
 	aes_round(keys, state, num_keys, evals_per_key, round);
@@ -132,7 +132,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
-	assert(num_keys <= 2 * AES_PREFERRED_WIDTH);
+	assert(num_keys <= AES_PREFERRED_WIDTH);
 	assert(1 <= num_blocks && num_blocks <= 4);
 
 	// Use a switch to select which function. The case should always be resolved at compile time.
@@ -150,8 +150,7 @@ ALWAYS_INLINE void aes_keygen_ctr(
 #define AES_KEYGEN_SWITCH_CASE_K(num_keys) \
 		AES_KEYGEN_SWITCH_CASE_KB(num_keys, 1) \
 		AES_KEYGEN_SWITCH_CASE_KB(num_keys, 2) \
-		AES_KEYGEN_SWITCH_CASE_KB(num_keys, 3) \
-		AES_KEYGEN_SWITCH_CASE_KB(num_keys, 4)
+		AES_KEYGEN_SWITCH_CASE_KB(num_keys, 3)
 
 		AES_KEYGEN_SWITCH_CASE_K(1)
 		AES_KEYGEN_SWITCH_CASE_K(2)
@@ -169,24 +168,11 @@ ALWAYS_INLINE void aes_keygen_ctr(
 		AES_KEYGEN_SWITCH_CASE_K(14)
 		AES_KEYGEN_SWITCH_CASE_K(15)
 		AES_KEYGEN_SWITCH_CASE_K(16)
-		AES_KEYGEN_SWITCH_CASE_K(17)
-		AES_KEYGEN_SWITCH_CASE_K(18)
-		AES_KEYGEN_SWITCH_CASE_K(19)
-		AES_KEYGEN_SWITCH_CASE_K(20)
-		AES_KEYGEN_SWITCH_CASE_K(21)
-		AES_KEYGEN_SWITCH_CASE_K(22)
-		AES_KEYGEN_SWITCH_CASE_K(23)
-		AES_KEYGEN_SWITCH_CASE_K(24)
-		AES_KEYGEN_SWITCH_CASE_K(25)
-		AES_KEYGEN_SWITCH_CASE_K(26)
-		AES_KEYGEN_SWITCH_CASE_K(27)
-		AES_KEYGEN_SWITCH_CASE_K(28)
-		AES_KEYGEN_SWITCH_CASE_K(29)
-		AES_KEYGEN_SWITCH_CASE_K(30)
-		AES_KEYGEN_SWITCH_CASE_K(31)
-		AES_KEYGEN_SWITCH_CASE_K(32)
 #undef AES_KEYGEN_SWITCH_CASE_K
 #undef AES_KEYGEN_SWITCH_CASE_KB
+
+	default:
+		assert(0);
 	}
 }
 
@@ -195,8 +181,8 @@ inline void aes_ctr(
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
 	// Upper bound just to avoid VLAs.
-	assert(num_keys * num_blocks <= 8 * AES_PREFERRED_WIDTH);
-	block128 state[8 * AES_PREFERRED_WIDTH];
+	assert(num_keys * num_blocks <= 3 * AES_PREFERRED_WIDTH);
+	block128 state[3 * AES_PREFERRED_WIDTH];
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
 			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
@@ -216,8 +202,8 @@ inline void aes_fixed_key_ctr(
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
 	// Upper bound just to avoid VLAs.
-	assert(num_keys * num_blocks <= 8 * AES_PREFERRED_WIDTH);
-	block128 state[8 * AES_PREFERRED_WIDTH];
+	assert(num_keys * num_blocks <= 3 * AES_PREFERRED_WIDTH);
+	block128 state[3 * AES_PREFERRED_WIDTH];
 
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
