@@ -339,8 +339,8 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	block_secpar delta_check;
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
-	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta_check, sizeof(delta_check));
 
