@@ -16,6 +16,9 @@
 
 void rijndael192_encrypt_block(
 	const rijndael192_round_keys* restrict fixed_key, block192* restrict block);
+void aes_ctr_bad_iv(
+	const aes_round_keys* restrict aeses,
+	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 inline void aes_round_function(
 	const aes_round_keys* restrict round_keys, block128* restrict block,
@@ -121,33 +124,25 @@ ALWAYS_INLINE void set_iv_counter(block128* iv, uint64_t counter)
 	memcpy(((uint8_t*) iv) + sizeof(*iv) - sizeof(counter), &counter, sizeof(counter));
 }
 
-ALWAYS_INLINE bool aes_are_ivs_bad(const aes_round_keys* aeses, size_t num_keys)
+ALWAYS_INLINE bool aes_is_iv_bad(block128 iv)
 {
-	#ifdef __GNUC__
-	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
-	#endif
-	for (size_t i = 0; i < num_keys; ++i)
-		if (get_iv_counter(&aeses[i].iv) > UINT64_MAX - AES_MAX_CTR)
-			return true;
-	return false;
+	return get_iv_counter(&iv) > UINT64_MAX - AES_MAX_CTR;
 }
 
-ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_round_keys* aes, uint32_t ctr, bool bad_iv)
+ALWAYS_INLINE block128 aes_add_counter_to_iv_good(block128 iv, uint32_t ctr)
 {
-	if (bad_iv)
-	{
-		block128 iv_rev = block128_byte_reverse(aes->iv);
-		__uint128_t sum;
-		memcpy(&sum, &iv_rev, sizeof(sum));
-		sum += ctr;
-		return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
-	}
-	else
-	{
-		block128 sum = aes->iv;
-		set_iv_counter(&sum, get_iv_counter(&sum) + ctr);
-		return sum;
-	}
+	block128 sum = iv;
+	set_iv_counter(&sum, get_iv_counter(&sum) + ctr);
+	return sum;
+}
+
+ALWAYS_INLINE block128 aes_add_counter_to_iv_bad(block128 iv, uint32_t ctr)
+{
+	block128 iv_rev = block128_byte_reverse(iv);
+	__uint128_t sum;
+	memcpy(&sum, &iv_rev, sizeof(sum));
+	sum += ctr;
+	return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
 }
 
 ALWAYS_INLINE void aes_keygen_ctr(
@@ -156,25 +151,41 @@ ALWAYS_INLINE void aes_keygen_ctr(
 {
 	assert((size_t) counter + num_blocks <= AES_MAX_CTR);
 	assert(num_keys <= AES_PREFERRED_WIDTH);
-	assert(1 <= num_blocks && num_blocks <= 4);
+	assert(1 <= num_blocks && num_blocks <= 3);
 
-	for (size_t l = 0; l < num_keys; ++l)
-		aeses[l].iv = ivs[l];
-
-	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
+	bool bad_iv = false;
 	#ifdef __GNUC__
 	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
 	#endif
-	for (size_t l = 0; l < num_keys; ++l)
-		for (uint32_t m = 0; m < num_blocks; ++m)
-			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
+	for (size_t i = 0; i < num_keys; ++i)
+		if (aes_is_iv_bad(ivs[i]))
+			bad_iv = true;
+
+	if (bad_iv)
+	{
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+		#endif
+		for (size_t l = 0; l < num_keys; ++l)
+			for (uint32_t m = 0; m < num_blocks; ++m)
+				output[l * num_blocks + m] = aes_add_counter_to_iv_bad(ivs[l], counter + m);
+	}
+	else
+	{
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+		#endif
+		for (size_t l = 0; l < num_keys; ++l)
+			for (uint32_t m = 0; m < num_blocks; ++m)
+				output[l * num_blocks + m] = aes_add_counter_to_iv_good(ivs[l], counter + m);
+	}
 
 	// Use a switch to select which function. The case should always be resolved at compile time.
 	static_assert(AES_PREFERRED_WIDTH <= 16, "AES_PREFERRED_WITH must be at most 16");
-	switch(num_keys * 4 + num_blocks)
+	switch(num_keys * 3 + num_blocks)
 	{
 #define AES_KEYGEN_SWITCH_CASE_KB(num_keys,num_blocks) \
-	case (num_keys * 4 + num_blocks): \
+	case (num_keys * 3 + num_blocks): \
 	{ \
 		void aes_keygen_impl_##num_keys##_##num_blocks( \
 			aes_round_keys*, const block_secpar*, block128*); \
@@ -208,6 +219,12 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	default:
 		assert(0);
 	}
+
+	#ifdef __GNUC__
+	_Pragma(STRINGIZE(GCC unroll (3 * AES_PREFERRED_WIDTH)))
+	#endif
+	for (size_t l = 0; l < num_keys; ++l)
+		aeses[l].iv = ivs[l];
 }
 
 inline void aes_ctr(
@@ -220,13 +237,32 @@ inline void aes_ctr(
 	assert(num_keys * num_blocks <= 3 * AES_PREFERRED_WIDTH);
 	block128 state[3 * AES_PREFERRED_WIDTH];
 
-	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
+	bool bad_iv = false;
 	#ifdef __GNUC__
 	_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
 	#endif
-	for (size_t l = 0; l < num_keys; ++l)
-		for (uint32_t m = 0; m < num_blocks; ++m)
-			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
+	for (size_t i = 0; i < num_keys; ++i)
+		if (aes_is_iv_bad(aeses[i].iv))
+			bad_iv = true;
+
+	if (bad_iv)
+	{
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+		#endif
+		for (size_t l = 0; l < num_keys; ++l)
+			for (uint32_t m = 0; m < num_blocks; ++m)
+				state[l * num_blocks + m] = aes_add_counter_to_iv_bad(aeses[l].iv, counter + m);
+	}
+	else
+	{
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (3*AES_PREFERRED_WIDTH)))
+		#endif
+		for (size_t l = 0; l < num_keys; ++l)
+			for (uint32_t m = 0; m < num_blocks; ++m)
+				state[l * num_blocks + m] = aes_add_counter_to_iv_good(aeses[l].iv, counter + m);
+	}
 
 	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
 	// aren't asking it to unwind the whole loop.)

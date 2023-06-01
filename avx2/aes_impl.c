@@ -249,9 +249,9 @@ ALWAYS_INLINE void aes_keygen_impl(
 		aes_round_keys* restrict aeses, const block_secpar* restrict keys, \
 		block128* restrict output) \
 	{ \
-		assert(num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4);\
+		assert(num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 3);\
 		/* Silence a gcc warning about UB: */ \
-		if (num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4) \
+		if (num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 3) \
 			aes_keygen_impl(aeses, keys, num_keys, num_blocks, output); \
 	}
 #define DEF_AES_KEYGEN_IMPL_K(num_keys) \
