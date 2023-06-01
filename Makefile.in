@@ -1,6 +1,3 @@
-COMMON_LD_FLAGS ?= -O2 -march=native -mtune=native -DNDEBUG
-COMMON_CC_FLAGS ?= -Wno-ignored-attributes $(COMMON_LD_FLAGS)
-
 CC?=gcc
 CXX?=g++
 CFLAGS+=-g -O2 -march=native -mtune=native -std=c11
