@@ -7,7 +7,7 @@
 #define VOLE_CHECK_HASH_BYTES (SECURITY_PARAM / 8 + 2)
 #define VOLE_CHECK_CHALLENGE_BYTES ((5 * SECURITY_PARAM + 64) / 8)
 #define VOLE_CHECK_PROOF_BYTES VOLE_CHECK_HASH_BYTES
-#define VOLE_CHECK_CHECK_BYTES (2 * SECURITY_PARAM)
+#define VOLE_CHECK_CHECK_BYTES (2 * SECURITY_PARAM / 8)
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,

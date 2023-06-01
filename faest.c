@@ -220,8 +220,8 @@ bool faest_sign(
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, chal1, sizeof(chal1));
-    /* hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES); */
-    /* hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES); */
+    hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+    hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
     hash_update(&hasher, correction, WITNESS_BITS / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
