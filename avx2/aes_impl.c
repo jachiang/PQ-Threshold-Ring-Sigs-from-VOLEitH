@@ -206,10 +206,6 @@ ALWAYS_INLINE void aes_keygen_impl(
 	int unroll_rounds = 2;
 #endif
 
-	for (size_t l = 0; l < num_keys; ++l)
-		for (uint32_t m = 0; m < num_blocks; ++m)
-			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
-
 	// Separate out the first and last rounds, as they work differently.
 	aes_round(aeses, output, num_keys, num_blocks, 0);
 	if (round_start > 1)

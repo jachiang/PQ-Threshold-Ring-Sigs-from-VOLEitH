@@ -123,6 +123,8 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	{
 		block128 iv = block128_byte_reverse(ivs[l]);
 		memcpy(&aeses[l].iv, &iv, sizeof(iv));
+		for (uint32_t m = 0; m < num_blocks; ++m)
+			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
 	}
 
 	// Use a switch to select which function. The case should always be resolved at compile time.
