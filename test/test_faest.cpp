@@ -129,8 +129,6 @@ TEST_CASE( "test vector", "[faest]" ) {
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_sk.data(), tv::randomness.data(), tv::randomness.size()) );
     CHECK( signature == tv::signature );
 
-    std::cerr << signature << "\n";
-
     REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_pk.data()) );
 }
 
