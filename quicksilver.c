@@ -107,6 +107,13 @@ void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_b
 		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
+    block_secpar pconst;
+    poly_secpar_store1(&pconst, poly_2secpar_reduce_secpar(mac_mask));
+    printHex("A0", (uint8_t*)&pconst, SECURITY_PARAM / 8);
+    block_secpar plin;
+    poly_secpar_store1(&plin, poly_2secpar_reduce_secpar(value_mask));
+    printHex("A1", (uint8_t*)&plin, SECURITY_PARAM / 8);
+
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof);
 }

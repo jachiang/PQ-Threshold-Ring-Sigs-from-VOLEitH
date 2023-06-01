@@ -238,13 +238,6 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 
 		poly_secpar_vec lin_term = poly_secpar_add(poly_secpar_add(x0_y0, xinf_yinf), x1_y1);
 
-        block_secpar pconst;
-        poly_secpar_store1(&pconst, x0_y0);
-        printHex("A0", (uint8_t*)&pconst, SECURITY_PARAM / 8);
-        block_secpar plin;
-        poly_secpar_store1(&pconst, lin_term);
-        printHex("A1", (uint8_t*)&plin, SECURITY_PARAM / 8);
-
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, x0_y0);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, lin_term);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, x0_y0);
