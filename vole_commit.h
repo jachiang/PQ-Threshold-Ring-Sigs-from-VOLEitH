@@ -14,7 +14,7 @@
 // - `commitment` must be `(BITS_PER_WITNESS - 1) * VOLE_ROWS / 8` long
 // - `check` must be `2 * SECURITY_PARAM / 8` long
 void vole_commit(
-	block_secpar seed, block_secpar* restrict forest, block_2secpar* hashed_leaves,
+	block_secpar seed, block128 iv, block_secpar* restrict forest, block_2secpar* hashed_leaves,
 	vole_block* restrict u, vole_block* restrict v,
 	uint8_t* restrict commitment, uint8_t* restrict check);
 
@@ -24,7 +24,7 @@ void vole_commit(
 // - `check` must be `2 * SECURITY_PARAM / 8` long
 // - `opening` must be `VECTOR_OPEN_SIZE` long
 void vole_reconstruct(
-	vole_block* restrict q, const uint8_t* delta_bytes,
+	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
 	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check);
 
 #endif

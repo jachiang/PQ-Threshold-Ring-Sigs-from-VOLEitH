@@ -43,7 +43,7 @@ static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
 // Sender and receiver merged together, since they share most of the same code.
 static ALWAYS_INLINE void vole(
 	bool receiver, unsigned int k,
-	const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
+	const block_secpar* restrict keys, block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u_or_c_in, vole_block* restrict vq, vole_block* restrict c_out,
 	const uint8_t* restrict delta)
 {
@@ -70,8 +70,8 @@ static ALWAYS_INLINE void vole(
 		prg_vole_iv ivs[VOLE_WIDTH];
 		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
 
-		// TODO
-		memset(&ivs, 0, sizeof(ivs));
+		for (size_t i = 0; i < VOLE_WIDTH; ++i)
+			memcpy(&ivs[i], &iv, sizeof(ivs[i]));
 
 		prg_vole_init(prgs, fixed_key, &keys[0], ivs, VOLE_WIDTH, PRG_VOLE_BLOCKS, 0, raw_prg_output);
 		for (size_t j = 0; j < COL_LEN; ++j)
@@ -103,8 +103,8 @@ static ALWAYS_INLINE void vole(
 		prg_vole_iv ivs[VOLE_WIDTH];
 		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
 
-		// TODO
-		memset(&ivs, 0, sizeof(ivs));
+		for (size_t i = 0; i < VOLE_WIDTH; ++i)
+			memcpy(&ivs[i], &iv, sizeof(ivs[i]));
 
 		// Bitwise or is to make output_col be k - 1 when i + VOLE_WIDTH = 2**k, rather than k.
 		unsigned int output_col = count_trailing_zeros((i + VOLE_WIDTH) | (1 << (k - 1)));
@@ -141,18 +141,20 @@ static ALWAYS_INLINE void vole(
 }
 
 void vole_sender(
-	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys,
+	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c)
 {
-	vole(false, k, keys, fixed_key, u, v, c, NULL);
+	vole(false, k, keys, iv, fixed_key, u, v, c, NULL);
 }
 
 void vole_receiver(
-	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys,
+	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
 	const uint8_t* restrict delta)
 {
-	vole(true, k, keys, fixed_key, c, q, NULL, delta);
+	vole(true, k, keys, iv, fixed_key, c, q, NULL, delta);
 }
 
 void vole_receiver_apply_correction(

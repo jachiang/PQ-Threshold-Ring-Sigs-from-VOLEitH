@@ -156,6 +156,8 @@ bool faest_sign(
 	hash_final(&hasher, &mu, sizeof(mu));
 
 	block_secpar seed;
+	block128 iv;
+	uint8_t seed_iv[sizeof(seed) + sizeof(iv)];
 	hash_init(&hasher);
 	hash_update(&hasher, &sk.sk, sizeof(sk.sk));
 	hash_update(&hasher, &mu, sizeof(mu));
@@ -163,6 +165,9 @@ bool faest_sign(
 		hash_update(&hasher, random_seed, random_seed_len);
 	hash_update_byte(&hasher, 3);
 	hash_final(&hasher, &seed, sizeof(seed));
+
+	memcpy(&seed, seed_iv, sizeof(seed));
+	memcpy(&iv, &seed_iv[sizeof(seed)], sizeof(iv));
 
 	block_secpar* forest =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_NODES * sizeof(block_secpar));
@@ -174,13 +179,14 @@ bool faest_sign(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit(seed, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
 	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
@@ -245,7 +251,10 @@ bool faest_sign(
 	free(forest);
 	free(hashed_leaves);
 
-	assert(delta + sizeof(block_secpar) == signature + FAEST_SIGNATURE_BYTES);
+	uint8_t* iv_dst = delta + sizeof(block_secpar);
+	memcpy(iv_dst, &iv, sizeof(iv));
+
+	assert(iv_dst + sizeof(iv) == signature + FAEST_SIGNATURE_BYTES);
 
 	return true;
 }
@@ -266,6 +275,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	const uint8_t* qs_proof = correction + WITNESS_BITS / 8;
 	const uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
 	const uint8_t* delta = veccom_open_start + VECTOR_OPEN_SIZE;
+	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
 
 	uint8_t delta_bytes[SECURITY_PARAM];
 	for (size_t i = 0; i < SECURITY_PARAM; ++i)
@@ -275,13 +285,16 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_reconstruct(q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	block128 iv;
+	memcpy(&iv, iv_ptr, sizeof(iv));
+	vole_reconstruct(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
 	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 

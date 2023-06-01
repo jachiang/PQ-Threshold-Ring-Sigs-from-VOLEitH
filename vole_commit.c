@@ -53,17 +53,18 @@ static void hash_hashed_leaves(block_2secpar* hashed_leaves, uint8_t* restrict h
 }
 
 void vole_commit(
-	block_secpar seed, block_secpar* restrict forest, block_2secpar* hashed_leaves,
+	block_secpar seed, block128 iv, block_secpar* restrict forest, block_2secpar* hashed_leaves,
 	vole_block* restrict u, vole_block* restrict v,
 	uint8_t* restrict commitment, uint8_t* restrict check)
 {
 	block_secpar* leaves =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_LEAVES * sizeof(block_secpar));
-	vector_commit(seed, forest, leaves, hashed_leaves);
+	vector_commit(seed, iv, forest, leaves, hashed_leaves);
 
 	hash_hashed_leaves(hashed_leaves, check);
 
-	block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
+	block_secpar fixed_key_iv = block_secpar_set_zero();
+	memcpy(&fixed_key_iv, &iv, sizeof(iv));
 	prg_vole_fixed_key fixed_key;
 	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
@@ -73,10 +74,10 @@ void vole_commit(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, &fixed_key, NULL, v, u);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u);
 		else
 		{
-			vole_sender(k, leaves_iter, &fixed_key, u, v, correction);
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction);
 			memcpy(commitment, correction, VOLE_ROWS / 8);
 			commitment += VOLE_ROWS / 8;
 		}
@@ -89,7 +90,7 @@ void vole_commit(
 }
 
 void vole_reconstruct(
-	vole_block* restrict q, const uint8_t* delta_bytes,
+	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
 	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check)
 {
 	block_secpar* leaves =
@@ -97,11 +98,12 @@ void vole_reconstruct(
 	block_2secpar* hashed_leaves =
 		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
 
-	vector_verify(opening, delta_bytes, leaves, hashed_leaves);
+	vector_verify(iv, opening, delta_bytes, leaves, hashed_leaves);
 	hash_hashed_leaves(hashed_leaves, check);
 	free(hashed_leaves);
 
-	block_secpar fixed_key_iv = block_secpar_set_zero(); // TODO
+	block_secpar fixed_key_iv = block_secpar_set_zero();
+	memcpy(&fixed_key_iv, &iv, sizeof(iv));
 	prg_vole_fixed_key fixed_key;
 	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
@@ -114,12 +116,12 @@ void vole_reconstruct(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_receiver(k, leaves_iter, &fixed_key, NULL, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes);
 		else
 		{
 			memcpy(correction, commitment, VOLE_ROWS / 8);
 			commitment += VOLE_ROWS / 8;
-			vole_receiver(k, leaves_iter, &fixed_key, correction, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes);
 		}
 
 		leaves_iter += (size_t) 1 << k;

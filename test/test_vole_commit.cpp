@@ -16,6 +16,7 @@ extern "C" {
 
 TEST_CASE( "commit/open/verify", "[vole commit]" ) {
     block_secpar seed = rand<block_secpar>();
+    block128 iv = rand<block128>();
     std::vector<block_secpar> forest(VECTOR_COMMIT_NODES);
     std::vector<block_secpar> leaves_sender(VECTOR_COMMIT_LEAVES);
     std::vector<block_secpar> leaves_receiver(VECTOR_COMMIT_LEAVES);
@@ -30,7 +31,7 @@ TEST_CASE( "commit/open/verify", "[vole commit]" ) {
     std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_sender;
     std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_receiver;
 
-    vole_commit(seed, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
+    vole_commit(seed, iv, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
 
     const size_t delta = 42 % (1 << VOLE_MIN_K);
 
@@ -44,7 +45,7 @@ TEST_CASE( "commit/open/verify", "[vole commit]" ) {
 
 
     vector_open(forest.data(), hashed_leaves_sender.data(), delta_bytes.data(), opening.data());
-    vole_reconstruct(q.data(), delta_bytes.data(), commitment.data(), opening.data(), check_receiver.data());
+    vole_reconstruct(iv, q.data(), delta_bytes.data(), commitment.data(), opening.data(), check_receiver.data());
 
     REQUIRE( check_receiver == check_sender );
 
@@ -98,6 +99,7 @@ namespace tv_256s {
 
 TEST_CASE( "commit test vectors", "[vole commit]" ) {
     block_secpar seed;
+    block128 iv = block128_set_zero();
 #if SECURITY_PARAM == 128
     namespace tv = tv_128s;
 #elif SECURITY_PARAM == 192
@@ -124,7 +126,7 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     std::array<uint8_t, 2 * SECURITY_PARAM / 8> check_receiver;
 
     // commit
-    vole_commit(seed, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
+    vole_commit(seed, iv, forest.data(), hashed_leaves_sender.data(), u.data(), v.data(), commitment.data(), check_sender.data());
 
     REQUIRE( VOLE_COL_BLOCKS == (VOLE_ROWS + 8 * sizeof(vole_block) - 1) / sizeof(vole_block) / 8 );
     std::vector<uint8_t> u_vec(reinterpret_cast<uint8_t*>(u.data()),
@@ -155,7 +157,7 @@ TEST_CASE( "commit test vectors", "[vole commit]" ) {
     vector_open(forest.data(), hashed_leaves_sender.data(), delta_bytes.data(), opening.data());
 
     // reconstruct
-    vole_reconstruct(q.data(), delta_bytes.data(), commitment.data(), opening.data(), check_receiver.data());
+    vole_reconstruct(iv, q.data(), delta_bytes.data(), commitment.data(), opening.data(), check_receiver.data());
 
     REQUIRE( check_receiver == check_sender );
     std::vector<uint8_t> q_vec(SECURITY_PARAM * VOLE_ROWS / 8, 0);

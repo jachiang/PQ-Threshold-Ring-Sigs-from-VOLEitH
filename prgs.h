@@ -50,7 +50,7 @@
 
 #define DEFINE_PRG_SHAKE(name) \
 	typedef char prg_##name##_key; /* Unused. */ \
-	typedef block128 prg_##name##_iv; /* Unused. */ \
+	typedef block128 prg_##name##_iv; \
 	typedef block_secpar prg_##name##_block; \
 	typedef char prg_##name##_fixed_key; /* Unused. */ \
 	inline void prg_##name##_init( \

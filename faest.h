@@ -29,7 +29,8 @@
 	WITNESS_BITS / 8 + \
 	QUICKSILVER_PROOF_BYTES + \
 	VECTOR_OPEN_SIZE + \
-	SECURITY_PARAM / 8)
+	SECURITY_PARAM / 8 + \
+	16)
 
 // Random seed can be set to null for deterministic signatures.
 

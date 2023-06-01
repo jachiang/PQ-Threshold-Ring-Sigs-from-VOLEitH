@@ -15,7 +15,7 @@
 // VECTOR_COMMIT_LEAVES blocks long. forest must be VECTOR_COMMIT_NODES blocks long. leaves (but not
 // hashed_leaves) will be permuted according to vole_permute_key_index.
 void vector_commit(
-	const block_secpar seed,
+	const block_secpar seed, block128 iv,
 	block_secpar* restrict forest, block_secpar* restrict leaves,
 	block_2secpar* restrict hashed_leaves);
 
@@ -24,7 +24,7 @@ void vector_commit(
 /// - `roots` is of length `BITS_PER_WITNESS`
 /// - `fixed_key_tree` and `fixed_key_leaf` are initialized (if used)
 void vector_commit_from_roots(
-    block_secpar* roots, block_secpar* restrict forest,
+    block_secpar* roots, block128 iv, block_secpar* restrict forest,
     block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves,
     const prg_tree_fixed_key* fixed_key_tree, const prg_leaf_fixed_key* fixed_key_leaf);
 
@@ -39,7 +39,7 @@ void vector_open(
 // must be verified against the output from vector_commit. leaves will be permuted according to
 // delta first, then vole_permute_key_index.
 void vector_verify(
-	const unsigned char* restrict opening, const uint8_t* restrict delta,
+	block128 iv, const unsigned char* restrict opening, const uint8_t* restrict delta,
 	block_secpar* restrict leaves, block_2secpar* restrict hashed_leaves);
 
 #endif

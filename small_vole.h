@@ -13,7 +13,8 @@
 // must be permuted according to vole_permute_key_index, i.e.,
 // keys[i] = original_keys[vole_permute_key_index(i)];
 void vole_sender(
-	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys,
+	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c);
 
 // Given 2**k PRG keys, the secret delta, and the correction string c, generate the VOLE correlation
@@ -22,7 +23,8 @@ void vole_sender(
 // Delta, and then with vole_permute_key_index, i.e.,
 // keys[i] = original_keys[vole_permute_key_index(i) ^ delta];
 void vole_receiver(
-	unsigned int k, const block_secpar* restrict keys, const prg_vole_fixed_key* restrict fixed_key,
+	unsigned int k, const block_secpar* restrict keys,
+	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
 	const uint8_t* restrict delta);
 

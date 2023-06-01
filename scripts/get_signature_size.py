@@ -57,7 +57,8 @@ def faest_sizes(num_sboxes, tau, sec):
     commit_cost = faest_vole_commit(tau, sec, witness_length + 2*sec + B, B) + faest_aes_proof(logp, sec, witness_length)
     open_cost = faest_challenge_decom(sec, tau)
     chal3_cost = sec / 8
-    sig_size = commit_cost + open_cost + chal3_cost
+    iv_cost = 128 / 8
+    sig_size = commit_cost + open_cost + chal3_cost + iv_cost
 
     print(round(sig_size))
 
