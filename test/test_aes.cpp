@@ -387,8 +387,8 @@ TEST_CASE( "aes ctr", "[aes]" ) {
     const auto& expected_aes_ctr_output = aes256_ctr_outputs;
     const auto& expected_aes_round_keys = expected_aes256_round_keys;
 #endif
-    std::array<uint8_t, 16 * 4 * num_keys> ctr_blocks = {0};
-    std::array<uint8_t, 16 * 4 * num_keys> expected_output = {0};
+    std::array<uint8_t, 16 * 3 * num_keys> ctr_blocks = {0};
+    std::array<uint8_t, 16 * 3 * num_keys> expected_output = {0};
     std::array<aes_ctr_key, num_keys> aeses;
     auto* output = reinterpret_cast<block128*>(ctr_blocks.data());
 
@@ -397,21 +397,21 @@ TEST_CASE( "aes ctr", "[aes]" ) {
         memcpy(&ivs[i], aes_ctr_ivs[i].data(), sizeof(ivs[i]));
 
     // test combined keygen and ctr mode
-    aes_keygen_ctr(aeses.data(), aes_keys, ivs.data(), num_keys, 4, aes_ctr_counter, output);
+    aes_keygen_ctr(aeses.data(), aes_keys, ivs.data(), num_keys, 3, aes_ctr_counter, output);
     for (size_t i = 0; i < num_keys; ++i) {
         std::array<std::array<uint8_t, 16>, AES_ROUNDS + 1> round_key_bytes = {0};
         memcpy(round_key_bytes.data(), &aeses[i].round_keys, sizeof(round_key_bytes));
         REQUIRE( round_key_bytes == expected_aes_round_keys[i] );
 
-        memcpy(&expected_output[i * 16 * 4], &expected_aes_ctr_output[i][0], 16 * 4);
+        memcpy(&expected_output[i * 16 * 3], &expected_aes_ctr_output[i][0], 16 * 3);
     }
     REQUIRE( ctr_blocks == expected_output );
 
     // test ctr mode
     for (size_t k = 0; k < 2; ++k) {
-        aes_ctr(aeses.data(), num_keys, 4, aes_ctr_counter + 4 * (k + 1), output);
+        aes_ctr(aeses.data(), num_keys, 3, aes_ctr_counter + 3 * (k + 1), output);
         for (size_t i = 0; i < num_keys; ++i) {
-            memcpy(&expected_output[i * 16 * 4], &expected_aes_ctr_output[i][(k + 1) * 4], 16 * 4);
+            memcpy(&expected_output[i * 16 * 3], &expected_aes_ctr_output[i][(k + 1) * 3], 16 * 3);
         }
         REQUIRE( ctr_blocks == expected_output );
     }
