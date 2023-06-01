@@ -25,9 +25,12 @@
 
 #define FIXED_KEY_PREFERRED_WIDTH (1 << FIXED_KEY_PREFERRED_WIDTH_SHIFT)
 
+// An IV is included even though one can use the round keys without an iv. It's just a convenient
+// place to put it.
 typedef struct
 {
 	block128 keys[AES_ROUNDS + 1];
+	__uint128_t iv;
 } aes_round_keys;
 
 typedef struct
@@ -46,8 +49,6 @@ extern unsigned char aes_round_constants[];
 
 // Interface defined by aes_impl.h:
 
-// typedef /**/ aes_ctr_key;
-//
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
@@ -74,14 +75,14 @@ void rijndael256_round_function(
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
 // Each key has it's own iv. Outputs from the same key are grouped together in output.
 ALWAYS_INLINE void aes_keygen_ctr(
-	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
+	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys AES keys, generate num_blocks block128s of output from each, starting at
 // counter. Each key has it's own iv. Outputs from the same key are grouped together in output.
 // Need 1 <= num_blocks <= 4.
 inline void aes_ctr(
-	const aes_ctr_key* restrict aeses,
+	const aes_round_keys* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys Even-Mansour keys, generate num_blocks block_secpars of output from each in CTR

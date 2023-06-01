@@ -12,11 +12,11 @@ extern inline void aes_round_function(
 	block128* restrict after_sbox, int round);
 
 extern ALWAYS_INLINE void aes_keygen_ctr(
-	aes_ctr_key* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
+	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 extern inline void aes_ctr(
-	const aes_ctr_key* restrict aeses,
+	const aes_round_keys* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 extern inline void aes_fixed_key_ctr(

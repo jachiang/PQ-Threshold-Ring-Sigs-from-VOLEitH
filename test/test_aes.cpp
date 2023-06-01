@@ -319,7 +319,7 @@ TEST_CASE( "aes keygen", "[aes]" ) {
     const auto& expected_aes_round_keys = expected_aes256_round_keys;
 #endif
 
-    aes_round_keys round_keys = {0};
+    aes_round_keys round_keys{};
     std::array<std::array<uint8_t, 16>, AES_ROUNDS + 1> round_key_bytes = {0};
     block_secpar key;
 
@@ -389,7 +389,7 @@ TEST_CASE( "aes ctr", "[aes]" ) {
 #endif
     std::array<uint8_t, 16 * 3 * num_keys> ctr_blocks = {0};
     std::array<uint8_t, 16 * 3 * num_keys> expected_output = {0};
-    std::array<aes_ctr_key, num_keys> aeses;
+    std::array<aes_round_keys, num_keys> aeses;
     auto* output = reinterpret_cast<block128*>(ctr_blocks.data());
 
     std::array<block128, num_keys> ivs;
@@ -400,7 +400,7 @@ TEST_CASE( "aes ctr", "[aes]" ) {
     aes_keygen_ctr(aeses.data(), aes_keys, ivs.data(), num_keys, 3, aes_ctr_counter, output);
     for (size_t i = 0; i < num_keys; ++i) {
         std::array<std::array<uint8_t, 16>, AES_ROUNDS + 1> round_key_bytes = {0};
-        memcpy(round_key_bytes.data(), &aeses[i].round_keys, sizeof(round_key_bytes));
+        memcpy(round_key_bytes.data(), &aeses[i].keys[0], sizeof(round_key_bytes));
         REQUIRE( round_key_bytes == expected_aes_round_keys[i] );
 
         memcpy(&expected_output[i * 16 * 3], &expected_aes_ctr_output[i][0], 16 * 3);

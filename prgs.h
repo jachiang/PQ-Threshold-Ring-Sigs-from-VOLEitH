@@ -5,7 +5,7 @@
 #include "hash.h"
 
 #define DEFINE_PRG_AES_CTR(name) \
-	typedef aes_ctr_key prg_##name##_key; \
+	typedef aes_round_keys prg_##name##_key; \
 	typedef block128 prg_##name##_iv; \
 	typedef block128 prg_##name##_block; \
 	typedef char prg_##name##_fixed_key; /* Unused. */ \
@@ -60,6 +60,7 @@
 	{ \
 		(void) prgs; \
 		(void) fixed_key; \
+		(void) counter; \
 		assert(counter == 0); \
 		shake_prg(keys, ivs, num_keys, num_blocks * sizeof(block_secpar), (uint8_t*) output); \
 	} \
@@ -73,6 +74,8 @@
 		(void) fixed_key; \
 		(void) counter; \
 		(void) output; \
+		(void) num_keys; \
+		(void) num_blocks; \
 		assert(num_keys == 0 || num_blocks == 0); \
 	}
 
