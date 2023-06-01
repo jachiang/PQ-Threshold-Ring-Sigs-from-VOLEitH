@@ -15,20 +15,7 @@
 #define GLIBC_CHECK(maj, min) 0
 #endif
 
-#if defined(HAVE_RANDOMBYTES) || defined(SUPERCOP)
-#if defined(PQCLEAN)
-// randombytes from the PQClean
-extern void randombytes(uint8_t* x, size_t xlen);
-#else
-// randombytes from the NIST framework / SUPERCOP
-extern void randombytes(unsigned char* x, unsigned long long xlen);
-#endif
-
-int rand_bytes(uint8_t* dst, size_t len) {
-  randombytes(dst, len);
-  return 0;
-}
-#elif defined(OQS)
+#if defined(OQS)
 #include <oqs/rand.h>
 
 int rand_bytes(uint8_t* dst, size_t len) {
