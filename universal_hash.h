@@ -35,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-	poly_secpar_plus_64_vec state;
+	poly_secpar_vec state;
 } hasher_gfsecpar_64_state;
 
 typedef struct
@@ -101,13 +101,13 @@ inline void hasher_gfsecpar_64_init_state(hasher_gfsecpar_64_state* state, size_
 // Update a vector of hashers on a vector of polynomials.
 inline void hasher_gfsecpar_64_update(const hasher_gfsecpar_64_key* key, hasher_gfsecpar_64_state* state, poly_secpar_vec input)
 {
-	state->state = poly64xsecpar_mul(key->key, poly_secpar_plus_64_reduce_secpar(state->state));
-    state->state = poly_secpar_plus_64_add(state->state, poly_secpar_plus_64_from_secpar(input));
+	state->state = poly_secpar_plus_64_reduce_secpar(poly64xsecpar_mul(key->key, state->state));
+    state->state = poly_secpar_add(state->state, input);
 }
 
 inline poly_secpar_vec hasher_gfsecpar_64_final(const hasher_gfsecpar_64_state* state)
 {
-	return poly_secpar_plus_64_reduce_secpar(state->state);
+	return state->state;
 }
 
 // Input key and output hash are in index 0 of their respective polynomial vectors. key_exp should
