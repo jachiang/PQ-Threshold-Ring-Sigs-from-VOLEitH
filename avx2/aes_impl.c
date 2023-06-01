@@ -260,7 +260,9 @@ ALWAYS_INLINE void aes_keygen_impl(
 		const block128* restrict ivs, uint32_t counter, block128* restrict output) \
 	{ \
 		assert(num_keys <= 2 * AES_PREFERRED_WIDTH && num_blocks <= 4);\
-		aes_keygen_impl(aeses, keys, ivs, num_keys, num_blocks, counter, output); \
+		/* Silence a gcc warning about UB: */ \
+		if (num_keys <= 2 * AES_PREFERRED_WIDTH && num_blocks <= 4) \
+			aes_keygen_impl(aeses, keys, ivs, num_keys, num_blocks, counter, output); \
 	}
 #define DEF_AES_KEYGEN_IMPL_K(num_keys) \
 	DEF_AES_KEYGEN_IMPL_KB(num_keys, 1) \
