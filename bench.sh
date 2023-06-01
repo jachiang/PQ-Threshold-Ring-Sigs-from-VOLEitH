@@ -120,6 +120,7 @@ run_bench () {
     verify_results="`parse_output "${bench_verify_out}"`"
 
     json="`jq -c -n \
+        --arg "implementation" "opt" \
         --arg "variant" "${name}" \
         --arg "setting_id" "${setting_id}" \
         --argjson "sig_size_bytes" "${sig_size}" \
