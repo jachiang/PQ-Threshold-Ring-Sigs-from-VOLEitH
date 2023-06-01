@@ -19,10 +19,14 @@ def analyze(df):
         'sig_size_bytes',
         'sk_size_bytes',
         'pk_size_bytes',
-        'keygen.mean_us',
-        'sign.mean_us',
-        'verify.mean_us',
+        'keygen.mean_ms',
+        'sign.mean_ms',
+        'verify.mean_ms',
     ]
+
+    df['keygen.mean_ms'] = df['keygen.mean_us'] / 1000
+    df['sign.mean_ms'] = df['verify.mean_us'] / 1000
+    df['verify.mean_ms'] = df['verify.mean_us'] / 1000
 
     for c in df.columns:
         if c not in columns_to_keep:
@@ -31,7 +35,19 @@ def analyze(df):
     return df
 
 
-def print_latex_table(df, indentation=4):
+def print_latex_table(impl, df, indentation=4):
+    if impl == 'opt':
+        label = 'tab:AVX2perf'
+        caption = '''
+        Benchmark results for the architecture specific implementation for x86-64 with AVX2.'
+        '''.strip()
+    elif impl == 'ref':
+        label = 'tab:refperf'
+        caption = '''
+        Benchmark results for the reference implementation.'
+        '''.strip()
+    else:
+        assert False
     variant_macros = {
         'FAEST_128S': r'\faestls',
         'FAEST_128F': r'\faestlf',
@@ -50,55 +66,57 @@ def print_latex_table(df, indentation=4):
 
     print('%%% START GENERATED TABLE %%%')
     print(r'\begin{table}[tp]')
-    print(1 * indent + r'\centering')
     print(1 * indent + r'\lennart{We will update the numbers in this table!}')
-    print(1 * indent + r'\caption{TODO}')
-    print(1 * indent + r'\label{tab:TODO}')
-    print(1 * indent + r'\begin{tabular}{')
-    print(2 * indent + r'l')
-    print(2 * indent + r'S[table-format=4, table-auto-round, group-minimum-digits=3]')
-    print(2 * indent + r'S[table-format=6, table-auto-round, group-minimum-digits=3]')
-    print(2 * indent + r'S[table-format=6, table-auto-round, group-minimum-digits=3]')
-    print(2 * indent + r'S[table-format=2, table-auto-round, group-minimum-digits=3]')
-    print(2 * indent + r'S[table-format=2, table-auto-round, group-minimum-digits=3]')
-    print(2 * indent + r'S[table-format=5, table-auto-round, group-minimum-digits=3]')
-    print(1 * indent + r'}')
-    print(2 * indent + r'\toprule')
-    print(2 * indent + r'\multicolumn{1}{c}{\multirow{2}{*}{Scheme}} & \multicolumn{3}{c}{Runtimes in \si{\micro\second}} & \multicolumn{3}{c}{Sizes in \si{\byte}} \\')
-    print(2 * indent + r'\cmidrule(lr){2-4} \cmidrule(l){5-7}')
-    print(2 * indent + r'    & {\(\keygen\)} & {\(\sign\)} & {\(\verify\)} & {\(\sk\)} & {\(\pk\)} & {Signature} \\')
-    print(2 * indent + r'\midrule')
+    print(1 * indent + r'\begin{center}')
+    print(2 * indent + r'\begin{tabular}{')
+    print(3 * indent + r'l')
+    print(3 * indent + r'S[table-format=1.3, table-auto-round, group-minimum-digits=3]')
+    print(3 * indent + r'S[table-format=3.3, table-auto-round, group-minimum-digits=3]')
+    print(3 * indent + r'S[table-format=3.3, table-auto-round, group-minimum-digits=3]')
+    print(3 * indent + r'S[table-format=2, table-auto-round, group-minimum-digits=3]')
+    print(3 * indent + r'S[table-format=2, table-auto-round, group-minimum-digits=3]')
+    print(3 * indent + r'S[table-format=5, table-auto-round, group-minimum-digits=3]')
+    print(2 * indent + r'}')
+    print(3 * indent + r'\toprule')
+    print(3 * indent + r'\multicolumn{1}{c}{\multirow{2}{*}{Scheme}} & \multicolumn{3}{c}{Runtimes in \si{\milli\second}} & \multicolumn{3}{c}{Sizes in \si{\byte}} \\')
+    print(3 * indent + r'\cmidrule(lr){2-4} \cmidrule(l){5-7}')
+    print(3 * indent + r'    & {\(\keygen\)} & {\(\sign\)} & {\(\verify\)} & {\(\sk\)} & {\(\pk\)} & {Signature} \\')
+    print(3 * indent + r'\midrule')
     for index, r in df.iterrows():
         if r['variant'] == 'FAEST_EM_128S':
-            print(2 * indent + r'\midrule')
+            print(3 * indent + r'\midrule')
 
-        line = 2 * indent
+        line = 3 * indent
         line += f"\\({variant_macros[r['variant']]:10s}\\)"
-        line += f" & {r['keygen.mean_us']:10f}"
-        line += f" & {r['sign.mean_us']:16f}"
-        line += f" & {r['verify.mean_us']:16f}"
+        line += f" & {r['keygen.mean_ms']:10f}"
+        line += f" & {r['sign.mean_ms']:16f}"
+        line += f" & {r['verify.mean_ms']:16f}"
         line += f" & {r['sk_size_bytes']:2d}"
         line += f" & {r['pk_size_bytes']:2d}"
         line += f" & {r['sig_size_bytes']:5d}"
         line += r" \\"
         print(line)
-    print(2 * indent + r'\bottomrule')
-    print(1 * indent + r'\end{tabular}')
+    print(3 * indent + r'\bottomrule')
+    print(2 * indent + r'\end{tabular}')
+    print(1 * indent + r'\end{center}')
+    print(1 * indent + r'\caption{' + caption + '}')
+    print(1 * indent + r'\label{' + label + '}')
     print(r'\end{table}')
     print('%%% END GENERATED TABLE %%%')
 
 
 def main(argv):
-    if len(argv) != 2:
-        print(f'usage: {sys.argv[0]} <path>')
+    if len(argv) != 3 or argv[1] not in ['ref', 'opt']:
+        print(f'usage: {sys.argv[0]} ref|opt <path>')
         exit(1)
 
-    path = argv[1]
+    path = argv[2]
+    impl = argv[1]
 
     data = load_data(path)
     data = analyze(data)
     #  print(data)
-    print_latex_table(data)
+    print_latex_table(impl, data)
 
 
 if __name__ == '__main__':
