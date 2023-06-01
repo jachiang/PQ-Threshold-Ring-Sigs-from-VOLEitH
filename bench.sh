@@ -38,13 +38,15 @@ run_test () {
 
 convert_to_us () {
     input="$1"
-    if ! echo "${input}" | grep -Pq '^\d+(\.\d+)? (u|m)?s$'; then
+    if ! echo "${input}" | grep -Pq '^\d+(\.\d+)? (u|m|n)?s$'; then
         echo "unexpected format: '${input}'" >&2
         exit 1
     fi
     num="`echo "${input}" | cut -d ' ' -f 1`"
     unit="`echo "${input}" | cut -d ' ' -f 2`"
-    if [ "$unit" = "us" ]; then
+    if [ "$unit" = "ns" ]; then
+        echo "${num} / 1000"  | bc
+    elif [ "$unit" = "us" ]; then
         echo "${num}"
     elif [ "$unit" = "ms" ]; then
         echo "${num} * 1000"  | bc
