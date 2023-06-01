@@ -531,6 +531,9 @@ TEST_CASE( "compare against tv", "[vector com]" ) {
     std::vector<uint8_t> delta_bytes(SECURITY_PARAM, 0);
     std::vector<uint8_t> opening(VECTOR_OPEN_SIZE);
 
+    // set iv to 0
+	block128 iv = block128_set_zero();
+
     // init fixed keys
 	block_secpar fixed_key_iv = block_secpar_set_zero();
 	prg_tree_fixed_key fixed_key_tree;
@@ -545,7 +548,7 @@ TEST_CASE( "compare against tv", "[vector com]" ) {
 
     // commit
     REQUIRE( tv_com_size == ((1 << VOLE_MAX_K) * sizeof(block_2secpar)) );
-    vector_commit_from_roots(roots.data(), forest.data(), leaves_sender.data(),
+    vector_commit_from_roots(roots.data(), iv, forest.data(), leaves_sender.data(),
                              hashed_leaves_sender.data(), &fixed_key_tree, &fixed_key_leaf);
     // check the hashed leaves
     {
@@ -584,7 +587,7 @@ TEST_CASE( "compare against tv", "[vector com]" ) {
         }
 
         /// verifying the opening
-        vector_verify(opening.data(), delta_bytes.data(), leaves_receiver.data(), hashed_leaves_receiver.data());
+        vector_verify(iv, opening.data(), delta_bytes.data(), leaves_receiver.data(), hashed_leaves_receiver.data());
 
         const auto hashed_leaves_sender_bytes = std::vector(reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data()),
                                                             reinterpret_cast<arr_2secpar*>(hashed_leaves_sender.data() + hashed_leaves_sender.size()));
