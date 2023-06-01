@@ -30,7 +30,7 @@
 typedef struct
 {
 	block128 keys[AES_ROUNDS + 1];
-	__uint128_t iv;
+	block128 iv;
 } aes_round_keys;
 
 typedef struct
@@ -49,6 +49,7 @@ extern unsigned char aes_round_constants[];
 
 // Interface defined by aes_impl.h:
 
+// #define AES_MAX_CTR /**/
 // #define AES_PREFERRED_WIDTH_SHIFT /**/
 // #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT /**/
 
@@ -73,14 +74,15 @@ void rijndael256_round_function(
 	block256* restrict after_sbox, int round);
 
 // Run AES key schedule on num_keys keys, the generate num_blocks block128s of output from each.
-// Each key has it's own iv. Outputs from the same key are grouped together in output.
+// Each key has it's own iv. Outputs from the same key are grouped together in output. counter must
+// not exceed AES_MAX_CTR on any block.
 ALWAYS_INLINE void aes_keygen_ctr(
 	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);
 
 // Given num_keys AES keys, generate num_blocks block128s of output from each, starting at
 // counter. Each key has it's own iv. Outputs from the same key are grouped together in output.
-// Need 1 <= num_blocks <= 4.
+// Need 1 <= num_blocks <= 4. counter must not exceed AES_MAX_CTR on any block.
 inline void aes_ctr(
 	const aes_round_keys* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output);

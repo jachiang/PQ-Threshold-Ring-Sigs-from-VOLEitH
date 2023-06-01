@@ -186,7 +186,7 @@ ALWAYS_INLINE void aes_keygen_round(
 
 ALWAYS_INLINE void aes_keygen_impl(
 	aes_round_keys* aeses, const block_secpar* keys,
-	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* output)
+	size_t num_keys, uint32_t num_blocks, block128* output)
 {
 	// Upper bound just to avoid VLAs.
 	aes_keygen_state keygen_states[AES_PREFERRED_WIDTH / KEYGEN_WIDTH];
@@ -247,12 +247,12 @@ ALWAYS_INLINE void aes_keygen_impl(
 #define DEF_AES_KEYGEN_IMPL_KB(num_keys,num_blocks) \
 	void aes_keygen_impl_##num_keys##_##num_blocks( \
 		aes_round_keys* restrict aeses, const block_secpar* restrict keys, \
-		uint32_t counter, block128* restrict output) \
+		block128* restrict output) \
 	{ \
 		assert(num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4);\
 		/* Silence a gcc warning about UB: */ \
 		if (num_keys <= AES_PREFERRED_WIDTH && num_blocks <= 4) \
-			aes_keygen_impl(aeses, keys, num_keys, num_blocks, counter, output); \
+			aes_keygen_impl(aeses, keys, num_keys, num_blocks, output); \
 	}
 #define DEF_AES_KEYGEN_IMPL_K(num_keys) \
 	DEF_AES_KEYGEN_IMPL_KB(num_keys, 1) \
@@ -284,7 +284,7 @@ void aes_keygen(aes_round_keys* round_keys, block_secpar key)
 	// There are more efficient ways to run the key schedule on a single key, but this function
 	// isn't used much anyway.
 	block128 empty_output;
-	aes_keygen_impl(round_keys, &key, 1, 0, 0, &empty_output);
+	aes_keygen_impl(round_keys, &key, 1, 0, &empty_output);
 }
 
 static inline block128 load_high_128(const block256* block)

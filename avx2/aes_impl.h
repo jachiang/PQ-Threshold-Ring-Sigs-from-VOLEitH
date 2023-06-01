@@ -9,6 +9,8 @@
 #include "transpose.h"
 #include "util.h"
 
+#define AES_MAX_CTR 0x80
+
 #define AES_PREFERRED_WIDTH_SHIFT 3
 #define RIJNDAEL256_PREFERRED_WIDTH_SHIFT 2
 
@@ -106,26 +108,60 @@ ALWAYS_INLINE void rijndael256_round(
 	}
 }
 
-ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_round_keys* aes, uint32_t ctr)
+ALWAYS_INLINE uint64_t get_iv_counter(const block128* iv)
 {
-	__uint128_t sum = aes->iv + ctr;
-	return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
+	uint64_t counter;
+	memcpy(&counter, ((uint8_t*) iv) + sizeof(*iv) - sizeof(counter), sizeof(counter));
+	return _bswap64(counter);
+}
+
+ALWAYS_INLINE void set_iv_counter(block128* iv, uint64_t counter)
+{
+	counter = _bswap64(counter);
+	memcpy(((uint8_t*) iv) + sizeof(*iv) - sizeof(counter), &counter, sizeof(counter));
+}
+
+ALWAYS_INLINE bool aes_are_ivs_bad(const aes_round_keys* aeses, size_t num_keys)
+{
+	for (size_t i = 0; i < num_keys; ++i)
+		if (get_iv_counter(&aeses[i].iv) > UINT64_MAX - AES_MAX_CTR)
+			return true;
+	return false;
+}
+
+ALWAYS_INLINE block128 aes_add_counter_to_iv(const aes_round_keys* aes, uint32_t ctr, bool bad_iv)
+{
+	if (bad_iv)
+	{
+		block128 iv_rev = block128_byte_reverse(aes->iv);
+		__uint128_t sum;
+		memcpy(&sum, &iv_rev, sizeof(sum));
+		sum += ctr;
+		return block128_byte_reverse(_mm_set_epi64x((uint64_t) (sum >> 64), (uint64_t) sum));
+	}
+	else
+	{
+		block128 sum = aes->iv;
+		set_iv_counter(&sum, get_iv_counter(&sum) + ctr);
+		return sum;
+	}
 }
 
 ALWAYS_INLINE void aes_keygen_ctr(
 	aes_round_keys* restrict aeses, const block_secpar* restrict keys, const block128* restrict ivs,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
+	assert((size_t) counter + num_blocks <= AES_MAX_CTR);
 	assert(num_keys <= AES_PREFERRED_WIDTH);
 	assert(1 <= num_blocks && num_blocks <= 4);
 
 	for (size_t l = 0; l < num_keys; ++l)
-	{
-		block128 iv = block128_byte_reverse(ivs[l]);
-		memcpy(&aeses[l].iv, &iv, sizeof(iv));
+		aeses[l].iv = ivs[l];
+
+	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
+	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
-			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
-	}
+			output[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
 
 	// Use a switch to select which function. The case should always be resolved at compile time.
 	static_assert(AES_PREFERRED_WIDTH <= 16, "AES_PREFERRED_WITH must be at most 16");
@@ -135,8 +171,8 @@ ALWAYS_INLINE void aes_keygen_ctr(
 	case (num_keys * 4 + num_blocks): \
 	{ \
 		void aes_keygen_impl_##num_keys##_##num_blocks( \
-			aes_round_keys*, const block_secpar*, uint32_t, block128*); \
-		aes_keygen_impl_##num_keys##_##num_blocks(aeses, keys, counter, output); \
+			aes_round_keys*, const block_secpar*, block128*); \
+		aes_keygen_impl_##num_keys##_##num_blocks(aeses, keys, output); \
 		break; \
 	}
 #define AES_KEYGEN_SWITCH_CASE_K(num_keys) \
@@ -172,12 +208,16 @@ inline void aes_ctr(
 	const aes_round_keys* restrict aeses,
 	size_t num_keys, uint32_t num_blocks, uint32_t counter, block128* restrict output)
 {
+	assert((size_t) counter + num_blocks <= AES_MAX_CTR);
+
 	// Upper bound just to avoid VLAs.
 	assert(num_keys * num_blocks <= 3 * AES_PREFERRED_WIDTH);
 	block128 state[3 * AES_PREFERRED_WIDTH];
+
+	bool bad_iv = aes_are_ivs_bad(aeses, num_keys);
 	for (size_t l = 0; l < num_keys; ++l)
 		for (uint32_t m = 0; m < num_blocks; ++m)
-			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m);
+			state[l * num_blocks + m] = aes_add_counter_to_iv(&aeses[l], counter + m, bad_iv);
 
 	// Make it easier for the compiler to optimize by unwinding the first and last rounds. (Since we
 	// aren't asking it to unwind the whole loop.)
