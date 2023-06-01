@@ -69,7 +69,7 @@ TEST_CASE( "commit/open/verify", "[vole commit]" ) {
 }
 
 
-#if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22)))
+#if defined(OWF_AES_CTR) && defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11)) || ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16)) || ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22)))
 
 namespace tv_128s {
     extern const std::array<uint8_t, SECURITY_PARAM / 8> seed;

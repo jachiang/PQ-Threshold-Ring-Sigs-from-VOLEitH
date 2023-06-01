@@ -11,7 +11,7 @@ extern "C" {
 
 }
 
-#if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE)
+#if defined(OWF_AES_CTR) && defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE)
 
 #if (SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11)
 
