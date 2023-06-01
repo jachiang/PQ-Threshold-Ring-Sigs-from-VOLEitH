@@ -11,7 +11,7 @@
 
 #if defined(OWF_AES_CTR)
 
-void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
+static ALWAYS_INLINE void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     for (size_t bit_i = 0; bit_i < SECURITY_PARAM; ++bit_i) {
         output[bit_i] = quicksilver_get_witness_vec(state, bit_i);
     }
@@ -32,14 +32,14 @@ void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     }
 }
 
-void key_sched_lift_round_key_bits(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
-        quicksilver_vec_gfsecpar* output) {
+static ALWAYS_INLINE void key_sched_lift_round_key_bits(quicksilver_state* state,
+        const quicksilver_vec_gf2* round_key_bits, quicksilver_vec_gfsecpar* output) {
     for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_i) {
         output[byte_i] = quicksilver_combine_8_bits(state, &round_key_bits[8 * byte_i]);
     }
 }
 
-void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
+static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* output) {
     size_t i_wd = 0; // bit index to the round key word we are currently handling
     size_t i_rcon = 0; // round constant index
@@ -93,7 +93,7 @@ void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_k
     }
 }
 
-void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
+static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* round_key_bytes) {
     quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
     key_sched_fwd(state, round_key_bits);
@@ -136,7 +136,7 @@ void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 
 // load the round keys into quicksilver values and "bake" EM secret key into the first round key
-void load_fixed_round_key(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
+static ALWAYS_INLINE void load_fixed_round_key(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* round_key_bytes, const rijndael_round_keys* fixed_key) {
     const uint8_t* rk_bytes = (const uint8_t*) fixed_key;
 
@@ -161,7 +161,7 @@ void load_fixed_round_key(quicksilver_state* state, quicksilver_vec_gf2* round_k
 #error "undefined OWF"
 #endif
 
-void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output) {
+static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output) {
     const uint8_t* in_bytes = (uint8_t*)&in;
 
     // first round: only add the round key
@@ -198,7 +198,7 @@ void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key
    }
 }
 
-void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
+static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
     const uint8_t* out_bytes = (uint8_t*)&out;
     const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
 
@@ -253,7 +253,7 @@ void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bit
     }
 }
 
-void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
+static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
@@ -274,7 +274,7 @@ void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_
     }
 }
 
-ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
+static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
 {
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -294,12 +294,14 @@ ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* p
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk)
 {
 	assert(!state->verifier);
+	state->verifier = false; // Let the compiler know that it is constant.
 	owf_constraints(state, pk);
 }
 
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk)
 {
 	assert(state->verifier);
+	state->verifier = true; // Let the compiler know that it is constant.
 	owf_constraints(state, pk);
 }
 
