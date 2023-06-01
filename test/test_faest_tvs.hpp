@@ -51,6 +51,20 @@ namespace faest_256f_tvs {
     extern const std::array<uint8_t, 28400> signature;
 }
 
+namespace faest_em_128s_tvs {
+    extern const std::array<uint8_t, 16 + 16> packed_sk;
+    extern const std::array<uint8_t, 16 + 16> packed_pk;
+    extern const std::array<uint8_t, 16> randomness;
+    extern const std::array<uint8_t, 4566> signature;
+}
+
+namespace faest_em_128f_tvs {
+    extern const std::array<uint8_t, 16 + 16> packed_sk;
+    extern const std::array<uint8_t, 16 + 16> packed_pk;
+    extern const std::array<uint8_t, 16> randomness;
+    extern const std::array<uint8_t, 5696> signature;
+}
+
 }
 
 #endif // TEST_FAEST_TVS_HPP

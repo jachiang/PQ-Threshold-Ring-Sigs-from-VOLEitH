@@ -77,24 +77,34 @@ TEST_CASE( "keygen/sign/verify", "[faest]" ) {
 }
 
 
-#if defined(OWF_AES_CTR) && defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && \
+#if defined(TREE_PRG_AES_CTR) && defined(LEAF_PRG_SHAKE) && \
+    ((defined(OWF_AES_CTR) && \
     (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11 || BITS_PER_WITNESS == 16)) || \
      ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16 || BITS_PER_WITNESS == 24)) || \
-     ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22 || BITS_PER_WITNESS == 32)))
+     ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22 || BITS_PER_WITNESS == 32)))) \
+     || \
+    (defined(OWF_RIJNDAEL_EVEN_MANSOUR) && \
+    (((SECURITY_PARAM == 128) && (BITS_PER_WITNESS == 11 || BITS_PER_WITNESS == 16)) || \
+     ((SECURITY_PARAM == 192) && (BITS_PER_WITNESS == 16 || BITS_PER_WITNESS == 24)) || \
+     ((SECURITY_PARAM == 256) && (BITS_PER_WITNESS == 22 || BITS_PER_WITNESS == 32)))))
 
 TEST_CASE( "test vector", "[faest]" ) {
-#if SECURITY_PARAM == 128 && BITS_PER_WITNESS == 11
+#if defined(OWF_AES_CTR) && SECURITY_PARAM == 128 && BITS_PER_WITNESS == 11
     namespace tv = faest_tvs::faest_128s_tvs;
-#elif SECURITY_PARAM == 128 && BITS_PER_WITNESS == 16
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 128 && BITS_PER_WITNESS == 16
     namespace tv = faest_tvs::faest_128f_tvs;
-#elif SECURITY_PARAM == 192 && BITS_PER_WITNESS == 16
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 192 && BITS_PER_WITNESS == 16
     namespace tv = faest_tvs::faest_192s_tvs;
-#elif SECURITY_PARAM == 192 && BITS_PER_WITNESS == 24
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 192 && BITS_PER_WITNESS == 24
     namespace tv = faest_tvs::faest_192f_tvs;
-#elif SECURITY_PARAM == 256 && BITS_PER_WITNESS == 22
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 256 && BITS_PER_WITNESS == 22
     namespace tv = faest_tvs::faest_256s_tvs;
-#elif SECURITY_PARAM == 256 && BITS_PER_WITNESS == 32
+#elif defined(OWF_AES_CTR) && SECURITY_PARAM == 256 && BITS_PER_WITNESS == 32
     namespace tv = faest_tvs::faest_256f_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 128 && BITS_PER_WITNESS == 11
+    namespace tv = faest_tvs::faest_em_128s_tvs;
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR) && SECURITY_PARAM == 128 && BITS_PER_WITNESS == 16
+    namespace tv = faest_tvs::faest_em_128f_tvs;
 #endif
     using faest_tvs::message;
 
@@ -103,10 +113,13 @@ TEST_CASE( "test vector", "[faest]" ) {
     REQUIRE( tv::signature.size() == FAEST_SIGNATURE_BYTES );
 
     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
     std::array<uint8_t, FAEST_SIGNATURE_BYTES> signature;
 
+    test_gen_keypair(packed_pk.data(), packed_sk.data());
     faest_pubkey(packed_pk.data(), tv::packed_sk.data());
     CHECK( packed_pk == tv::packed_pk );
+    CHECK( packed_sk == tv::packed_sk );
 
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_sk.data(), tv::randomness.data(), tv::randomness.size()) );
     CHECK( signature == tv::signature );
