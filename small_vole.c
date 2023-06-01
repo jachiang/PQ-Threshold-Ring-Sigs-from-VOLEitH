@@ -40,6 +40,48 @@ static ALWAYS_INLINE void xor_reduce(vole_block* in_out)
 	}
 }
 
+static ALWAYS_INLINE void convert_prg_output(
+	vole_block* prg_output, const prg_vole_block* raw_prg_output, size_t blocks)
+{
+#if PRG_VOLE_BLOCKS == 2
+	#ifdef __GNUC__
+	#pragma GCC unroll (32)
+	#endif
+	for (size_t i = 0; i < blocks; ++i)
+		prg_output[i] = block256_from_2_block128(raw_prg_output[PRG_VOLE_BLOCKS * i], raw_prg_output[PRG_VOLE_BLOCKS * i + 1]);
+#else
+
+	memcpy(prg_output, raw_prg_output, blocks * sizeof(vole_block));
+#endif
+}
+
+static ALWAYS_INLINE void process_prg_output(
+	bool ignore_0, size_t j, unsigned int output_col, vole_block* accum, vole_block* vq,
+	const prg_vole_block* raw_prg_output)
+{
+	vole_block prg_output[VOLE_WIDTH];
+	if (!ignore_0)
+		convert_prg_output(prg_output, raw_prg_output, VOLE_WIDTH);
+	else
+	{
+		prg_output[0] = vole_block_set_zero();
+		convert_prg_output(&prg_output[1], raw_prg_output, VOLE_WIDTH - 1);
+	}
+
+	xor_reduce(prg_output);
+
+	if (!ignore_0)
+		accum[j] = vole_block_xor(accum[j], prg_output[0]);
+
+	for (size_t col = 0; col < VOLE_WIDTH_SHIFT; ++col)
+		vq[COL_LEN * col + j] = vole_block_xor(vq[COL_LEN * col + j], prg_output[col + 1]);
+
+	if (!ignore_0)
+		// Grey's codes method. output_col is the index of the bit that will change when
+		// incrementing the Gray's code.
+		vq[COL_LEN * output_col + j] = vole_block_xor(vq[COL_LEN * output_col + j], accum[j]);
+}
+
 // Sender and receiver merged together, since they share most of the same code.
 static ALWAYS_INLINE void vole(
 	bool receiver, unsigned int k,
@@ -63,35 +105,24 @@ static ALWAYS_INLINE void vole(
 	size_t i = 0;
 	if (receiver)
 	{
-		// Handle first iteration separately, since the 0th PRG key is a dummy. Hopefully the
-		// compiler will notice that it's unused and remove the corresponding code. TODO: just call
-		// with size 1 smaller instead.
-		prg_vole_key prgs[VOLE_WIDTH];
-		prg_vole_iv ivs[VOLE_WIDTH];
-		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
+		// Handle first iteration separately, since the 0th PRG key is a dummy.
+		prg_vole_key prgs[VOLE_WIDTH - 1];
+		prg_vole_iv ivs[VOLE_WIDTH - 1];
+		prg_vole_block raw_prg_output[(VOLE_WIDTH - 1) * PRG_VOLE_BLOCKS];
 
-		for (size_t i = 0; i < VOLE_WIDTH; ++i)
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (VOLE_WIDTH)))
+		#endif
+		for (size_t i = 0; i < VOLE_WIDTH - 1; ++i)
 			memcpy(&ivs[i], &iv, sizeof(ivs[i]));
 
-		prg_vole_init(prgs, fixed_key, &keys[0], ivs, VOLE_WIDTH, PRG_VOLE_BLOCKS, 0, raw_prg_output);
-		for (size_t j = 0; j < COL_LEN; ++j)
+		prg_vole_init(prgs, fixed_key, &keys[1], ivs, VOLE_WIDTH - 1, PRG_VOLE_BLOCKS, 0, raw_prg_output);
+		process_prg_output(true, 0, 0, accum, vq, raw_prg_output);
+
+		for (size_t j = 1; j < COL_LEN; ++j)
 		{
-			if (j)
-				prg_vole_gen(prgs, fixed_key, VOLE_WIDTH, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
-
-			// TODO: How to convert from block128 to block256 without letting the compiler spill to
-			// stack?
-			// I think the issue is that this conversion is shared between prg_vole_init and
-			// prg_vole_gen, so GCC thinks the input from both should be on the stack so that they
-			// match. Need to duplicate instead.
-			vole_block prg_output[VOLE_WIDTH];
-			memcpy(prg_output, raw_prg_output, sizeof(prg_output));
-
-			xor_reduce(prg_output);
-			for (size_t col = 0; col < VOLE_WIDTH_SHIFT; ++col)
-				vq[COL_LEN * col + j] = vole_block_xor(vq[COL_LEN * col + j], prg_output[col + 1]);
-
-			// Ignore prg_output[0], as it's the only one that depends on keys[0], which is a dummy.
+			prg_vole_gen(prgs, fixed_key, VOLE_WIDTH - 1, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
+			process_prg_output(true, j, 0, accum, vq, raw_prg_output);
 		}
 
 		i = VOLE_WIDTH;
@@ -103,6 +134,9 @@ static ALWAYS_INLINE void vole(
 		prg_vole_iv ivs[VOLE_WIDTH];
 		prg_vole_block raw_prg_output[VOLE_WIDTH * PRG_VOLE_BLOCKS];
 
+		#ifdef __GNUC__
+		_Pragma(STRINGIZE(GCC unroll (VOLE_WIDTH)))
+		#endif
 		for (size_t i = 0; i < VOLE_WIDTH; ++i)
 			memcpy(&ivs[i], &iv, sizeof(ivs[i]));
 
@@ -110,23 +144,12 @@ static ALWAYS_INLINE void vole(
 		unsigned int output_col = count_trailing_zeros((i + VOLE_WIDTH) | (1 << (k - 1)));
 
 		prg_vole_init(prgs, fixed_key, &keys[i], ivs, VOLE_WIDTH, PRG_VOLE_BLOCKS, 0, raw_prg_output);
-		for (size_t j = 0; j < COL_LEN; ++j)
+		process_prg_output(false, 0, output_col, accum, vq, raw_prg_output);
+
+		for (size_t j = 1; j < COL_LEN; ++j)
 		{
-			if (j)
-				prg_vole_gen(prgs, fixed_key, VOLE_WIDTH, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
-
-			vole_block prg_output[VOLE_WIDTH];
-			memcpy(prg_output, raw_prg_output, sizeof(prg_output));
-
-			xor_reduce(prg_output);
-
-			accum[j] = vole_block_xor(accum[j], prg_output[0]);
-			for (size_t col = 0; col < VOLE_WIDTH_SHIFT; ++col)
-				vq[COL_LEN * col + j] = vole_block_xor(vq[COL_LEN * col + j], prg_output[col + 1]);
-
-			// Grey's codes method. output_col is the index of the bit that will change when
-			// incrementing the Gray's code.
-			vq[COL_LEN * output_col + j] = vole_block_xor(vq[COL_LEN * output_col + j], accum[j]);
+			prg_vole_gen(prgs, fixed_key, VOLE_WIDTH, PRG_VOLE_BLOCKS, j * PRG_VOLE_BLOCKS, raw_prg_output);
+			process_prg_output(false, j, output_col, accum, vq, raw_prg_output);
 		}
 	}
 

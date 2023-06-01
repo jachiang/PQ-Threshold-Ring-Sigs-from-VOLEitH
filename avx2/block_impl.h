@@ -155,6 +155,11 @@ inline block128 block128_byte_reverse(block128 x)
 	return _mm_shuffle_epi8(x, shuffle);
 }
 
+inline block256 block256_from_2_block128(block128 x, block128 y)
+{
+	return _mm256_setr_m128i(x, y);
+}
+
 #define VOLE_BLOCK_SHIFT 1
 typedef block256 vole_block;
 inline vole_block vole_block_set_zero() { return block256_set_zero(); }

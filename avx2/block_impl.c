@@ -30,6 +30,7 @@ extern inline bool block128_any_zeros(block128 x);
 extern inline bool block256_any_zeros(block256 x);
 extern inline bool block192_any_zeros(block192 x);
 extern inline block128 block128_byte_reverse(block128 x);
+extern inline block256 block256_from_2_block128(block128 x, block128 y);
 extern inline vole_block vole_block_set_zero();
 extern inline vole_block vole_block_xor(vole_block x, vole_block y);
 extern inline vole_block vole_block_and(vole_block x, vole_block y);
