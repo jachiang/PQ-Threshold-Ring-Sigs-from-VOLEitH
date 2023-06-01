@@ -319,7 +319,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
-	transpose_secpar(q, macs, VOLE_COL_STRIDE, VOLE_ROWS_PADDED);
+	transpose_secpar(q, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
 	free(q);
 
 	block_secpar delta_block;
