@@ -312,10 +312,8 @@ void vector_commit(
 
 	block_secpar roots[BITS_PER_WITNESS];
 	expand_chunk(false, 1, BITS_PER_WITNESS, iv, &fixed_key_tree, NULL, &seed, &roots[0]);
-    printHex("roots", (uint8_t*)roots, sizeof(roots));
 	vector_commit_from_roots(roots, iv, forest, leaves, hashed_leaves,
 	                         &fixed_key_tree, &fixed_key_leaf);
-    /* printHex("hashed_leaves", (uint8_t*)hashed_leaves, 1 << 10); */
 }
 
 void vector_commit_from_roots(

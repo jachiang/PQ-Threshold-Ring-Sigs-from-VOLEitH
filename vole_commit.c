@@ -62,7 +62,6 @@ void vole_commit(
 	vector_commit(seed, iv, forest, leaves, hashed_leaves);
 
 	hash_hashed_leaves(hashed_leaves, check);
-    printHex("hcom", check, 2 * SECURITY_PARAM / 8);
 
 	block_secpar fixed_key_iv = block_secpar_set_zero();
 	memcpy(&fixed_key_iv, &iv, sizeof(iv));
