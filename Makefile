@@ -78,6 +78,21 @@ settings = \
 		)\
 	)
 
+get_faest_name = \
+	$(subst sec128_cccs_11,faest_128s,\
+	$(subst sec128_cccs_16,faest_128f,\
+	$(subst sec192_cccs_16,faest_192s,\
+	$(subst sec192_cccs_24,faest_192f,\
+	$(subst sec256_cccs_22,faest_256s,\
+	$(subst sec256_cccs_32,faest_256f,\
+	$(subst sec128_eccs_11,faest_em_128s,\
+	$(subst sec128_eccs_16,faest_em_128f,\
+	$(subst sec192_eccs_16,faest_em_192s,\
+	$(subst sec192_eccs_24,faest_em_192f,\
+	$(subst sec256_eccs_22,faest_em_256s,\
+	$(subst sec256_eccs_32,faest_em_256f,\
+	$(1)))))))))))))
+
 define link-recipe
 $(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(notdir $(2)))
 	rm -f $$@
@@ -86,7 +101,8 @@ endef
 
 define config-recipe
 $(1)/% : %.in | $(1)/
-	$(let name security_param owf owf_letter prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
+	$(let fullname security_param owf owf_letter prg tree_prg leaf_prg tau,$(subst $(comma), ,$(2)),\
+	$(let name,$(call get_faest_name,$(name)),\
 	$(let iv_bits,$(if $(findstring RIJNDAEL,$(owf)),$(security_param),$(if $(findstring 128,$(security_param)),128,256)),\
 	$(let sk_bytes,$(shell expr "(" $(security_param) "+" $(iv_bits) ")" "/" 8),\
 	$(let pk_bytes,$(if $(and $(findstring AES_CTR,$(owf)),$(intcmp $(security_param),192)),64,$(sk_bytes)),\
@@ -103,8 +119,9 @@ $(1)/% : %.in | $(1)/
 		,\
 		-e "s/"$(substitution)"/g" \
 	) -e "s/%SIGBYTES%/`python3 scripts/get_signature_size.py $(security_param) $(tau) $(owf_letter)`/g" $$< > $$@ \
-	))))
+	)))))
 endef
+
 
 
 # canned recipe for a variant

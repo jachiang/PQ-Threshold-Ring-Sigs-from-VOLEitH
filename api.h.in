@@ -5,7 +5,7 @@
 #define CRYPTO_PUBLICKEYBYTES %PUBLICKEYBYTES%
 #define CRYPTO_BYTES %SIGBYTES%
 
-#define CRYPTO_ALGNAME "FAEST_%VERSION%"
+#define CRYPTO_ALGNAME "%VERSION%"
 
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk);
 int crypto_sign(
