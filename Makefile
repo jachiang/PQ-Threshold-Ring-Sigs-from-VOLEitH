@@ -36,6 +36,8 @@ test_sources = $(wildcard test/*.cpp test/*.hpp) $(common_headers) randomness_os
 api_test_sources = test/api_test.c randomness_os.c
 kat_sources = test/rng.c test/rng.h test/PQCgenKAT_sign.c randomness_randombytes.c
 
+submission_versions = sec128_cccs_11 sec128_cccs_16 sec192_cccs_16 sec192_cccs_24 sec256_cccs_22 sec256_cccs_32 sec128_eccs_11 sec128_eccs_16 sec192_eccs_16 sec192_eccs_24 sec256_eccs_22 sec256_eccs_32
+
 all:
 .PHONY: all
 
@@ -78,20 +80,7 @@ settings = \
 		)\
 	)
 
-get_faest_name = \
-	$(subst sec128_cccs_11,faest_128s,\
-	$(subst sec128_cccs_16,faest_128f,\
-	$(subst sec192_cccs_16,faest_192s,\
-	$(subst sec192_cccs_24,faest_192f,\
-	$(subst sec256_cccs_22,faest_256s,\
-	$(subst sec256_cccs_32,faest_256f,\
-	$(subst sec128_eccs_11,faest_em_128s,\
-	$(subst sec128_eccs_16,faest_em_128f,\
-	$(subst sec192_eccs_16,faest_em_192s,\
-	$(subst sec192_eccs_24,faest_em_192f,\
-	$(subst sec256_eccs_22,faest_em_256s,\
-	$(subst sec256_eccs_32,faest_em_256f,\
-	$(1)))))))))))))
+get_faest_name = $(subst sec128_cccs_11,faest_128s,$(subst sec128_cccs_16,faest_128f,$(subst sec192_cccs_16,faest_192s,$(subst sec192_cccs_24,faest_192f,$(subst sec256_cccs_22,faest_256s,$(subst sec256_cccs_32,faest_256f,$(subst sec128_eccs_11,faest_em_128s,$(subst sec128_eccs_16,faest_em_128f,$(subst sec192_eccs_16,faest_em_192s,$(subst sec192_eccs_24,faest_em_192f,$(subst sec256_eccs_22,faest_em_256s,$(subst sec256_eccs_32,faest_em_256f,$(1)))))))))))))
 
 define link-recipe
 $(1)/$(notdir $(2)) : $(2) | $(dir $(1)/$(notdir $(2)))
@@ -217,6 +206,14 @@ $(foreach setting,$(settings),\
 #)
 # TODO: AVX2 + VAES
 # TODO: AVX-512
+
+dist: $(foreach version,$(submission_versions),$(version)_avx2)
+	rm -rf Submission
+	mkdir Submission
+	mkdir $(foreach version,$(submission_versions),Submission/$(call get_faest_name,$(version)))
+	$(foreach version,$(submission_versions),$(CP_L) Additional_Implementations/$(version)_avx2/*.{c,h,inc,macros,s} Additional_Implementations/$(version)_avx2/Makefile Submission/$(call get_faest_name,$(version))/ &&) true
+
+.PHONY: dist
 
 clean:
 	rm -rf Reference_Implementation Additional_Implementations Common
