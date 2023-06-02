@@ -1,5 +1,6 @@
 #include "transpose.h"
 
+#include <assert.h>
 #include <string.h>
 #include "vole_params.h"
 
@@ -130,9 +131,8 @@ static ALWAYS_INLINE void transposeVxN_block8x8(block256* matrix)
 // Transpose the bits within each 8x8 bit block, using Eklundh's algorithm.
 static void transposeVxN_blocks8x8(const unsigned char* input, block256* output, size_t stride)
 {
-	// TODO: Add messages to all static_assert s, to avoid needing C23.
-	static_assert(TRANSPOSE_CHUNK_SIZE >= 8);
-	static_assert(SECURITY_PARAM % TRANSPOSE_CHUNK_SIZE == 0);
+	static_assert(TRANSPOSE_CHUNK_SIZE >= 8, "");
+	static_assert(SECURITY_PARAM % TRANSPOSE_CHUNK_SIZE == 0, "");
 
 	for (size_t j = 0; j < SECURITY_PARAM; j += TRANSPOSE_CHUNK_SIZE)
 	{

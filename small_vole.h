@@ -1,6 +1,8 @@
 #ifndef SMALL_VOLE_H
 #define SMALL_VOLE_H
 
+#include <assert.h>
+
 #include "config.h"
 #include "block.h"
 #include "aes.h"
@@ -56,7 +58,7 @@ inline size_t vole_permute_key_index_inv(size_t i)
 // offset must be a power of 2, and must be at most VOLE_WIDTH.
 inline size_t vole_permute_inv_increment(size_t i, size_t offset)
 {
-	static_assert(VOLE_MAX_K < 16);
+	static_assert(VOLE_MAX_K < 16, "");
 
 	size_t diff_in = i ^ (i + offset);
 	size_t diff_out_even = diff_in & (0x5555 | (VOLE_WIDTH - 1));

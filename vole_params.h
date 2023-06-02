@@ -1,6 +1,8 @@
 #ifndef VOLE_PARMS_H
 #define VOLE_PARMS_H
 
+#include <assert.h>
+
 #include "block.h"
 #include "prgs.h"
 #include "owf_proof.h"
@@ -15,7 +17,7 @@
 #define VOLES_MIN_K (BITS_PER_WITNESS - VOLES_MAX_K)
 #define VOLES_MAX_K (SECURITY_PARAM % BITS_PER_WITNESS)
 
-static_assert(WITNESS_BITS % 8 == 0);
+static_assert(WITNESS_BITS % 8 == 0, "");
 #define WITNESS_BLOCKS ((WITNESS_BITS + 128 * VOLE_BLOCK - 1) / (128 * VOLE_BLOCK))
 
 #define QUICKSILVER_ROW_PAD_TO \

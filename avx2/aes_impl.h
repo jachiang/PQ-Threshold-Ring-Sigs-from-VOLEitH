@@ -1,6 +1,7 @@
 #ifndef AES_IMPL_H
 #define AES_IMPL_H
 
+#include <assert.h>
 #include <string.h>
 #include <inttypes.h>
 #include <immintrin.h>

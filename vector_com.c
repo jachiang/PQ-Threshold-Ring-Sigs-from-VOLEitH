@@ -105,7 +105,7 @@ static ALWAYS_INLINE void expand_chunk(
 	}
 
 // Most of these will be unused, and so removed by the compiler.
-static_assert(TREE_CHUNK_SIZE <= 32);
+static_assert(TREE_CHUNK_SIZE <= 32, "");
 DEF_EXPAND_CHUNK_N(1)
 DEF_EXPAND_CHUNK_N(2)
 DEF_EXPAND_CHUNK_N(3)
@@ -218,7 +218,7 @@ static void expand_chunk_leaf_n_leaf_chunk_size(
 	}
 #define FINISHED_RECURSION(a,b,c,d,e) do {} while (0)
 
-static_assert(TREE_CHUNK_SIZE_SHIFT <= 5);
+static_assert(TREE_CHUNK_SIZE_SHIFT <= 5, "");
 EXPAND_ROOTS_RECURSION(4, FINISHED_RECURSION)
 EXPAND_ROOTS_RECURSION(3, expand_roots_4)
 EXPAND_ROOTS_RECURSION(2, expand_roots_3)
@@ -324,7 +324,7 @@ void vector_commit_from_roots(
 	memcpy(forest, roots, TREES_IN_FOREST(false) * sizeof(block_secpar));
 
 	// First expand each tree far enough to have TREE_CHUNK_SIZE nodes.
-	static_assert(VOLE_MIN_K >= TREE_CHUNK_SIZE_SHIFT);
+	static_assert(VOLE_MIN_K >= TREE_CHUNK_SIZE_SHIFT, "");
 	for (size_t i = 0; i + TREE_CHUNK_SIZE <= TREES_IN_FOREST(false); i += TREE_CHUNK_SIZE)
 		expand_roots_0(false, iv, fixed_key_tree, forest, i);
 	size_t remaining = TREES_IN_FOREST(false) % TREE_CHUNK_SIZE;
@@ -413,7 +413,7 @@ void vector_open(
 	}
 #define FINISHED_RECURSION(a,b,c,d,e,f) do {} while (0)
 
-static_assert(TREE_CHUNK_SIZE_SHIFT <= 5);
+static_assert(TREE_CHUNK_SIZE_SHIFT <= 5, "");
 EXPAND_VERIFIER_SUBTREES_RECURSION(4, FINISHED_RECURSION)
 EXPAND_VERIFIER_SUBTREES_RECURSION(3, expand_verifier_subtrees_4)
 EXPAND_VERIFIER_SUBTREES_RECURSION(2, expand_verifier_subtrees_3)

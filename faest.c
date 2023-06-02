@@ -1,6 +1,7 @@
 #include "faest.h"
 #include "faest_details.h"
 
+#include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -77,7 +78,7 @@ bool faest_compute_witness(secret_key* sk)
 		sk->pk.owf_output[i] =
 			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	static_assert(OWF_BLOCKS == 1);
+	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 #endif
 
@@ -221,7 +222,7 @@ bool faest_sign(
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_ROWS_PADDED * sizeof(block_secpar));
 
 	memcpy(&u[0], &sk.witness[0], WITNESS_BITS / 8);
-	static_assert(QUICKSILVER_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0);
+	static_assert(QUICKSILVER_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
 	transpose_secpar(v, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
 	free(v);
 

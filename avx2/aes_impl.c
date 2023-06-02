@@ -1,5 +1,7 @@
 #include "aes.h"
 
+#include <assert.h>
+
 #define KEYGEN_WIDTH 4
 
 // State for doing KEYGEN_WIDTH AES key schedules at once.
@@ -261,7 +263,7 @@ ALWAYS_INLINE void aes_keygen_impl(
 
 // These are mostly unused, but it's easier to list them all than to keep track of all of the ones
 // that are used.
-static_assert(AES_PREFERRED_WIDTH <= 16);
+static_assert(AES_PREFERRED_WIDTH <= 16, "");
 DEF_AES_KEYGEN_IMPL_K(1)
 DEF_AES_KEYGEN_IMPL_K(2)
 DEF_AES_KEYGEN_IMPL_K(3)

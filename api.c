@@ -5,9 +5,9 @@
 #include "faest.h"
 #include "randomness.h"
 
-static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES);
-static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES);
-static_assert(CRYPTO_BYTES == FAEST_SIGNATURE_BYTES);
+static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES, "");
+static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES, "");
+static_assert(CRYPTO_BYTES == FAEST_SIGNATURE_BYTES, "");
 
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {

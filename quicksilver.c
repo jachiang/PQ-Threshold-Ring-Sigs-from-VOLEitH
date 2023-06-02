@@ -1,7 +1,9 @@
 #include "quicksilver.h"
 
-// TODO: Some things are unvectorized here.
-static_assert(POLY_VEC_LEN == 1);
+#include <assert.h>
+
+// TODO: Figure out how to vectorize things here, for a later VAES implementation
+static_assert(POLY_VEC_LEN == 1, "");
 
 static void quicksilver_init_hash_keys(quicksilver_state* state, const uint8_t* challenge)
 {
