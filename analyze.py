@@ -25,7 +25,7 @@ def analyze(df):
     ]
 
     df['keygen.mean_ms'] = df['keygen.mean_us'] / 1000
-    df['sign.mean_ms'] = df['verify.mean_us'] / 1000
+    df['sign.mean_ms'] = df['sign.mean_us'] / 1000
     df['verify.mean_ms'] = df['verify.mean_us'] / 1000
 
     for c in df.columns:
