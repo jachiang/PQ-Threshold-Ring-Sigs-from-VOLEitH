@@ -105,18 +105,54 @@ def print_latex_table(impl, df, indentation=4):
     print('%%% END GENERATED TABLE %%%')
 
 
+def print_markdown_table(df, indentation=4):
+    print('{% comment %}')
+    print('   START GENERATED TABLE')
+    print('{% endcomment %}')
+    print(r'|---')
+    print(r'| : Scheme : |  : Runtimes in milliseconds :  \|\||  : Sizes in bytes :  \|\|')
+    print(r'| ^^         | : KeyGen : | : Sign : | : Verify : | : sk : | : pk : | : sig :')
+    print(r'|:-|-:|-:|-:|-:|-:|-:')
+    #print(r'\multicolumn{1}{c}{\multirow{2}{*}{Scheme}} & \multicolumn{3}{c}{Runtimes in \si{\milli\second}} & \multicolumn{3}{c}{Sizes in \si{\byte}} \\')
+    #print(r'\cmidrule(lr){2-4} \cmidrule(l){5-7}')
+    for index, r in df.iterrows():
+        if r['variant'] == 'FAEST_EM_128S':
+            print(r'|---')
+
+        name = r['variant'].replace("_", "-")
+        name = name[:-1] + name[-1].lower()
+
+        line = "| "
+        line += f"{name:16s}"
+        line += f" | {r['keygen.mean_ms']:10f}"
+        line += f" | {r['sign.mean_ms']:16f}"
+        line += f" | {r['verify.mean_ms']:16f}"
+        line += f" | {r['sk_size_bytes']:2d}"
+        line += f" | {r['pk_size_bytes']:2d}"
+        line += f" | {r['sig_size_bytes']:5d}"
+        line += r""
+        print(line)
+    print(r'|---')
+    print('{% comment %}')
+    print('   END GENERATED TABLE')
+    print('{% endcomment %}')
+
+
 def main(argv):
-    if len(argv) != 3 or argv[1] not in ['ref', 'opt']:
-        print(f'usage: {sys.argv[0]} ref|opt <path>')
+    if len(argv) != 3 or argv[1] not in ['ref', 'opt', 'web']:
+        print(f'usage: {sys.argv[0]} ref|opt|web <path>')
         exit(1)
 
     path = argv[2]
-    impl = argv[1]
+    opt = argv[1]
 
     data = load_data(path)
     data = analyze(data)
     #  print(data)
-    print_latex_table(impl, data)
+    if opt == 'web':
+        print_markdown_table(data)
+    else:
+        print_latex_table(opt, data)
 
 
 if __name__ == '__main__':
