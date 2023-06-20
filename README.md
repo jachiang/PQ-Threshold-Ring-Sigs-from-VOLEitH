@@ -1,5 +1,10 @@
 Implementation for instruction set extensions of x86-64.
 
+# Versions
+
+The major version number of the FAEST implementation matches the major version number of the FAEST specification it implements.
+The implementations is currently at version 1.0.
+
 # Compilation
 
 Building requires GNU make 4.4 or newer.
