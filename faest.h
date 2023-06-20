@@ -32,11 +32,23 @@
 	SECURITY_PARAM / 8 + \
 	16)
 
-// Random seed can be set to null for deterministic signatures.
-
+// Find the public key corresponding to a given secret key. Returns true if sk_packed is a valid
+// secret key, and false otherwise. For key generation, this function is intended to be called
+// repeatedly on random values of sk_packed until a valid key is found. pk_packed must be
+// FAEST_PUBLIC_KEY_BYTES long, while sk_packed must be FAEST_SECRET_KEY_BYTES long.
 bool faest_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed);
+
+// Generate a signature (of length FAEST_SIGNATURE_BYTES) for a message msg (of length msg_len)
+// using a secret key sk_packed (of length FAEST_SECRET_KEY_BYTES) and randomness random_seed (of
+// length random_seed_len). random_seed can be set to null for deterministic signatures. The
+// randomness is mixed with pseudorandom bits generated from secret key and the message, to protect
+// against bad randomness. Returns true if sk_packed is a valid secret key, and false otherwise.
 bool faest_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
 	const uint8_t* random_seed, size_t random_seed_len);
+
+// Verify a signature (of length FAEST_SIGNATURE_BYTES) for a message msg (of length msg_len)
+// using a public key pk_packed (of length FAEST_PUBLIC_KEY_BYTES). Returns true for a valid
+// signature and false otherwise.
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);

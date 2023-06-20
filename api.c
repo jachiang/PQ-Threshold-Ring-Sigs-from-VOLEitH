@@ -9,6 +9,8 @@ static_assert(CRYPTO_PUBLICKEYBYTES == FAEST_PUBLIC_KEY_BYTES, "");
 static_assert(CRYPTO_SECRETKEYBYTES == FAEST_SECRET_KEY_BYTES, "");
 static_assert(CRYPTO_BYTES == FAEST_SIGNATURE_BYTES, "");
 
+// Sample a random key pair (pk, sk). pk and sk which must have length CRYPTO_PUBLICKEYBYTES and
+// CRYPTO_SECRETKEYBYTES, respectively.
 int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 {
 	do
@@ -18,6 +20,9 @@ int crypto_sign_keypair(unsigned char* pk, unsigned char* sk)
 	return 0;
 }
 
+// Generate a signed message sm = m || signature(sk, m). m must have length mlen. sm must have
+// length mlen + CRYPTO_BYTES, and this length will be written into *smlen. sk must have length
+// CRYPTO_SECRETKEYBYTES.
 int crypto_sign(
 	unsigned char *sm, unsigned long long *smlen,
 	const unsigned char *m, unsigned long long mlen,
@@ -32,6 +37,9 @@ int crypto_sign(
 	return 0;
 }
 
+// Verify a signed message sm of length smlen, which must be at least CRYPTO_BYTES. If the
+// signature is correct, write the original message into m and set *mlen = smlen - CRYPTO_BYTES. If
+// not, return -1. pk must have length CRYPTO_PUBLICKEYBYTES.
 int crypto_sign_open(
 	unsigned char *m, unsigned long long *mlen,
 	const unsigned char *sm, unsigned long long smlen,
