@@ -1,4 +1,4 @@
-# Implementation for instruction set extensions of x86-64.
+# Platform Specific FAEST Implementation for x86-64 (With ISA Extensions)
 
 ## Versions
 
