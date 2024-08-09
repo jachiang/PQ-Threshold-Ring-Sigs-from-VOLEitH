@@ -17,6 +17,11 @@ typedef struct public_key
 	owf_block owf_output[OWF_BLOCKS];
 } public_key;
 
+typedef struct public_key_ring // JC: added.
+{
+	struct public_key pubkeys[FAEST_RING_SIZE];
+} public_key_ring;
+
 typedef struct
 {
 	public_key pk;
