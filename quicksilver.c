@@ -47,6 +47,22 @@ void quicksilver_init_verifier(
 	state->macs = macs;
 }
 
+// JC: Non-ZK Hash of constraints stored to hasher states.
+static poly_secpar_vec quicksilver_lincombine_hasher_state(
+	const quicksilver_state* state,
+	const hasher_gfsecpar_state* state_secpar, const hasher_gfsecpar_64_state* state_64)
+{
+	poly_secpar_vec hashes[2];
+	hashes[0] = hasher_gfsecpar_final(state_secpar);
+	hashes[1] = hasher_gfsecpar_64_final(state_64);
+
+	poly_2secpar_vec sum = poly256_set_zero(); // JC: Set to zero, No mask required.
+	for (size_t i = 0; i < 2; ++i)
+		sum = poly_2secpar_add(sum, poly_secpar_mul(state->hash_combination[i], hashes[i]));
+
+	return poly_2secpar_reduce_secpar(sum);
+}
+
 static void quicksilver_final(
 	const quicksilver_state* state,
 	const hasher_gfsecpar_state* state_secpar, const hasher_gfsecpar_64_state* state_64,
@@ -122,6 +138,93 @@ void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_
 
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
+}
+
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t active_branch,
+                          uint8_t* restrict proof_lin, uint8_t* restrict check)
+{
+	assert(!state->verifier);
+	assert(witness_bits % 8 == 0);
+
+	// JC: TODO: Implement higher degree masks.
+	// poly_2secpar_vec quad_mask = poly256_set_zero(); // TODO: Implement quad mask.
+	poly_2secpar_vec value_mask =
+		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
+	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+
+	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+
+		poly_secpar_vec a0_secpar;
+		poly_secpar_vec a1_secpar;
+		poly_secpar_vec a2_secpar;
+
+		// JC: Input active branch index (TODO: selector as public constant).
+		poly1_vec selector;
+		if (branch == active_branch) {
+			selector = poly1_set_all(0xff);
+		}
+		else {
+			selector = poly1_set_all(0x00);
+		}
+		// JC: Combine all constraints of each branch.
+		a0_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_const[branch],
+												        &state->state_ring_64_const[branch]);
+		a1_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_linear[branch],
+														&state->state_ring_64_linear[branch]);
+		a2_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_quad[branch],
+														&state->state_ring_64_quad[branch]);
+
+		// JC: Multiply with selector (hardcoded for now), add to state_ring_secpar_const/lin/quad_final
+		a0_secpar  = poly1xsecpar_mul(selector, a0_secpar);
+		a1_secpar = poly1xsecpar_mul(selector, a1_secpar);
+		// a2_secpar = poly1xsecpar_mul(selector, a2_secpar); // Assume highest order coefficient is zero.
+
+		// JC: Update hasher state with a0, a1, a2 (TODO: using same hasher key).
+		// JC: Add OR constraint to same hasher state as key expansion constraints.
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, a0_secpar);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, a1_secpar);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, a0_secpar);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, a1_secpar);
+	}
+
+	// JC: Final ZKHash.
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
+	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
+}
+
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
+                           const uint8_t* restrict proof_lin, uint8_t* restrict check)
+{
+	assert(state->verifier);
+
+	// JC: active branch hardcoded to 0.
+	size_t active_branch = 0;
+
+	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+
+		poly_secpar_vec q;
+
+		poly1_vec selector;
+		if (branch == active_branch) {
+			selector = poly1_set_all(0xff);
+		}
+		else {
+			selector = poly1_set_all(0x00);
+		}
+		q = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_const[branch],
+												 &state->state_ring_64_const[branch]);
+		q = poly1xsecpar_mul(selector, q);
+
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, q);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, q);
+	}
+
+	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
+
+	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
+
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 }
 
