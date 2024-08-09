@@ -274,6 +274,29 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
     }
 }
 
+// JC: identical to enc_constraints, but passes on active branch index.
+static ALWAYS_INLINE void enc_constraints_branch(quicksilver_state* state, size_t branch, const quicksilver_vec_gf2* round_key_bits,
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+    // compute the starting index of the witness bits corresponding to the s-boxes in this round of
+    // encryption
+#if defined(OWF_AES_CTR)
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    assert(block_num == 0);
+    const size_t witness_bit_offset = SECURITY_PARAM;
+#endif
+
+    quicksilver_vec_gfsecpar inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar inv_outputs[S_ENC];
+    enc_fwd(state, round_key_bytes, witness_bit_offset, in, inv_inputs);
+    enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
+
+    for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
+        quicksilver_add_product_constraints_to_branch(state, branch,
+            inv_inputs[sbox_j], inv_outputs[sbox_j]);
+    }
+}
+
 static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
 {
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -284,6 +307,31 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0]);
+#else
+#error "unsupported OWF"
+#endif
+}
+
+static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk_ring)
+{
+    quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
+    quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
+#if defined(OWF_AES_CTR)
+    // JC: constraints are added to state.state_secpar/state_64
+    key_sched_constraints(state, round_key_bits, round_key_bytes);
+    // JC: this will only by satisfied for 1 OR branch.
+    for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
+        for (size_t block = 0; block < OWF_BLOCKS; ++block) {
+            // JC: constraints are added to state.state_ring_secpar[branch]/state_ring_64[branch]
+            enc_constraints_branch(state, branch, round_key_bits, round_key_bytes, block,
+                                   pk_ring->pubkeys[branch].owf_input[block],
+                                   pk_ring->pubkeys[branch].owf_output[block]);
+        }
+    }
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    // JC: TODO
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
     enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0]);
 #else
@@ -305,6 +353,19 @@ void owf_constraints_verifier(quicksilver_state* state, const public_key* pk)
 	owf_constraints(state, pk);
 }
 
+void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk_ring)
+{
+    assert(!state->verifier);
+    state->verifier = false; // Let the compiler know that it is constant.
+    owf_constraints_all_branches(state, pk_ring);
+}
+
+void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk_ring)
+{
+	assert(state->verifier);
+	state->verifier = true; // Let the compiler know that it is constant.
+	owf_constraints_all_branches(state, pk_ring);
+}
 
 extern inline owf_block owf_block_xor(owf_block x, owf_block y);
 extern inline owf_block owf_block_set_low32(uint32_t x);

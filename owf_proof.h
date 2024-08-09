@@ -63,8 +63,12 @@ inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x);
 
 struct public_key;
 typedef struct public_key public_key;
+struct public_key_ring;
+typedef struct public_key_ring public_key_ring;
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
+void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk_ring);
+void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk_ring);
 
 #endif
