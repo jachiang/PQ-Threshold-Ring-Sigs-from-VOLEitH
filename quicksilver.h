@@ -278,6 +278,44 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 	}
 }
 
+// Add a constraint of the form x*y == 1.
+inline void quicksilver_add_product_constraints_to_branch(quicksilver_or_state* state, size_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
+{
+	if (state->verifier)
+	{
+		// JC: Adopted for verifier. Verifier only caches constraint terms to const state member.
+		poly_secpar_vec term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.mac, y.mac)), state->deltaSq);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const[branch], term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const[branch], term);
+	}
+	else
+	{
+		// Use Karatsuba to save a multiplication.
+		poly_secpar_vec x0_y0 = poly_2secpar_reduce_secpar(poly_secpar_mul(x.mac, y.mac));
+		poly_secpar_vec x1_y1 = poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(x.value, x.mac), poly_secpar_add(y.value, y.mac)));
+
+		poly_secpar_vec xinf_yinf = poly_secpar_set_low32(1);
+
+		// JC removed: Assert this for active branch?
+		// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), xinf_yinf));
+
+		// JC: x1_y1 is not lin term because it includes x.value*y.value and x.mac*y.mac subterms,
+		// JC: These are removed here.
+		poly_secpar_vec lin_term = poly_secpar_add(poly_secpar_add(x0_y0, xinf_yinf), x1_y1);
+
+		// JC added: quad_term
+		poly_secpar_vec quad_term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)),
+													xinf_yinf);
+		// JC: Store constraint terms (quad, lin, const) to quicksilver (hasher) state.
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const[branch], x0_y0);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear[branch], lin_term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad[branch], quad_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const[branch], x0_y0);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear[branch], lin_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad[branch], quad_term);
+	}
+}
+
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
                        uint8_t* restrict proof, uint8_t* restrict check);
 void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
