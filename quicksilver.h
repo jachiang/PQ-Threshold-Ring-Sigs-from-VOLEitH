@@ -30,16 +30,16 @@ typedef struct
 	poly_secpar_vec deltaSq; // Ditto
 
 	hasher_gfsecpar_key key_secpar;
-	hasher_gfsecpar_state state_secpar_const;
-	hasher_gfsecpar_state state_secpar_linear;
+	hasher_gfsecpar_state state_secpar_const; // JC: In OR case, key constraints only.
+	hasher_gfsecpar_state state_secpar_linear; // JC: In OR case, key constraints only.
 	// JC: (ZK)Hash state to batch constraints in each OR branch.
 	hasher_gfsecpar_state state_ring_secpar_const[FAEST_RING_SIZE];
 	hasher_gfsecpar_state state_ring_secpar_linear[FAEST_RING_SIZE];
 	hasher_gfsecpar_state state_ring_secpar_quad[FAEST_RING_SIZE]; // JC: Non-sat
 
 	hasher_gfsecpar_64_key key_64;
-	hasher_gfsecpar_64_state state_64_const;
-	hasher_gfsecpar_64_state state_64_linear;
+	hasher_gfsecpar_64_state state_64_const; // JC: In OR case, key constraints only.
+	hasher_gfsecpar_64_state state_64_linear; // JC: In OR case, key constraints only.
 	// JC: (ZK)Hash state to batch constraints in each OR branch.
 	hasher_gfsecpar_64_state state_ring_64_const[FAEST_RING_SIZE];
 	hasher_gfsecpar_64_state state_ring_64_linear[FAEST_RING_SIZE];
@@ -47,7 +47,7 @@ typedef struct
 
 	poly_secpar_vec hash_combination[2];
 
-	// JC: Final linear ZKHash over branch constraints.
+	// JC: Final linear ZKHash over OR branch constraints.
 	hasher_gfsecpar_state state_ring_secpar_const_final;
 	hasher_gfsecpar_state state_ring_secpar_linear_final;
 	hasher_gfsecpar_state state_ring_secpar_quad_final;
