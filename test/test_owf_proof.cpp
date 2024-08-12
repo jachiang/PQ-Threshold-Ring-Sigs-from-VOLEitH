@@ -41,9 +41,9 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
     // JC: generate pk-ring.
     public_key_ring pk_ring;
-    int active_branch = 0;
+    size_t active_branch = 0;
     secret_key sk;
-    for (int i; i < FAEST_RING_SIZE; ++i) {
+    for (size_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
         test_gen_keypair(packed_pk.data(), packed_sk.data());
