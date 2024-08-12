@@ -76,6 +76,10 @@ void quicksilver_init_verifier(
 	quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
 	block_secpar delta, const uint8_t* challenge);
 
+void quicksilver_init_or_verifier(
+	quicksilver_state* state, const block_secpar* macs, size_t num_owf_constraints, size_t num_ke_constraints,
+	block_secpar delta, const uint8_t* challenge);
+
 inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* state, size_t index)
 {
 	quicksilver_vec_gf2 out;

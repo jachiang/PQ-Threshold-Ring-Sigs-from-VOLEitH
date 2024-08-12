@@ -76,6 +76,28 @@ void quicksilver_init_verifier(
 	state->macs = macs;
 }
 
+void quicksilver_init_or_verifier(
+	quicksilver_state* state, const block_secpar* macs, size_t num_owf_constraints, size_t num_ke_constraints,
+	block_secpar delta, const uint8_t* challenge)
+{
+	state->verifier = true;
+	state->delta = poly_secpar_load_dup(&delta);
+	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
+
+	quicksilver_init_hash_keys(state, challenge);
+
+	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
+	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
+	}
+
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE);
+
+	state->macs = macs;
+}
+
 // JC: Non-ZK Hash of constraints stored to hasher states.
 static poly_secpar_vec quicksilver_lincombine_hasher_state(
 	const quicksilver_state* state,
