@@ -324,7 +324,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
     // JC: this will only by satisfied for 1 OR branch.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t block = 0; block < OWF_BLOCKS; ++block) {
-            // JC: constraints are added to state.state_ring_secpar[branch]/state_ring_64[branch]
+            // JC: constraints are added to state.state_or_secpar[branch]/state_or_64[branch]
             enc_constraints_branch(state, branch, round_key_bits, round_key_bytes, block,
                                    pk_ring->pubkeys[branch].owf_input[block],
                                    pk_ring->pubkeys[branch].owf_output[block]);

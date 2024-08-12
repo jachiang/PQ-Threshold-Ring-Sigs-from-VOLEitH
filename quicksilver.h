@@ -5,7 +5,7 @@
 #include "universal_hash.h"
 #include "util.h"
 
-#define FAEST_RING_SIZE (3) // JC: Manually set to 3 for now,.
+#define FAEST_RING_SIZE (3) // JC: Manually set to 3 for now.
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
 #define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)
@@ -34,28 +34,28 @@ typedef struct
 	hasher_gfsecpar_state state_secpar_const;
 	hasher_gfsecpar_state state_secpar_linear;
 	// JC: (Dis)satisfied OWF constraints.
-	hasher_gfsecpar_state state_ring_secpar_const[FAEST_RING_SIZE];
-	hasher_gfsecpar_state state_ring_secpar_linear[FAEST_RING_SIZE];
-	hasher_gfsecpar_state state_ring_secpar_quad[FAEST_RING_SIZE];
+	hasher_gfsecpar_state state_or_secpar_const[FAEST_RING_SIZE];
+	hasher_gfsecpar_state state_or_secpar_linear[FAEST_RING_SIZE];
+	hasher_gfsecpar_state state_or_secpar_quad[FAEST_RING_SIZE];
 
 	hasher_gfsecpar_64_key key_64;
 	 // JC: Satisfied KE/OWF constraints.
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
 	// JC: (Dis)satisfied OWF constraints.
-	hasher_gfsecpar_64_state state_ring_64_const[FAEST_RING_SIZE];
-	hasher_gfsecpar_64_state state_ring_64_linear[FAEST_RING_SIZE];
-	hasher_gfsecpar_64_state state_ring_64_quad[FAEST_RING_SIZE];
+	hasher_gfsecpar_64_state state_or_64_const[FAEST_RING_SIZE];
+	hasher_gfsecpar_64_state state_or_64_linear[FAEST_RING_SIZE];
+	hasher_gfsecpar_64_state state_or_64_quad[FAEST_RING_SIZE];
 
 	poly_secpar_vec hash_combination[2];
 
-	// JC: Final linear ZKHash over OR branch constraints.
-	hasher_gfsecpar_state state_ring_secpar_const_final;
-	hasher_gfsecpar_state state_ring_secpar_linear_final;
-	hasher_gfsecpar_state state_ring_secpar_quad_final;
-	hasher_gfsecpar_64_state state_ring_64_const_final;
-	hasher_gfsecpar_64_state state_ring_64_linear_final;
-	hasher_gfsecpar_64_state state_ring_64_quad_final;
+	// JC: Final linear ZKHash over batched OR branch constraints.
+	hasher_gfsecpar_state state_or_secpar_const_final;
+	hasher_gfsecpar_state state_or_secpar_linear_final;
+	hasher_gfsecpar_state state_or_secpar_quad_final;
+	hasher_gfsecpar_64_state state_or_64_const_final;
+	hasher_gfsecpar_64_state state_or_64_linear_final;
+	hasher_gfsecpar_64_state state_or_64_quad_final;
 
 	const uint8_t* witness;
 	const block_secpar* macs;
@@ -65,6 +65,10 @@ typedef struct
 void quicksilver_init_prover(
 	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
 	size_t num_constraints, const uint8_t* challenge);
+
+void quicksilver_init_or_prover(
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
+	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge);
 
 // Initialize a verifier's quicksilver_state. challenge must have length
 // QUICKSILVER_CHALLENGE_BYTES.
@@ -272,8 +276,8 @@ inline void quicksilver_add_product_constraints_to_branch(quicksilver_state* sta
 	{
 		// JC: Adopted for verifier. Verifier only caches constraint terms to const state member.
 		poly_secpar_vec term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.mac, y.mac)), state->deltaSq);
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_ring_secpar_const[branch], term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_ring_64_const[branch], term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_const[branch], term);
 	}
 	else
 	{
@@ -294,12 +298,12 @@ inline void quicksilver_add_product_constraints_to_branch(quicksilver_state* sta
 		poly_secpar_vec quad_term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)),
 													xinf_yinf);
 		// JC: Store constraint terms (quad, lin, const) to quicksilver (hasher) state.
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_ring_secpar_const[branch], x0_y0);
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_ring_secpar_linear[branch], lin_term);
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_ring_secpar_quad[branch], quad_term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_ring_64_const[branch], x0_y0);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_ring_64_linear[branch], lin_term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_ring_64_quad[branch], quad_term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], x0_y0);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_linear[branch], lin_term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_quad[branch], quad_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_const[branch], x0_y0);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_linear[branch], lin_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_quad[branch], quad_term);
 	}
 }
 

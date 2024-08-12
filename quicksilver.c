@@ -32,6 +32,35 @@ void quicksilver_init_prover(
 	state->macs = macs;
 }
 
+// JC: TODO - Update number of constraints
+void quicksilver_init_or_prover(
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
+	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge)
+{
+	state->verifier = false;
+
+	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
+	quicksilver_init_hash_keys(state, challenge);
+	// JC: init state of (ZK)Hash for batching constraints of each OR branch.
+	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
+	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_sbox_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], num_sbox_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], num_sbox_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_sbox_constraints);
+	}
+	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE);
+
+	state->witness = witness;
+	state->macs = macs;
+}
+
 void quicksilver_init_verifier(
 	quicksilver_state* state, const block_secpar* macs, size_t num_constraints,
 	block_secpar delta, const uint8_t* challenge)
@@ -168,14 +197,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 			selector = poly1_set_all(0x00);
 		}
 		// JC: Combine all constraints of each branch.
-		a0_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_const[branch],
-												        &state->state_ring_64_const[branch]);
-		a1_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_linear[branch],
-														&state->state_ring_64_linear[branch]);
-		a2_secpar = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_quad[branch],
-														&state->state_ring_64_quad[branch]);
+		a0_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
+												        &state->state_or_64_const[branch]);
+		a1_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_linear[branch],
+														&state->state_or_64_linear[branch]);
+		a2_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
+														&state->state_or_64_quad[branch]);
 
-		// JC: Multiply with selector (hardcoded for now), add to state_ring_secpar_const/lin/quad_final
+		// JC: Multiply with selector (hardcoded for now), add to state_or_secpar_const/lin/quad_final
 		a0_secpar  = poly1xsecpar_mul(selector, a0_secpar);
 		a1_secpar = poly1xsecpar_mul(selector, a1_secpar);
 		// a2_secpar = poly1xsecpar_mul(selector, a2_secpar); // Assume highest order coefficient is zero.
@@ -212,8 +241,8 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 		else {
 			selector = poly1_set_all(0x00);
 		}
-		q = quicksilver_lincombine_hasher_state(state, &state->state_ring_secpar_const[branch],
-												 &state->state_ring_64_const[branch]);
+		q = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
+												 &state->state_or_64_const[branch]);
 		q = poly1xsecpar_mul(selector, q);
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, q);
