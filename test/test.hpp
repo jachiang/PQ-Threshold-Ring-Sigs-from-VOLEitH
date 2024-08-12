@@ -229,6 +229,46 @@ struct quicksilver_test_state
     }
 };
 
+struct quicksilver_test_or_state
+{
+    quicksilver_state prover_state;
+    quicksilver_state verifier_state;
+    std::vector<uint8_t> witness;
+    std::vector<block_secpar> tags;
+    std::vector<block_secpar> keys;
+
+    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta) :
+        witness(witness_in, witness_in + witness_bits / 8)
+    {
+        auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
+        witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
+
+        auto correlation = gen_vole_correlation(witness_bits + SECURITY_PARAM, witness.data(), delta);
+        keys = std::move(correlation.first);
+        tags = std::move(correlation.second);
+
+        std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
+        std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
+        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(),
+                                num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data());
+        quicksilver_init_or_verifier(&verifier_state, keys.data(),
+                                  num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data());
+    }
+
+    std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
+    compute_check(size_t branch) // JC: No longer const function, as it modifies the prover and verifier state.
+    {
+        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof;
+        std::array<uint8_t, QUICKSILVER_CHECK_BYTES> check_prover, check_verifier;
+
+        size_t witness_bits = 8 * witness.size() - SECURITY_PARAM;
+        quicksilver_prove_or(&prover_state, witness_bits, branch, proof.data(), check_prover.data());
+        quicksilver_verify_or(&verifier_state, witness_bits, proof.data(), check_verifier.data());
+
+        return {check_prover, check_verifier};
+    }
+};
+
 inline void test_gen_keypair(unsigned char* pk, unsigned char* sk)
 {
 	do
