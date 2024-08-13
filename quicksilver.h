@@ -38,7 +38,7 @@ typedef struct
 	hasher_gfsecpar_state state_or_secpar_quad[FAEST_RING_SIZE];
 
 	hasher_gfsecpar_64_key key_64;
-	 // JC: Satisfied KE/OWF constraints.
+	// JC: Satisfied KE/OWF constraints.
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
 	// JC: (Dis)satisfied OWF constraints.
@@ -47,14 +47,6 @@ typedef struct
 	hasher_gfsecpar_64_state state_or_64_quad[FAEST_RING_SIZE];
 
 	poly_secpar_vec hash_combination[2];
-
-	// JC: Final linear ZKHash over batched OR branch constraints.
-	hasher_gfsecpar_state state_or_secpar_const_final;
-	hasher_gfsecpar_state state_or_secpar_linear_final;
-	hasher_gfsecpar_state state_or_secpar_quad_final;
-	hasher_gfsecpar_64_state state_or_64_const_final;
-	hasher_gfsecpar_64_state state_or_64_linear_final;
-	hasher_gfsecpar_64_state state_or_64_quad_final;
 
 	const uint8_t* witness;
 	const block_secpar* macs;
