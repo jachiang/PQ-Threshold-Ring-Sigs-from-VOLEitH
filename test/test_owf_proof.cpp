@@ -41,7 +41,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
     // JC: generate pk-ring.
     public_key_ring pk_ring;
-    size_t active_branch = 0;
+    size_t active_branch = 12;
     secret_key sk;
     for (size_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
@@ -51,7 +51,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
         faest_unpack_public_key(&pk, packed_pk.data());
         if (i == active_branch) {
             // JC: Expanded witness is stored in sk.
-            faest_unpack_secret_key(&sk, packed_sk.data(), true);
+            faest_unpack_secret_key(&sk, packed_sk.data(), false);
         }
         pk_ring.pubkeys[i] = pk;
     }

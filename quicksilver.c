@@ -250,7 +250,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 	assert(state->verifier);
 
 	// JC: active branch hardcoded to 0.
-	size_t active_branch = 0;
+	size_t active_branch = 12;
 
 	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 

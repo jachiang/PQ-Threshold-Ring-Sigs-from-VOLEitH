@@ -250,9 +250,9 @@ struct quicksilver_test_or_state
         std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
         std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
         quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(),
-                                num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data());
+                                   num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data());
         quicksilver_init_or_verifier(&verifier_state, keys.data(),
-                                  num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data());
+                                     num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data());
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
