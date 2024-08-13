@@ -21,7 +21,7 @@ TEST_CASE( "owf proof", "[owf proof]" ) {
     test_gen_keypair(packed_pk.data(), packed_sk.data());
     public_key pk;
     secret_key sk;
-    faest_unpack_secret_key(&sk, packed_sk.data());
+    faest_unpack_secret_key(&sk, packed_sk.data(), false);
     faest_unpack_public_key(&pk, packed_pk.data());
 
     const auto delta = rand<block_secpar>();
@@ -51,7 +51,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
         faest_unpack_public_key(&pk, packed_pk.data());
         if (i == active_branch) {
             // JC: Expanded witness is stored in sk.
-            faest_unpack_secret_key(&sk, packed_sk.data());
+            faest_unpack_secret_key(&sk, packed_sk.data(), true);
         }
         pk_ring.pubkeys[i] = pk;
     }

@@ -12,7 +12,7 @@
 #include "util.h"
 
 
-bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
+bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring)
 {
 	memcpy(&unpacked->pk.owf_input, packed, sizeof(unpacked->pk.owf_input));
 	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.owf_input), sizeof(unpacked->sk));
@@ -23,7 +23,7 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
 
-	return faest_compute_witness(unpacked);
+	return faest_compute_witness(unpacked, ring);
 }
 
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
@@ -41,9 +41,15 @@ void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 #endif
 }
 
-bool faest_compute_witness(secret_key* sk)
+bool faest_compute_witness(secret_key* sk, bool ring)
 {
-	uint8_t* w_ptr = (uint8_t*) &sk->witness;
+	uint8_t* w_ptr;
+	if (!ring) {
+		w_ptr = (uint8_t*) &sk->witness;
+	}
+	else {
+		w_ptr = (uint8_t*) &sk->ring_witness;
+	}
 
 	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
 	w_ptr += sizeof(sk->sk);
@@ -108,8 +114,17 @@ bool faest_compute_witness(secret_key* sk)
 	}
 
 	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
-	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
-	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+
+	if(!ring) {
+		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
+		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+	}
+	else {
+		memcpy(w_ptr, &sk->idx, sizeof(sk->idx));
+		w_ptr += sizeof(sk->idx);
+		assert(w_ptr - (uint8_t*) &sk->ring_witness == RING_WITNESS_BITS / 8);
+		memset(w_ptr, 0, sizeof(sk->ring_witness) - RING_WITNESS_BITS / 8);
+	}
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
@@ -121,7 +136,7 @@ bool faest_compute_witness(secret_key* sk)
 
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {
-	if (!faest_unpack_secret_key(sk, sk_packed))
+	if (!faest_unpack_secret_key(sk, sk_packed, false))
 		return false;
 
 	faest_pack_public_key(pk_packed, &sk->pk);

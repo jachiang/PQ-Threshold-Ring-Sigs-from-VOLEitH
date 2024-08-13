@@ -27,16 +27,18 @@ typedef struct
 {
 	public_key pk;
 	block_secpar sk;
+	uint8_t idx[FAEST_RING_BITS];
 #if defined(OWF_AES_CTR)
 	aes_round_keys round_keys;
 #endif
 	vole_block witness[WITNESS_BLOCKS];
+	vole_block ring_witness[RING_WITNESS_BLOCKS];
 } secret_key;
 
-bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed);
+bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring);
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
-bool faest_compute_witness(secret_key* sk);
+bool faest_compute_witness(secret_key* sk, bool ring);
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
 
 #endif // FAEST_DETAILS_H
