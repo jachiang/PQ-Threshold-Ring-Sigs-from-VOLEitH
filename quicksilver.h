@@ -1,11 +1,10 @@
 #ifndef QUICKSILVER_H
 #define QUICKSILVER_H
 
+#include "config.h"
 #include "polynomials.h"
 #include "universal_hash.h"
 #include "util.h"
-
-#define FAEST_RING_SIZE (3) // JC: Manually set to 3 for now.
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
 #define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)

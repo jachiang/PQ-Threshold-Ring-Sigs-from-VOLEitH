@@ -3,6 +3,7 @@
 
 #include "aes.h"
 #include "block.h"
+#include "config.h"
 #include "owf_proof.h"
 #include "vole_params.h"
 
@@ -17,7 +18,7 @@ typedef struct public_key
 	owf_block owf_output[OWF_BLOCKS];
 } public_key;
 
-typedef struct public_key_ring // JC: added.
+typedef struct public_key_ring
 {
 	struct public_key pubkeys[FAEST_RING_SIZE];
 } public_key_ring;

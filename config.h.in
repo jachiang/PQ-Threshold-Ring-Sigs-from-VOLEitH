@@ -17,4 +17,9 @@
 #define XKCP_has_KeccakP1600times4
 #define XKCP_has_KeccakP1600times8
 
+// JC: Ring size configuration (hard-coded).
+#define FAEST_RING_BITS (2)
+#define FAEST_RING_SIZE (1 << FAEST_RING_BITS)
+#define FAEST_RING_BYTES ((FAEST_RING_EXP + 7) / 8)
+
 #endif
