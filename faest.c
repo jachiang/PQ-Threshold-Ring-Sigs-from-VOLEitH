@@ -11,6 +11,7 @@
 #include "vole_commit.h"
 #include "util.h"
 
+#include <stdio.h>
 
 bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring)
 {
@@ -120,11 +121,25 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 	}
 	else {
-		memcpy(w_ptr, &sk->idx, sizeof(sk->idx));
-		w_ptr += sizeof(sk->idx);
-		assert(w_ptr - (uint8_t*) &sk->ring_witness == RING_WITNESS_BITS / 8);
-		memset(w_ptr, 0, sizeof(sk->ring_witness) - RING_WITNESS_BITS / 8);
+		// JC: Insert hotvector bits (1-dim).
+		// JC: Ring branch index begins with 0.
+		size_t byte = (sk->idx) / 8;
+		size_t bit_shift = (sk->idx) % 8;
+		for (size_t i = 0; i < FAEST_RING_HOTVECTOR_BYTES; ++i)
+		{
+			if (i == byte) {
+				memset(w_ptr, (1 << bit_shift), 1);
+				printf("Bit is set in idx %d\n", bit_shift);
+			}
+			else{
+				memset(w_ptr, 0, 1);
+				printf("Bit is not set %d\n", 0);
+			}
+			w_ptr += 1;
+		}
+		assert(w_ptr - (uint8_t*) &sk->ring_witness == FAEST_RING_HOTVECTOR_BYTES + WITNESS_BITS / 8);
 	}
+
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)

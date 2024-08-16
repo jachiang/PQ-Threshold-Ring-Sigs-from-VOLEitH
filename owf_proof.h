@@ -58,7 +58,7 @@ inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x);
 
 #define OWF_NUM_CONSTRAINTS (OWF_BLOCKS * OWF_BLOCK_SIZE * OWF_ROUNDS + OWF_KEY_SCHEDULE_CONSTRAINTS)
 #define WITNESS_BITS (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1) + OWF_KEY_WITNESS_BITS)
-#define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_WITNESS_BITS)
+#define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BITS)
 
 #include "aes.h"
 #include "quicksilver.h"
