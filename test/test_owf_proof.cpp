@@ -42,7 +42,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     // JC: generate pk-ring.
     public_key_ring pk_ring;
     secret_key sk;
-    sk.idx = 12;
+    sk.idx = 15;
     for (size_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
@@ -58,7 +58,8 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
     const auto delta = rand<block_secpar>();
     // TODO: expand witness to accomodate active branch index as secret input.
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS, delta);
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
+    // quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 

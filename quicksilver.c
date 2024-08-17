@@ -1,6 +1,7 @@
 #include "quicksilver.h"
 
 #include <assert.h>
+#include <stdio.h> // JC: for debugging.
 
 // TODO: Figure out how to vectorize things here, for a later VAES implementation
 static_assert(POLY_VEC_LEN == 1, "");
@@ -226,10 +227,23 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 		a2_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
 														&state->state_or_64_quad[branch]);
 
+
 		// JC: Multiply with selector (hardcoded for now), add to state_or_secpar_const/lin/quad_final
 		a0_secpar  = poly1xsecpar_mul(selector, a0_secpar);
 		a1_secpar = poly1xsecpar_mul(selector, a1_secpar);
 		// a2_secpar = poly1xsecpar_mul(selector, a2_secpar); // Assume highest order coefficient is zero.
+
+		// JC: Load hot vector element
+		quicksilver_vec_gf2	selector_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch);
+		poly_secpar_vec a1_secpar_selector = poly128_from_1(selector_bit.value);
+		poly_secpar_vec a0_secpar_selector = selector_bit.mac;
+
+		// JC: Print - debugging active branch.
+		bool selector_zero = poly128_eq(a1_secpar_selector, poly_secpar_from_byte(0));
+		bool selector_one = poly128_eq(a1_secpar_selector, poly_secpar_from_byte(1));
+		printf("Branch: %zu\n", branch);
+		printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
+		printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
 
 		// JC: Update hasher state with a0, a1, a2 (TODO: using same hasher key).
 		// JC: Add OR constraint to same hasher state as key expansion constraints.
@@ -250,7 +264,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 	assert(state->verifier);
 
 	// JC: active branch hardcoded to 0.
-	size_t active_branch = 12;
+	size_t active_branch = 15;
 
 	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
