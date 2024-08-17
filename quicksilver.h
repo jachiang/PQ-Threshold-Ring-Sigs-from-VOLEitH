@@ -5,6 +5,7 @@
 #include "polynomials.h"
 #include "universal_hash.h"
 #include "util.h"
+#include <stdio.h> // JC: for debugging.
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
 #define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)
@@ -32,6 +33,8 @@ typedef struct
 	// JC: Satisfied KE/OWF constraints.
 	hasher_gfsecpar_state state_secpar_const;
 	hasher_gfsecpar_state state_secpar_linear;
+	hasher_gfsecpar_state state_secpar_quad;
+
 	// JC: (Dis)satisfied OWF constraints.
 	hasher_gfsecpar_state state_or_secpar_const[FAEST_RING_SIZE];
 	hasher_gfsecpar_state state_or_secpar_linear[FAEST_RING_SIZE];
@@ -41,6 +44,8 @@ typedef struct
 	// JC: Satisfied KE/OWF constraints.
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
+	hasher_gfsecpar_64_state state_64_quad;
+
 	// JC: (Dis)satisfied OWF constraints.
 	hasher_gfsecpar_64_state state_or_64_const[FAEST_RING_SIZE];
 	hasher_gfsecpar_64_state state_or_64_linear[FAEST_RING_SIZE];
@@ -242,6 +247,10 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 	if (state->verifier)
 	{
 		poly_secpar_vec term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.mac, y.mac)), state->deltaSq);
+		if (ring){
+			// JC: Assume final ZKHash of degree 3 QS polynomials.
+			term = poly_2secpar_reduce_secpar(poly_secpar_mul(term, state->delta));
+		}
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, term);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, term);
 	}
@@ -256,11 +265,21 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 		assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), xinf_yinf));
 
 		poly_secpar_vec lin_term = poly_secpar_add(poly_secpar_add(x0_y0, xinf_yinf), x1_y1);
-
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, x0_y0);
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, lin_term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, x0_y0);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, lin_term);
+		if (ring) {
+			// JC: Assume final ZKHash of degree 3 QS polynomials.
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, x0_y0);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, x0_y0);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, lin_term);
+		}
+		else{
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, x0_y0);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, x0_y0);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, lin_term);
+		}
 	}
 }
 
@@ -307,8 +326,8 @@ void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_b
 void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
                         const uint8_t* restrict proof, uint8_t* restrict check);
 void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t active_branch,
-                          uint8_t* restrict proof_lin, uint8_t* restrict check);
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
 void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
-                           const uint8_t* restrict proof_lin, uint8_t* restrict check);
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);
 
 #endif
