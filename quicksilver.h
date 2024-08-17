@@ -237,7 +237,7 @@ inline quicksilver_vec_gfsecpar quicksilver_get_witness_8_bits(const quicksilver
 }
 
 // Add a constraint of the form x*y == 1.
-inline void quicksilver_add_product_constraints(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
+inline void quicksilver_add_product_constraints(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, bool ring)
 {
 	if (state->verifier)
 	{

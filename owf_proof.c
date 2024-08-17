@@ -94,7 +94,7 @@ static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksi
 }
 
 static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
-        quicksilver_vec_gfsecpar* round_key_bytes) {
+        quicksilver_vec_gfsecpar* round_key_bytes, bool ring) {
     quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
     key_sched_fwd(state, round_key_bits);
     key_sched_bkwd(state, round_key_bits, key_schedule_inv_outs);
@@ -119,7 +119,7 @@ static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicks
             }
         }
         for (size_t row_k = 0; row_k < 4; ++row_k) {
-            quicksilver_add_product_constraints(state, lhss[row_k], rhss[row_k]);
+            quicksilver_add_product_constraints(state, lhss[row_k], rhss[row_k], ring);
         }
         // increase i_wd to point to the next word
         if (SECURITY_PARAM == 192) {
@@ -270,7 +270,7 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
     enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
 
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
-        quicksilver_add_product_constraints(state, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+        quicksilver_add_product_constraints(state, inv_inputs[sbox_j], inv_outputs[sbox_j], false);
     }
 }
 
@@ -302,7 +302,7 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #if defined(OWF_AES_CTR)
-    key_sched_constraints(state, round_key_bits, round_key_bytes);
+    key_sched_constraints(state, round_key_bits, round_key_bytes, false);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
     }
@@ -320,7 +320,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #if defined(OWF_AES_CTR)
     // JC: constraints are added to state.state_secpar/state_64
-    key_sched_constraints(state, round_key_bits, round_key_bytes);
+    key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // JC: this will only by satisfied for 1 OR branch.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t block = 0; block < OWF_BLOCKS; ++block) {
