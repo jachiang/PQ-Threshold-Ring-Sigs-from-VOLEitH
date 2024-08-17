@@ -199,17 +199,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 	assert(!state->verifier);
 	assert(witness_bits % 8 == 0);
 
+	// JC: Assume witness_bits includes the hotvector encoding.
 	// JC: TODO: Implement higher degree masks.
-	// poly_2secpar_vec quad_mask = poly256_set_zero(); // TODO: Implement quad mask.
+	// poly_2secpar_vec quad_mask = poly256_set_zero();
 	poly_2secpar_vec value_mask =
 		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
 	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
-
-		poly_secpar_vec a0_secpar;
-		poly_secpar_vec a1_secpar;
-		poly_secpar_vec a2_secpar;
 
 		// JC: Input active branch index (TODO: selector as public constant).
 		poly1_vec selector;
@@ -219,18 +216,19 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 		else {
 			selector = poly1_set_all(0x00);
 		}
+
 		// JC: Combine all constraints of each branch.
-		a0_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
+		poly_secpar_vec a0_secpar_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
 												        &state->state_or_64_const[branch]);
-		a1_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_linear[branch],
+		poly_secpar_vec a1_secpar_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_linear[branch],
 														&state->state_or_64_linear[branch]);
-		a2_secpar = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
+		poly_secpar_vec a2_secpar_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
 														&state->state_or_64_quad[branch]);
 
 
 		// JC: Multiply with selector (hardcoded for now), add to state_or_secpar_const/lin/quad_final
-		a0_secpar  = poly1xsecpar_mul(selector, a0_secpar);
-		a1_secpar = poly1xsecpar_mul(selector, a1_secpar);
+		poly_secpar_vec a0_secpar  = poly1xsecpar_mul(selector, a0_secpar_branch);
+		poly_secpar_vec a1_secpar = poly1xsecpar_mul(selector, a1_secpar_branch);
 		// a2_secpar = poly1xsecpar_mul(selector, a2_secpar); // Assume highest order coefficient is zero.
 
 		// JC: Load hot vector element
@@ -244,6 +242,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 		printf("Branch: %zu\n", branch);
 		printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
 		printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
+
+		// JC: Multiply committed selector bit with branch constraints.
+		// JC: A3 = A2_branch * A1_selector (Assume zero).
+		// JC: Print - debugging branch satisfaction.
+		poly_secpar_vec a3_secpar = poly_2secpar_reduce_secpar(
+									poly_secpar_mul(a2_secpar_branch, a1_secpar_selector));
+		bool constraint_sat = poly128_eq(a3_secpar, poly_secpar_from_byte(0));
+		printf("Satisfied branch constraint %s\n", constraint_sat ? "true" : "false");
 
 		// JC: Update hasher state with a0, a1, a2 (TODO: using same hasher key).
 		// JC: Add OR constraint to same hasher state as key expansion constraints.
