@@ -274,8 +274,6 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 
 	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
-		poly_secpar_vec q;
-
 		poly1_vec selector;
 		if (branch == active_branch) {
 			selector = poly1_set_all(0xff);
@@ -283,12 +281,15 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 		else {
 			selector = poly1_set_all(0x00);
 		}
-		q = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
+		poly_secpar_vec key_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
 												 &state->state_or_64_const[branch]);
-		q = poly1xsecpar_mul(selector, q);
+		key_branch = poly1xsecpar_mul(selector, key_branch);
 
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, q);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, q);
+		poly_secpar_vec key_selector = poly_secpar_load(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch]);
+		poly_secpar_vec key_selector_mul_branch = poly_2secpar_reduce_secpar(poly_secpar_mul(key_branch, key_selector));
+
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_branch);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_branch);
 	}
 
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
