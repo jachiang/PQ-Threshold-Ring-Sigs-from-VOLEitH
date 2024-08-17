@@ -266,8 +266,8 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t 
 	}
 
 	// JC: Final ZKHash.
-	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, zero_mask, check);
-	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, zero_mask, proof_lin);
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
+	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
 	quicksilver_final(state, &state->state_secpar_quad, &state->state_64_quad, zero_mask, proof_quad);
 }
 
@@ -303,8 +303,8 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
 	poly_secpar_vec quad_term = poly_secpar_load_dup(proof_quad);
 
-	// poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
-	poly_2secpar_vec mac_mask = poly256_set_zero();
+	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	// poly_2secpar_vec mac_mask = poly256_set_zero();
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quad_term, state->deltaSq));
 
