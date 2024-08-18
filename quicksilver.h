@@ -299,7 +299,8 @@ inline void quicksilver_add_product_constraints_to_branch(quicksilver_state* sta
 		poly_secpar_vec x0_y0 = poly_2secpar_reduce_secpar(poly_secpar_mul(x.mac, y.mac));
 		poly_secpar_vec x1_y1 = poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(x.value, x.mac), poly_secpar_add(y.value, y.mac)));
 
-		poly_secpar_vec xinf_yinf = poly_secpar_set_low32(1);
+		// poly_secpar_vec xinf_yinf = poly_secpar_set_low32(1);
+		poly_secpar_vec xinf_yinf = poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value));
 
 		// JC removed: Assert this for active branch?
 		// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), xinf_yinf));
@@ -310,7 +311,7 @@ inline void quicksilver_add_product_constraints_to_branch(quicksilver_state* sta
 
 		// JC added: quad_term
 		poly_secpar_vec quad_term = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)),
-													xinf_yinf);
+													poly_secpar_set_low32(1));
 		// JC: Store constraint terms (quad, lin, const) to quicksilver (hasher) state.
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], x0_y0);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_linear[branch], lin_term);
