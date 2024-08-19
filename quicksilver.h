@@ -326,7 +326,7 @@ void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_b
                        uint8_t* restrict proof, uint8_t* restrict check);
 void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
                         const uint8_t* restrict proof, uint8_t* restrict check);
-void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t active_branch,
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
                           uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
 void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
                            const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);

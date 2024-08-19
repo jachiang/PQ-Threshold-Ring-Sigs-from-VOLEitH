@@ -195,7 +195,7 @@ void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 }
 
-void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, size_t active_branch,
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
                           uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check)
 {
 	assert(!state->verifier);
