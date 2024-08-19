@@ -122,7 +122,7 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	}
 	else {
 		// JC: Insert hotvector bits (1-dim).
-		// JC: Ring branch index begins with 0.
+		// JC: If last bit exceeds hotvector bytes, no bit is activated.
 		size_t byte = (sk->idx) / 8;
 		size_t bit_shift = (sk->idx) % 8;
 		for (size_t i = 0; i < FAEST_RING_HOTVECTOR_BYTES; ++i)
@@ -139,7 +139,6 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		}
 		assert(w_ptr - (uint8_t*) &sk->ring_witness == FAEST_RING_HOTVECTOR_BYTES + WITNESS_BITS / 8);
 	}
-
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
