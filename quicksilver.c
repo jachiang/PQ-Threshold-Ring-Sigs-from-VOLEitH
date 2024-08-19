@@ -53,12 +53,12 @@ void quicksilver_init_or_prover(
 		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_sbox_constraints);
 	}
 	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE + 1);
 
 	state->witness = witness;
 	state->macs = macs;
@@ -95,8 +95,8 @@ void quicksilver_init_or_verifier(
 		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
 	}
 
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 1);
 
 	state->macs = macs;
 }
@@ -208,10 +208,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
-	poly_secpar_vec a1_secpar_selector_agg = poly_secpar_from_byte(0);;
-	poly_secpar_vec a0_secpar_selector_agg = poly_secpar_from_byte(0);;
+	poly_secpar_vec a1_secpar_selector_agg = poly_secpar_from_byte(0);
+	poly_secpar_vec a0_secpar_selector_agg = poly_secpar_from_byte(0);
 
-	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
 		// JC: Combine all constraints of each branch.
 		poly_secpar_vec a0_secpar_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
@@ -273,6 +273,19 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a2_secpar);
 	}
 
+	// JC: Well-formedness of hotvector.
+	poly_secpar_vec a1_secpar_selector_wellformed = poly_secpar_add(a1_secpar_selector_agg, poly_secpar_from_byte(1));
+	poly_secpar_vec a0_secpar_selector_wellformed = a0_secpar_selector_agg;
+	bool constraint_sat_well = poly128_eq(a1_secpar_selector_wellformed, poly_secpar_from_byte(0));
+	printf("Wellformed hotvector %s\n", constraint_sat_well ? "true" : "false");
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, a0_secpar_selector_wellformed);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a0_secpar_selector_wellformed);
+
 	// JC: Final ZKHash.
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
@@ -286,7 +299,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 
 	poly_secpar_vec key_selector_agg = poly_secpar_from_byte(0);
 
-	for (size_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
 		poly_secpar_vec key_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
 												 &state->state_or_64_const[branch]);
@@ -305,6 +318,11 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_selector_mul_branch);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_selector_mul_branch);
 	}
+
+	// JC: Well-formedness of hotvector.
+	poly_secpar_vec key_wellformed= poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(key_selector_agg, state->delta),state->deltaSq));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_wellformed);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_wellformed);
 
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
 	poly_secpar_vec quad_term = poly_secpar_load_dup(proof_quad);
