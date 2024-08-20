@@ -53,12 +53,12 @@ void quicksilver_init_or_prover(
 		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_sbox_constraints);
 	}
 	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE + 2);
 
 	state->witness = witness;
 	state->macs = macs;
@@ -95,8 +95,8 @@ void quicksilver_init_or_verifier(
 		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
 	}
 
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 1);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 1);
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + 2);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + 2);
 
 	state->macs = macs;
 }
@@ -208,8 +208,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
+	poly_secpar_vec a1_secpar_selector_vec[FAEST_RING_SIZE];
+	poly_secpar_vec a0_secpar_selector_vec[FAEST_RING_SIZE];
+
 	poly_secpar_vec a1_secpar_selector_agg = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_selector_agg = poly_secpar_from_byte(0);
+
+	poly_secpar_vec a1_secpar_selector_mul_idx_agg = poly_secpar_from_byte(0);
+	poly_secpar_vec a0_secpar_selector_mul_idx_agg = poly_secpar_from_byte(0);
 
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
@@ -223,27 +229,29 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 
 		// JC: TODO - Derive last branch selector bit from running sum of prior branch selectors.
 		// JC: TODO - remove this bit from witness / witness_bit parameters
-		poly_secpar_vec a1_secpar_selector;
-		poly_secpar_vec a0_secpar_selector;
-
 		if (branch < FAEST_RING_SIZE - 1){
 			// JC: Load branch selector bit commitment.
 			quicksilver_vec_gf2	selector_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch);
-			a1_secpar_selector = poly128_from_1(selector_bit.value);
-			a0_secpar_selector = selector_bit.mac;
+			a1_secpar_selector_vec[branch] = poly128_from_1(selector_bit.value);
+			a0_secpar_selector_vec[branch] = selector_bit.mac;
 		}
 		else {
 			// JC: Derive selector bit commitment from aggregate.
-			a1_secpar_selector = poly_secpar_add(poly_secpar_from_byte(1), a1_secpar_selector_agg);
-			a0_secpar_selector = a0_secpar_selector_agg;
+			a1_secpar_selector_vec[branch] = poly_secpar_add(poly_secpar_from_byte(1), a1_secpar_selector_agg);
+			a0_secpar_selector_vec[branch] = a0_secpar_selector_agg;
 		}
-		// JC: Aggregate selector bits bits.
-		a1_secpar_selector_agg =  poly_secpar_add(a1_secpar_selector_agg, a1_secpar_selector);
-		a0_secpar_selector_agg =  poly_secpar_add(a0_secpar_selector_agg, a0_secpar_selector);
+		// JC: Aggregate selector bits and selector multiplied by branch index.
+		a1_secpar_selector_agg =  poly_secpar_add(a1_secpar_selector_agg, a1_secpar_selector_vec[branch]);
+		a0_secpar_selector_agg =  poly_secpar_add(a0_secpar_selector_agg, a0_secpar_selector_vec[branch]);
+
+		a1_secpar_selector_mul_idx_agg = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_selector_vec[branch],_mm_set1_epi32(branch + 1))),
+													    a1_secpar_selector_mul_idx_agg);
+		a0_secpar_selector_mul_idx_agg = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_selector_vec[branch],_mm_set1_epi32(branch + 1))),
+														a0_secpar_selector_mul_idx_agg);
 
 		// JC: Print - debugging active branch.
-		bool selector_zero = poly128_eq(a1_secpar_selector, poly_secpar_from_byte(0));
-		bool selector_one = poly128_eq(a1_secpar_selector, poly_secpar_from_byte(1));
+		bool selector_zero = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(0));
+		bool selector_one = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(1));
 		printf("Branch: %zu\n", branch);
 		printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
 		printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
@@ -252,18 +260,18 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		// JC: A3 = A2_branch * A1_selector (Assume zero).
 		// JC: Print - debugging branch satisfaction.
 		poly_secpar_vec a3_secpar = poly_2secpar_reduce_secpar(
-									poly_secpar_mul(a2_secpar_branch, a1_secpar_selector));
+									poly_secpar_mul(a2_secpar_branch, a1_secpar_selector_vec[branch]));
 		bool constraint_sat = poly128_eq(a3_secpar, poly_secpar_from_byte(0));
 		printf("Satisfied branch constraint %s\n", constraint_sat ? "true" : "false");
 
 		// JC: A2 = A2_branch * A0_selector + A1_branch * A1_selector
-		poly_secpar_vec a2_secpar = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a2_secpar_branch, a0_secpar_selector)),
-													poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_branch, a1_secpar_selector)));
+		poly_secpar_vec a2_secpar = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a2_secpar_branch, a0_secpar_selector_vec[branch])),
+													poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_branch, a1_secpar_selector_vec[branch])));
 		// JC: A1 = A1_branch * A0_selector + A0_branch * A1_selector
-		poly_secpar_vec a1_secpar = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_branch, a0_secpar_selector)),
-												    poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_branch, a1_secpar_selector)));
+		poly_secpar_vec a1_secpar = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_branch, a0_secpar_selector_vec[branch])),
+												    poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_branch, a1_secpar_selector_vec[branch])));
 		// JC: A0 = A0_branch * A0_selector
-		poly_secpar_vec a0_secpar = poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_branch, a0_secpar_selector));
+		poly_secpar_vec a0_secpar = poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_branch, a0_secpar_selector_vec[branch]));
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, a0_secpar);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, a1_secpar);
@@ -273,11 +281,9 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a2_secpar);
 	}
 
-	// JC: Well-formedness of hotvector.
+	// JC: Well-formedness of hotvector (selector bits sum to 1).
 	poly_secpar_vec a1_secpar_selector_wellformed = poly_secpar_add(a1_secpar_selector_agg, poly_secpar_from_byte(1));
 	poly_secpar_vec a0_secpar_selector_wellformed = a0_secpar_selector_agg;
-	bool constraint_sat_well = poly128_eq(a1_secpar_selector_wellformed, poly_secpar_from_byte(0));
-	printf("Wellformed hotvector %s\n", constraint_sat_well ? "true" : "false");
 
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
@@ -285,6 +291,36 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a0_secpar_selector_wellformed);
+
+	// JC: Well-formedness of hotvector (single active bit).
+	poly_secpar_vec a2_secpar_selector_constr2 = poly_secpar_from_byte(0);
+	poly_secpar_vec a1_secpar_selector_constr2 = poly_secpar_from_byte(0);
+	poly_secpar_vec a0_secpar_selector_constr2 = poly_secpar_from_byte(0);
+
+	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+		poly_secpar_vec a1_secpar_tmp = poly_secpar_add(a1_secpar_selector_mul_idx_agg, _mm_set1_epi32(branch + 1));
+		poly_secpar_vec a0_secpar_tmp = a0_secpar_selector_mul_idx_agg;
+
+		a2_secpar_selector_constr2 = poly_secpar_add(a2_secpar_selector_constr2,
+									 poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_tmp, a1_secpar_selector_vec[branch]))); // JC: zero - assume satisfied.
+		a1_secpar_selector_constr2 = poly_secpar_add(a1_secpar_selector_constr2,
+									 poly_secpar_add(
+									 poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_tmp, a0_secpar_selector_vec[branch])),
+									 poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_tmp, a1_secpar_selector_vec[branch]))));
+		a0_secpar_selector_constr2 = poly_secpar_add(a0_secpar_selector_constr2,
+									 poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_tmp, a0_secpar_selector_vec[branch])));
+	}
+	bool constraint_sat = poly128_eq(a2_secpar_selector_constr2, poly_secpar_from_byte(0));
+	printf("Satisfied hotvector constraint %s\n", constraint_sat ? "true" : "false");
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, a0_secpar_selector_constr2);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, a1_secpar_selector_constr2);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, a0_secpar_selector_constr2);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a1_secpar_selector_constr2);
+
+	// JC: TODO - expand hasher state during init.
 
 	// JC: Final ZKHash.
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
@@ -297,7 +333,9 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 {
 	assert(state->verifier);
 
+	poly_secpar_vec key_selector_vec[FAEST_RING_SIZE];
 	poly_secpar_vec key_selector_agg = poly_secpar_from_byte(0);
+	poly_secpar_vec key_selector_mul_idx_agg = poly_secpar_from_byte(0);
 
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
@@ -312,17 +350,34 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 		else {
 			key_selector = poly_secpar_add(key_selector_agg, state->delta);
 		}
+		key_selector_vec[branch] = key_selector;
 		key_selector_agg = poly_secpar_add(key_selector, key_selector_agg);
+		key_selector_mul_idx_agg = poly_secpar_add(key_selector_mul_idx_agg,
+								   poly_2secpar_reduce_secpar(poly_secpar_mul(key_selector,_mm_set1_epi32(branch + 1))));
 
 		poly_secpar_vec key_selector_mul_branch = poly_2secpar_reduce_secpar(poly_secpar_mul(key_branch, key_selector));
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_selector_mul_branch);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_selector_mul_branch);
 	}
 
-	// JC: Well-formedness of hotvector.
-	poly_secpar_vec key_wellformed= poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(key_selector_agg, state->delta),state->deltaSq));
+	// JC: Well-formedness of hotvector (selector bits sum to 1).
+	poly_secpar_vec key_wellformed = poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(key_selector_agg, state->delta),state->deltaSq));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_wellformed);
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_wellformed);
+
+	// JC: Well-formedness of hotvector (single active bit).
+    poly_secpar_vec key_constaint2;
+	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
+		poly_secpar_vec key_tmp = poly_secpar_add(key_selector_mul_idx_agg,
+								  poly_2secpar_reduce_secpar(poly_secpar_mul(_mm_set1_epi32(branch + 1), state->delta)));
+		key_constaint2 = poly_secpar_add(key_constaint2,
+						 poly_2secpar_reduce_secpar(poly_secpar_mul(key_tmp, key_selector_vec[branch])));
+	}
+
+	// JC: TODO - bump up by one degree and add constraint to hasher state.
+	key_constaint2 = poly_2secpar_reduce_secpar(poly_secpar_mul(key_constaint2, state->delta));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_constaint2);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_constaint2);
 
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
 	poly_secpar_vec quad_term = poly_secpar_load_dup(proof_quad);
