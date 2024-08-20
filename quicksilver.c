@@ -366,7 +366,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_wellformed);
 
 	// JC: Well-formedness of hotvector (single active bit).
-    poly_secpar_vec key_constaint2;
+    poly_secpar_vec key_constaint2 = poly_secpar_from_byte(0);
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 		poly_secpar_vec key_tmp = poly_secpar_add(key_selector_mul_idx_agg,
 								  poly_2secpar_reduce_secpar(poly_secpar_mul(_mm_set1_epi32(branch + 1), state->delta)));
