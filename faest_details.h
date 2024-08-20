@@ -27,7 +27,7 @@ typedef struct
 {
 	public_key pk;
 	block_secpar sk;
-	size_t idx;
+	uint32_t idx;
 #if defined(OWF_AES_CTR)
 	aes_round_keys round_keys;
 #endif

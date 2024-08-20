@@ -1,3 +1,4 @@
+#include "config.h"
 #include "faest.h"
 #include "faest_details.h"
 
@@ -121,6 +122,23 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 	}
 	else {
+		// JC: Decompose active branch index (according to hotvector size/dim).
+		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
+		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM];
+		int index = 0;
+		uint32_t n = sk->idx;
+		if (n != 0) {
+			while (n > 0) {
+				decomp[index] = n % base;
+				n = n / base;
+				++index;
+			}
+		}
+		printf("Base: %d\n", base);
+		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; i++) {
+			printf("Hotvector entry: %d\n", decomp[i]);
+		}
+
 		// JC: Insert hotvector bits (1-dim).
 		// JC: If last bit exceeds hotvector bytes, no bit is activated.
 		size_t byte = (sk->idx) / 8;
