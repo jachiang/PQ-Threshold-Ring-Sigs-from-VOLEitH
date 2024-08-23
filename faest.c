@@ -129,7 +129,7 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		uint32_t n = sk->idx; // Idx begins with 0.
 		if (n != 0) {
 			while (n > 0) {
-				printf("Current n: %u \n", n);
+				// printf("Current n: %u \n", n);
 				decomp[index] = n % base;
 				n = n / base;
 				++index;
@@ -140,8 +140,8 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 			printf("Hotvector value (decomposition): %u \n", decomp[i]);
 		}
 
-		// JC: Concatenate hot(bit)vectors in byte vector.
-		uint8_t hotvectors_bytes[((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8];
+		// JC: Serialization of hotvectors as bytes.
+		uint8_t hotvectors_bytes[((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
 		int hotvector_bitsize = FAEST_RING_HOTVECTOR_BITS+1;
 
 		// JC: Init indices and vars.
@@ -158,13 +158,15 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
 				int active_byte_idx = curr_byte_idx;
 				if (hotvector_idx + 1 > remaining_bits) {
-					active_byte_idx = ((hotvector_idx - remaining_bits + 7) / 8) + curr_byte_idx;
+					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
 				}
 				printf("Active byte idx: %u \n", active_byte_idx);
 				printf("Active bit idx: %u \n", active_bit_idx);
 
 				// JC: Activate bit in hotvectors byte array.
-				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (7-active_bit_idx));
+				// hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (7-active_bit_idx));
+				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
+
 			}
 			else{
 				printf("Zero hotvector ... \n");
@@ -173,26 +175,26 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 			curr_byte_idx = (hotvector_bitsize - remaining_bits + 1 + 7) / 8 + curr_byte_idx;
 			curr_bit_idx = (curr_bit_idx + hotvector_bitsize) % 8;
 		}
-
-
+		// JC: Copy hotvector serialization to witness.
+		memcpy(w_ptr, hotvectors_bytes, ((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 
 		// JC: Insert hotvector bits (1-dim).
 		// JC: If last bit exceeds hotvector bytes, no bit is activated.
-		size_t byte = (sk->idx) / 8;
-		size_t bit_shift = (sk->idx) % 8;
-		for (size_t i = 0; i < FAEST_RING_HOTVECTOR_BYTES; ++i)
-		{
-			if (i == byte) {
-				memset(w_ptr, (1 << bit_shift), 1);
-				// printf("Bit is set in idx %d\n", bit_shift);
-			}
-			else{
-				memset(w_ptr, 0, 1);
-				// printf("Bit is not set %d\n", 0);
-			}
-			w_ptr += 1;
-		}
-		assert(w_ptr - (uint8_t*) &sk->ring_witness == FAEST_RING_HOTVECTOR_BYTES + WITNESS_BITS / 8);
+		// size_t byte = (sk->idx) / 8;
+		// size_t bit_shift = (sk->idx) % 8;
+		// for (size_t i = 0; i < FAEST_RING_HOTVECTOR_BYTES; ++i)
+		// {
+		// 	if (i == byte) {
+		// 		memset(w_ptr, (1 << bit_shift), 1);
+		// 		// printf("Bit is set in idx %d\n", bit_shift);
+		// 	}
+		// 	else{
+		// 		memset(w_ptr, 0, 1);
+		// 		// printf("Bit is not set %d\n", 0);
+		// 	}
+		// 	w_ptr += 1;
+		// }
+		// assert(w_ptr - (uint8_t*) &sk->ring_witness == FAEST_RING_HOTVECTOR_BYTES + WITNESS_BITS / 8);
 	}
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)

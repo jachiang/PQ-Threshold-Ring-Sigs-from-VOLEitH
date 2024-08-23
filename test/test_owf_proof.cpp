@@ -42,7 +42,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     // JC: generate pk-ring.
     public_key_ring pk_ring;
     secret_key sk;
-    sk.idx = 2021;
+    sk.idx = 12;
     for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;

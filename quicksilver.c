@@ -217,6 +217,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	poly_secpar_vec a1_secpar_selector_mul_idx_agg = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_selector_mul_idx_agg = poly_secpar_from_byte(0);
 
+	uint32_t branch_loaded;
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
 		// JC: Combine all constraints of each branch.
@@ -250,8 +251,11 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 														a0_secpar_selector_mul_idx_agg);
 
 		// JC: Print - debugging active branch.
-		// bool selector_zero = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(0));
-		// bool selector_one = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(1));
+		bool selector_zero = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(0));
+		bool selector_one = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(1));
+		if (selector_one) {
+			branch_loaded = branch;
+		}
 		// printf("Branch: %zu\n", branch);
 		// printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
 		// printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
@@ -280,6 +284,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, a1_secpar);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, a2_secpar);
 	}
+	printf("Active branch: %zu\n", branch_loaded);
 
 	// JC: Well-formedness of hotvector (selector bits sum to 1).
 	poly_secpar_vec a1_secpar_selector_wellformed = poly_secpar_add(a1_secpar_selector_agg, poly_secpar_from_byte(1));
