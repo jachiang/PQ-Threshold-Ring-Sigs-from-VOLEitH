@@ -250,19 +250,19 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 														a0_secpar_selector_mul_idx_agg);
 
 		// JC: Print - debugging active branch.
-		bool selector_zero = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(0));
-		bool selector_one = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(1));
-		printf("Branch: %zu\n", branch);
-		printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
-		printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
+		// bool selector_zero = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(0));
+		// bool selector_one = poly128_eq(a1_secpar_selector_vec[branch], poly_secpar_from_byte(1));
+		// printf("Branch: %zu\n", branch);
+		// printf("Selector bit = 0 %s\n", selector_zero ? "true" : "false");
+		// printf("Selector bit = 1 %s\n", selector_one ? "true" : "false");
 
 		// JC: Multiply committed selector bit with branch constraints.
 		// JC: A3 = A2_branch * A1_selector (Assume zero).
 		// JC: Print - debugging branch satisfaction.
-		poly_secpar_vec a3_secpar = poly_2secpar_reduce_secpar(
-									poly_secpar_mul(a2_secpar_branch, a1_secpar_selector_vec[branch]));
-		bool constraint_sat = poly128_eq(a3_secpar, poly_secpar_from_byte(0));
-		printf("Satisfied branch constraint %s\n", constraint_sat ? "true" : "false");
+		// poly_secpar_vec a3_secpar = poly_2secpar_reduce_secpar(
+		// 							poly_secpar_mul(a2_secpar_branch, a1_secpar_selector_vec[branch]));
+		// bool constraint_sat = poly128_eq(a3_secpar, poly_secpar_from_byte(0));
+		// printf("Satisfied branch constraint %s\n", constraint_sat ? "true" : "false");
 
 		// JC: A2 = A2_branch * A0_selector + A1_branch * A1_selector
 		poly_secpar_vec a2_secpar = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a2_secpar_branch, a0_secpar_selector_vec[branch])),
@@ -310,8 +310,8 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		a0_secpar_selector_constr2 = poly_secpar_add(a0_secpar_selector_constr2,
 									 poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_tmp, a0_secpar_selector_vec[branch])));
 	}
-	bool constraint_sat = poly128_eq(a2_secpar_selector_constr2, poly_secpar_from_byte(0));
-	printf("Satisfied hotvector constraint %s\n", constraint_sat ? "true" : "false");
+	// bool constraint_sat = poly128_eq(a2_secpar_selector_constr2, poly_secpar_from_byte(0));
+	// printf("Satisfied hotvector constraint %s\n", constraint_sat ? "true" : "false");
 
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, a0_secpar_selector_constr2);

@@ -126,18 +126,55 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM];
 		int index = 0;
-		uint32_t n = sk->idx;
+		uint32_t n = sk->idx; // Idx begins with 0.
 		if (n != 0) {
 			while (n > 0) {
+				printf("Current n: %u \n", n);
 				decomp[index] = n % base;
 				n = n / base;
 				++index;
 			}
 		}
 		printf("Base: %d\n", base);
-		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; i++) {
-			printf("Hotvector entry: %d\n", decomp[i]);
+		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
+			printf("Hotvector value (decomposition): %u \n", decomp[i]);
 		}
+
+		// JC: Concatenate hot(bit)vectors in byte vector.
+		uint8_t hotvectors_bytes[((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8];
+		int hotvector_bitsize = FAEST_RING_HOTVECTOR_BITS+1;
+
+		// JC: Init indices and vars.
+		int curr_byte_idx = 0;
+		int curr_bit_idx = 0;
+
+		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
+
+			int remaining_bits;
+			if (decomp[i] != 0) {
+				// JC: Hotvector has exactly one active bit.
+				uint32_t hotvector_idx = decomp[i];
+				remaining_bits = 8 - curr_bit_idx;  // JC: Remaining free bits in current byte.
+				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
+				int active_byte_idx = curr_byte_idx;
+				if (hotvector_idx + 1 > remaining_bits) {
+					active_byte_idx = ((hotvector_idx - remaining_bits + 7) / 8) + curr_byte_idx;
+				}
+				printf("Active byte idx: %u \n", active_byte_idx);
+				printf("Active bit idx: %u \n", active_bit_idx);
+
+				// JC: Activate bit in hotvectors byte array.
+				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (7-active_bit_idx));
+			}
+			else{
+				printf("Zero hotvector ... \n");
+			}
+			// JC: Update indices vars.
+			curr_byte_idx = (hotvector_bitsize - remaining_bits + 1 + 7) / 8 + curr_byte_idx;
+			curr_bit_idx = (curr_bit_idx + hotvector_bitsize) % 8;
+		}
+
+
 
 		// JC: Insert hotvector bits (1-dim).
 		// JC: If last bit exceeds hotvector bytes, no bit is activated.
@@ -147,11 +184,11 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		{
 			if (i == byte) {
 				memset(w_ptr, (1 << bit_shift), 1);
-				printf("Bit is set in idx %d\n", bit_shift);
+				// printf("Bit is set in idx %d\n", bit_shift);
 			}
 			else{
 				memset(w_ptr, 0, 1);
-				printf("Bit is not set %d\n", 0);
+				// printf("Bit is not set %d\n", 0);
 			}
 			w_ptr += 1;
 		}
