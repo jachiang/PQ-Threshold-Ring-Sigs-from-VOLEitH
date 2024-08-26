@@ -124,25 +124,11 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	else {
 		// JC: Decompose active branch index (according to hotvector size/dim).
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
-		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM];
-		int index = 0;
-		uint32_t n = sk->idx; // Idx begins with 0.
-		if (n != 0) {
-			while (n > 0) {
-				// printf("Current n: %u \n", n);
-				decomp[index] = n % base;
-				n = n / base;
-				++index;
-			}
-		}
-		printf("Base: %d\n", base);
-		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-			printf("Hotvector value (decomposition): %u \n", decomp[i]);
-		}
+		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
+		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
 
 		// JC: Serialization of hotvectors as bytes.
-		uint8_t hotvectors_bytes[((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
-		int hotvector_bitsize = FAEST_RING_HOTVECTOR_BITS+1;
+		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
 
 		// JC: Init indices and vars.
 		int curr_byte_idx = 0;
@@ -151,7 +137,7 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
 
 			int remaining_bits;
-			if (decomp[i] != 0) {
+			if ((decomp[i] != 0) && (decomp[i] != base - 1)) {
 				// JC: Hotvector has exactly one active bit.
 				uint32_t hotvector_idx = decomp[i];
 				remaining_bits = 8 - curr_bit_idx;  // JC: Remaining free bits in current byte.
@@ -164,19 +150,19 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 				printf("Active bit idx: %u \n", active_bit_idx);
 
 				// JC: Activate bit in hotvectors byte array.
-				// hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (7-active_bit_idx));
 				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
 
 			}
 			else{
-				printf("Zero hotvector ... \n");
+				if ((decomp[i] == 0)) { printf("Zero hotvector in hotvector %u\n", i); }
+				else if (decomp[i] == base - 1) { printf("Last active bit omitted in hotvector %u\n", i); }
 			}
 			// JC: Update indices vars.
-			curr_byte_idx = (hotvector_bitsize - remaining_bits + 1 + 7) / 8 + curr_byte_idx;
-			curr_bit_idx = (curr_bit_idx + hotvector_bitsize) % 8;
+			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
+			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
 		}
 		// JC: Copy hotvector serialization to witness.
-		memcpy(w_ptr, hotvectors_bytes, ((FAEST_RING_HOTVECTOR_BITS+1) * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
+		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 
 		// JC: Insert hotvector bits (1-dim).
 		// JC: If last bit exceeds hotvector bytes, no bit is activated.

@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <inttypes.h>
+#include <stdio.h> // JC: Debugging.
 
 #ifdef _MSC_VER
 #include "intrin.h"
@@ -68,5 +69,21 @@ ALWAYS_INLINE size_t rotate_right(size_t x, unsigned int shift, unsigned int n_b
 }
 
 void printHex(const char* s, const uint8_t* data, size_t len);
+
+ALWAYS_INLINE void base_decompose(uint32_t value, uint32_t base, uint32_t *decomp, int dim) {
+
+    int index = 0;
+    if (value != 0) {
+        while (value > 0 && index < dim) {
+            decomp[index] = value % base;
+            value = value / base;
+            ++index;
+        }
+    }
+    printf("Base: %u\n", base);
+    for (int i = 0; i < dim; ++i) {
+        printf("Hotvector value (decomposition): %u\n", decomp[i]);
+    }
+}
 
 #endif

@@ -241,6 +241,11 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 			a1_secpar_selector_vec[branch] = poly_secpar_add(poly_secpar_from_byte(1), a1_secpar_selector_agg);
 			a0_secpar_selector_vec[branch] = a0_secpar_selector_agg;
 		}
+		// JC: TODO - remove last bit?
+		// base-n decompose branch.
+		// load hotvector indices, and multiply them (degree 2.)
+		// Compute selector
+
 		// JC: Aggregate selector bits and selector multiplied by branch index.
 		a1_secpar_selector_agg =  poly_secpar_add(a1_secpar_selector_agg, a1_secpar_selector_vec[branch]);
 		a0_secpar_selector_agg =  poly_secpar_add(a0_secpar_selector_agg, a0_secpar_selector_vec[branch]);

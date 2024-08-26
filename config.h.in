@@ -18,7 +18,7 @@
 #define XKCP_has_KeccakP1600times8
 
 // JC: Ring size configuration (hard-coded).
-#define FAEST_RING_2_POW (14)
+#define FAEST_RING_2_POW (6)
 #define FAEST_RING_SIZE (1 << FAEST_RING_2_POW)
 #define FAEST_RING_HOTVECTOR_DIM (1) // JC: 1, 2 or 4.
 // JC: Ensure HOTVECTOR_DIM divides RING_2_POW.
