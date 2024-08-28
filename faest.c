@@ -137,7 +137,8 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
 
 			int remaining_bits;
-			if ((decomp[i] != 0) && (decomp[i] != base - 1)) {
+			// if ((decomp[i] != 0) && (decomp[i] != base - 1)) {
+			if ((decomp[i] != base - 1)) {
 				// JC: Hotvector has exactly one active bit.
 				uint32_t hotvector_idx = decomp[i];
 				remaining_bits = 8 - curr_bit_idx;  // JC: Remaining free bits in current byte.
@@ -151,11 +152,10 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 				// JC: Activate bit in hotvectors byte array.
 				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
-
 			}
 			else{
-				if ((decomp[i] == 0)) { printf("Zero hotvector in hotvector %u\n", i); }
-				else if (decomp[i] == base - 1) { printf("Last active bit omitted in hotvector %u\n", i); }
+				// if ((decomp[i] == 0)) { printf("Zero hotvector in hotvector %u\n", i); }
+				if (decomp[i] == base - 1) { printf("Last active bit omitted in hotvector %u\n", i); }
 			}
 			// JC: Update indices vars.
 			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;

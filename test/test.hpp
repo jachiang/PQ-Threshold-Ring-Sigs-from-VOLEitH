@@ -258,13 +258,22 @@ struct quicksilver_test_or_state
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
     compute_check() // JC: No longer const function, as it modifies the prover and verifier state.
     {
-        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof;
-        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof_quad;
+        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof, proof_quad, proof_cubic;
         std::array<uint8_t, QUICKSILVER_CHECK_BYTES> check_prover, check_verifier;
 
         size_t witness_bits = 8 * witness.size() - SECURITY_PARAM;
+
+        #if (FAEST_RING_HOTVECTOR_DIM == 1)
+
         quicksilver_prove_or(&prover_state, witness_bits, proof_quad.data(),proof.data(), check_prover.data());
         quicksilver_verify_or(&verifier_state, witness_bits, proof_quad.data(), proof.data(), check_verifier.data());
+
+        #else
+
+        quicksilver_prove_or(&prover_state, witness_bits, proof_cubic.data(), proof_quad.data(),proof.data(), check_prover.data());
+        quicksilver_verify_or(&verifier_state, witness_bits, proof_cubic.data(), proof_quad.data(), proof.data(), check_verifier.data());
+
+        #endif
 
         return {check_prover, check_verifier};
     }

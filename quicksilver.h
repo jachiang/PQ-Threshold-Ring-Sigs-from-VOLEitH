@@ -34,6 +34,9 @@ typedef struct
 	hasher_gfsecpar_state state_secpar_const;
 	hasher_gfsecpar_state state_secpar_linear;
 	hasher_gfsecpar_state state_secpar_quad;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hasher_gfsecpar_state state_secpar_cubic;
+	#endif
 
 	// JC: (Dis)satisfied OWF constraints.
 	hasher_gfsecpar_state state_or_secpar_const[FAEST_RING_SIZE];
@@ -45,6 +48,9 @@ typedef struct
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
 	hasher_gfsecpar_64_state state_64_quad;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hasher_gfsecpar_64_state state_64_cubic;
+	#endif
 
 	// JC: (Dis)satisfied OWF constraints.
 	hasher_gfsecpar_64_state state_or_64_const[FAEST_RING_SIZE];
@@ -266,13 +272,25 @@ inline void quicksilver_add_product_constraints(quicksilver_state* state, quicks
 
 		poly_secpar_vec lin_term = poly_secpar_add(poly_secpar_add(x0_y0, xinf_yinf), x1_y1);
 		if (ring) {
-			// JC: Assume final ZKHash of degree 3 QS polynomials.
-			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
-			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, x0_y0);
-			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, lin_term);
-			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
-			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, x0_y0);
-			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, lin_term);
+			#if (FAEST_RING_HOTVECTOR_DIM == 1)
+				// JC: For hotvector dim 1, the final satisified QS poly degree is 3.
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, x0_y0);
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, lin_term);
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, x0_y0);
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, lin_term);
+			#elif (FAEST_RING_HOTVECTOR_DIM == 2)
+				// JC: For hotvector dim 2, the final satisified QS poly degree is 4.
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_set_zero());
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, x0_y0);
+				hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic, lin_term);
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_set_zero());
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, x0_y0);
+				hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, lin_term);
+			#endif
 		}
 		else{
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, x0_y0);
@@ -326,9 +344,21 @@ void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_b
                        uint8_t* restrict proof, uint8_t* restrict check);
 void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
                         const uint8_t* restrict proof, uint8_t* restrict check);
+
+#if (FAEST_RING_HOTVECTOR_DIM == 1)
+
 void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
                           uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
 void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
                            const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);
+
+#else
+
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t* restrict proof_cubic,
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const uint8_t* restrict proof_cubic,
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);
+
+#endif
 
 #endif

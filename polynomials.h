@@ -509,4 +509,24 @@ inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power)
 
 #endif
 
+inline poly_secpar_vec poly_secpar_add_many(poly_secpar_vec* polys, size_t dim)
+{
+	poly_secpar_vec res = poly_secpar_from_byte(0);
+	for (size_t i=0; i < dim; ++i)
+	{
+		res = poly_secpar_add(polys[i], res);
+	}
+	return res;
+}
+
+inline poly_secpar_vec poly_secpar_mul_many(poly_secpar_vec* polys, size_t dim)
+{
+	poly_secpar_vec res = poly_secpar_from_byte(0);
+	for (size_t i=0; i < dim; ++i)
+	{
+		res = poly_2secpar_reduce_secpar(poly_secpar_mul(polys[i], res));
+	}
+	return res;
+}
+
 #endif
