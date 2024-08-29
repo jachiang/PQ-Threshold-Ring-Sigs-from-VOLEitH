@@ -25,6 +25,109 @@ typedef struct
 
 typedef struct
 {
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+} qs_prover_poly_deg1;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+} qs_prover_poly_deg2;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+} qs_prover_poly_deg3;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+	poly_secpar_vec c4;
+} qs_prover_poly_deg4;
+
+inline void quicksilver_init_deg1(qs_prover_poly_deg1* in)
+{
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+}
+
+inline void quicksilver_init_deg2(qs_prover_poly_deg2* in)
+{
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+	in->c2 = poly_secpar_set_zero();
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+{
+	qs_prover_poly_deg1 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	return out;
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+{
+	qs_prover_poly_deg1 out;
+	out.c0 = right.c0;
+	out.c1 = poly_secpar_add(left,right.c1);
+	return out;
+}
+
+inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right)
+{
+	qs_prover_poly_deg2 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = poly_secpar_add(left.c2,right.c2);
+	return out;
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+{
+	qs_prover_poly_deg1 out;
+	out.c0 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c0));
+	out.c1 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c1));
+	return out;
+}
+
+inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+{
+	poly_secpar_vec out_vec[3] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
+	poly_secpar_vec right_vec[2] = {right.c0, right.c1};
+	qs_polynomial_mul(left_vec, 2, right_vec, 2, out_vec);
+	qs_prover_poly_deg2 out_d2;
+	out_d2.c0 = out_vec[0];
+	out_d2.c1 = out_vec[1];
+	out_d2.c2 = out_vec[2];
+	return out_d2;
+}
+
+inline qs_prover_poly_deg3 qs_prover_poly_deg1_mul_deg2(const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right)
+{
+	poly_secpar_vec out_vec[4] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
+	poly_secpar_vec right_vec[3] = {right.c0, right.c1, right.c2};
+	qs_polynomial_mul(left_vec, 2, right_vec, 3, out_vec);
+	qs_prover_poly_deg3 out_d3;
+	out_d3.c0 = out_vec[0];
+	out_d3.c1 = out_vec[1];
+	out_d3.c2 = out_vec[2];
+	out_d3.c3 = out_vec[3];
+	return out_d3;
+}
+
+typedef struct
+{
 	bool verifier;
 	poly_secpar_vec delta; // All components are equal
 	poly_secpar_vec deltaSq; // Ditto
@@ -204,6 +307,7 @@ inline quicksilver_vec_gfsecpar quicksilver_mul_const(const quicksilver_state* s
 		x.value = poly_2secpar_reduce_secpar(poly_secpar_mul(c, x.value));
 	return x;
 }
+
 
 inline quicksilver_vec_gfsecpar quicksilver_combine_8_bits(const quicksilver_state* state, const quicksilver_vec_gf2* qs_bits)
 {

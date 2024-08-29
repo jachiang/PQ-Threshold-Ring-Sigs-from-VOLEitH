@@ -521,12 +521,24 @@ inline poly_secpar_vec poly_secpar_add_many(poly_secpar_vec* polys, size_t dim)
 
 inline poly_secpar_vec poly_secpar_mul_many(poly_secpar_vec* polys, size_t dim)
 {
-	poly_secpar_vec res = poly_secpar_from_byte(0);
-	for (size_t i=0; i < dim; ++i)
+	poly_secpar_vec res = polys[0];
+	for (size_t i=1; i < dim; ++i)
 	{
 		res = poly_2secpar_reduce_secpar(poly_secpar_mul(polys[i], res));
 	}
 	return res;
+}
+
+inline void qs_polynomial_mul(const poly_secpar_vec* in1, size_t dim1, const poly_secpar_vec* in2, size_t dim2, poly_secpar_vec* out)
+{
+	// JC: out must be initialized to zero.
+	for (size_t i = 0; i < dim1; ++i)
+	{
+		for (size_t j = 0; j < dim2; ++j)
+		{
+			out[i+j] = poly_secpar_add(out[i+j],poly_2secpar_reduce_secpar(poly_secpar_mul(in1[i], in2[j])));
+		}
+	}
 }
 
 #endif
