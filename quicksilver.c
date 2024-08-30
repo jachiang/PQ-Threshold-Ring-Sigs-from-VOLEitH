@@ -222,6 +222,22 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	quicksilver_prover_init_poly_deg1(state, &hotvecbit_mul_idx_sum);
 
 	uint32_t branch_loaded;
+	for (uint16_t idx = 0; idx < FAEST_RING_HOTVECTOR_BITS + 1; ++idx) {
+		if (idx < FAEST_RING_HOTVECTOR_BITS) {
+			// JC: Load branch selector bit commitment.
+			quicksilver_vec_gf2	hotvec_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx);
+			hotvec[idx].c0 = hotvec_bit.mac;
+			hotvec[idx].c1 = poly128_from_1(hotvec_bit.value);
+		}
+		else {
+			// JC: Derive final selector bit commitment from aggregate.
+			hotvec[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvecbit_sum);
+		}
+		// JC: Aggregate selector bits and selector multiplied by branch index.
+		hotvecbit_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_sum, hotvec[idx]);
+		hotvecbit_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec[idx]));
+	}
+
 	for (uint32_t branch = 0; branch < FAEST_RING_SIZE; branch++) {
 
 		qs_prover_poly_deg2 branch_constraint;
@@ -232,21 +248,6 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 														&state->state_or_64_linear[branch]);
 		branch_constraint.c2 = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
 														&state->state_or_64_quad[branch]);
-
-		if (branch < FAEST_RING_SIZE - 1){
-			// JC: Load branch selector bit commitment.
-			quicksilver_vec_gf2	hotvec_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch);
-			hotvec[branch].c0 = hotvec_bit.mac;
-			hotvec[branch].c1 = poly128_from_1(hotvec_bit.value);
-		}
-		else {
-			// JC: Derive final selector bit commitment from aggregate.
-			hotvec[branch] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvecbit_sum);
-		}
-
-		// JC: Aggregate selector bits and selector multiplied by branch index.
-		hotvecbit_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_sum, hotvec[branch]);
-		hotvecbit_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_mul_idx_sum, qs_prover_poly_const_mul_deg1(_mm_set1_epi32(branch + 1),hotvec[branch]));
 
 		// JC: Print - debugging active branch.
 		bool selector_one = poly128_eq(hotvec[branch].c1, poly_secpar_from_byte(1));
@@ -385,17 +386,30 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	poly_secpar_vec a1_secpar_hotvec1[FAEST_RING_HOTVECTOR_BITS + 1];
 	poly_secpar_vec a0_secpar_hotvec1[FAEST_RING_HOTVECTOR_BITS + 1];
 
+	qs_prover_poly_deg1 hotvec0[FAEST_RING_HOTVECTOR_BITS + 1];
+	qs_prover_poly_deg1 hotvec1[FAEST_RING_HOTVECTOR_BITS + 1];
+
 	// JC: Sum_i hotvec[i]
 	poly_secpar_vec a1_secpar_hotvec0_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_hotvec0_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a1_secpar_hotvec1_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_hotvec1_sum = poly_secpar_from_byte(0);
 
+	qs_prover_poly_deg1 hotvec0_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec0_sum);
+	qs_prover_poly_deg1 hotvec1_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec1_sum);
+
 	// JC: Sum_i hotvec[i] * branch_idx
 	poly_secpar_vec a1_secpar_hotvec0_mul_idx_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_hotvec0_mul_idx_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a1_secpar_hotvec1_mul_idx_sum = poly_secpar_from_byte(0);
 	poly_secpar_vec a0_secpar_hotvec1_mul_idx_sum = poly_secpar_from_byte(0);
+
+	qs_prover_poly_deg1 hotvec0_mul_idx_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec0_mul_idx_sum);
+	qs_prover_poly_deg1 hotvec1_mul_idx_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec1_mul_idx_sum);
 
 	// JC: Test correct decomposition;
 	uint32_t idx0 = 0;
@@ -410,23 +424,35 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 			a0_secpar_hotvec0[idx] = selector_bit0.mac;
 			a1_secpar_hotvec1[idx] = poly128_from_1(selector_bit1.value);
 			a0_secpar_hotvec1[idx] = selector_bit1.mac;
+
+			hotvec0[idx].c1 = poly128_from_1(selector_bit0.value);
+			hotvec0[idx].c0 = selector_bit0.mac;
+			hotvec1[idx].c1 = poly128_from_1(selector_bit1.value);
+			hotvec1[idx].c0 = selector_bit1.mac;
 		}
 		else {
 			a1_secpar_hotvec0[idx] = poly_secpar_add(poly_secpar_from_byte(1), a1_secpar_hotvec0_sum);
 			a0_secpar_hotvec0[idx] = a0_secpar_hotvec0_sum;
 			a1_secpar_hotvec1[idx] = poly_secpar_add(poly_secpar_from_byte(1), a1_secpar_hotvec1_sum);
 			a0_secpar_hotvec1[idx] = a0_secpar_hotvec1_sum;
+
+			hotvec0[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec0_sum);
+			hotvec1[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec1_sum);
 		}
 		// JC: Aggregate selector bits
 		a1_secpar_hotvec0_sum =  poly_secpar_add(a1_secpar_hotvec0_sum, a1_secpar_hotvec0[idx]);
 		a0_secpar_hotvec0_sum =  poly_secpar_add(a0_secpar_hotvec0_sum, a0_secpar_hotvec0[idx]);
 		a1_secpar_hotvec1_sum =  poly_secpar_add(a1_secpar_hotvec1_sum, a1_secpar_hotvec1[idx]);
 		a0_secpar_hotvec1_sum =  poly_secpar_add(a0_secpar_hotvec1_sum, a0_secpar_hotvec1[idx]);
+
 		// JC: Aggregate selector bit multiplied by branch index.
 		a1_secpar_hotvec0_mul_idx_sum = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_hotvec0[idx],_mm_set1_epi32(idx + 1))), a1_secpar_hotvec0_mul_idx_sum);
 		a0_secpar_hotvec0_mul_idx_sum = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_hotvec0[idx],_mm_set1_epi32(idx + 1))), a0_secpar_hotvec0_mul_idx_sum);
 		a1_secpar_hotvec1_mul_idx_sum = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a1_secpar_hotvec1[idx],_mm_set1_epi32(idx + 1))), a1_secpar_hotvec1_mul_idx_sum);
 		a0_secpar_hotvec1_mul_idx_sum = poly_secpar_add(poly_2secpar_reduce_secpar(poly_secpar_mul(a0_secpar_hotvec1[idx],_mm_set1_epi32(idx + 1))), a0_secpar_hotvec1_mul_idx_sum);
+
+		hotvec0_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_sum, hotvec0[idx]);
+		hotvec0_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec0[idx]));
 
 		if ( poly128_eq(a1_secpar_hotvec0[idx], poly_secpar_from_byte(1))) { idx0 = idx; }
 		// else if (poly128_eq(a1_secpar_hotvec0[idx], poly_secpar_from_byte(0))) { printf("Hotvec0 0 entry at idx ... %u\n", idx); }
