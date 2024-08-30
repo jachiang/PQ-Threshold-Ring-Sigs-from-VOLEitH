@@ -81,10 +81,10 @@ inline void base_decompose(uint32_t value, uint32_t base, uint32_t* decomp, int 
             ++index;
         }
     }
-    printf("Base: %u\n", base);
-    for (int i = 0; i < dim; ++i) {
-        printf("Hotvector value (decomposition): %u\n", decomp[i]);
-    }
+    // printf("Base: %u\n", base);
+    // for (int i = 0; i < dim; ++i) {
+    //     printf("Hotvector value (decomposition): %u\n", decomp[i]);
+    // }
 }
 
 #endif

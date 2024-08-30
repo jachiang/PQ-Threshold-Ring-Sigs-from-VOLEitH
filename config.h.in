@@ -18,10 +18,10 @@
 #define XKCP_has_KeccakP1600times8
 
 // JC: Ring size configuration (hard-coded).
-#define FAEST_RING_2_POW (4) // Must be divisible by RING_HOTVECTOR_DIM.
+#define FAEST_RING_2_POW (6) // Must be divisible by RING_HOTVECTOR_DIM.
 #define FAEST_RING_SIZE (1 << FAEST_RING_2_POW)
-#define FAEST_RING_HOTVECTOR_DIM (1) // Supported: 1, 2, 4.
+#define FAEST_RING_HOTVECTOR_DIM (2) // Supported: 1, 2, 4.
 #define FAEST_RING_HOTVECTOR_BITS ((1 << (FAEST_RING_2_POW / FAEST_RING_HOTVECTOR_DIM))-1)
-#define FAEST_RING_HOTVECTOR_BYTES ((FAEST_RING_HOTVECTOR_BITS + 7) / 8)
+#define FAEST_RING_HOTVECTOR_BYTES ((FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8)
 
 #endif
