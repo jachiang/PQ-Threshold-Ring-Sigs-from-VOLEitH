@@ -216,10 +216,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	qs_prover_poly_deg1 hotvec[FAEST_RING_SIZE];
 
 	qs_prover_poly_deg1 hotvecbit_sum;
-	quicksilver_prover_init_poly_deg1(&hotvecbit_sum);
+	quicksilver_prover_init_poly_deg1(state, &hotvecbit_sum);
 
 	qs_prover_poly_deg1 hotvecbit_mul_idx_sum;
-	quicksilver_prover_init_poly_deg1(&hotvecbit_mul_idx_sum);
+	quicksilver_prover_init_poly_deg1(state, &hotvecbit_mul_idx_sum);
 
 	uint32_t branch_loaded;
 	for (uint32_t branch = 0; branch < FAEST_RING_SIZE; branch++) {
@@ -241,12 +241,12 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 		}
 		else {
 			// JC: Derive final selector bit commitment from aggregate.
-			hotvec[branch] = qs_prover_poly_const_add_deg1(poly_secpar_from_byte(1), hotvecbit_sum);
+			hotvec[branch] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvecbit_sum);
 		}
 
 		// JC: Aggregate selector bits and selector multiplied by branch index.
-		hotvecbit_sum = qs_prover_poly_deg1_add_deg1(hotvecbit_sum, hotvec[branch]);
-		hotvecbit_mul_idx_sum = qs_prover_poly_deg1_add_deg1(hotvecbit_mul_idx_sum, qs_prover_poly_const_mul_deg1(_mm_set1_epi32(branch + 1),hotvec[branch]));
+		hotvecbit_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_sum, hotvec[branch]);
+		hotvecbit_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvecbit_mul_idx_sum, qs_prover_poly_const_mul_deg1(_mm_set1_epi32(branch + 1),hotvec[branch]));
 
 		// JC: Print - debugging active branch.
 		bool selector_one = poly128_eq(hotvec[branch].c1, poly_secpar_from_byte(1));
@@ -254,7 +254,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 			branch_loaded = branch;
 		}
 
-		qs_prover_poly_deg3 final_branch_constraint = qs_prover_poly_deg1_mul_deg2(hotvec[branch], branch_constraint);
+		qs_prover_poly_deg3 final_branch_constraint = qs_prover_poly_deg1_mul_deg2(state, hotvec[branch], branch_constraint);
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.c0);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, final_branch_constraint.c1);
@@ -267,7 +267,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	printf("Active branch loaded: %zu\n", branch_loaded);
 
 	// JC: Well-formedness of hotvec (selector bits sum to 1).
-	qs_prover_poly_deg1 sum_constraint = qs_prover_poly_const_add_deg1(poly_secpar_from_byte(1), hotvecbit_sum);
+	qs_prover_poly_deg1 sum_constraint = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvecbit_sum);
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, sum_constraint.c0);
@@ -277,11 +277,11 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 
 	// JC: Well-formedness of hotvec (single active bit).
 	qs_prover_poly_deg2 one_active_bit_constraint;
-	quicksilver_prover_init_poly_deg2(&one_active_bit_constraint);
+	quicksilver_prover_init_poly_deg2(state, &one_active_bit_constraint);
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
-		qs_prover_poly_deg1 tmp = qs_prover_poly_const_add_deg1(_mm_set1_epi32(branch + 1), hotvecbit_mul_idx_sum);
-		qs_prover_poly_deg2 tmp2 = qs_prover_poly_deg1_mul_deg1(tmp, hotvec[branch]);
-		one_active_bit_constraint = qs_prover_poly_deg2_add_deg2(one_active_bit_constraint,tmp2);
+		qs_prover_poly_deg1 tmp = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(branch + 1), hotvecbit_mul_idx_sum);
+		qs_prover_poly_deg2 tmp2 = qs_prover_poly_deg1_mul_deg1(state, tmp, hotvec[branch]);
+		one_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, one_active_bit_constraint, tmp2);
 	}
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, one_active_bit_constraint.c0);

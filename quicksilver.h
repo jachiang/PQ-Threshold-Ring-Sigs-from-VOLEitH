@@ -377,14 +377,16 @@ inline void quicksilver_add_product_constraints_to_branch(quicksilver_state* sta
 	}
 }
 
-inline void quicksilver_prover_init_poly_deg1(qs_prover_poly_deg1* in)
+inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in)
 {
+	assert(!state->verifier);
 	in->c0 = poly_secpar_set_zero();
 	in->c1 = poly_secpar_set_zero();
 }
 
-inline void quicksilver_prover_init_poly_deg2(qs_prover_poly_deg2* in)
+inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs_prover_poly_deg2* in)
 {
+	assert(!state->verifier);
 	in->c0 = poly_secpar_set_zero();
 	in->c1 = poly_secpar_set_zero();
 	in->c2 = poly_secpar_set_zero();
@@ -397,24 +399,27 @@ inline void quicksilver_verifier_init_key_0(const quicksilver_state* state, qs_v
 	in->deg = 1;
 }
 
-inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
 {
+	assert(!state->verifier);
 	qs_prover_poly_deg1 out;
 	out.c0 = poly_secpar_add(left.c0,right.c0);
 	out.c1 = poly_secpar_add(left.c1,right.c1);
 	return out;
 }
 
-inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right)
 {
+	assert(!state->verifier);
 	qs_prover_poly_deg1 out;
 	out.c0 = right.c0;
 	out.c1 = poly_secpar_add(left,right.c1);
 	return out;
 }
 
-inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right)
+inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right)
 {
+	assert(!state->verifier);
 	qs_prover_poly_deg2 out;
 	out.c0 = poly_secpar_add(left.c0,right.c0);
 	out.c1 = poly_secpar_add(left.c1,right.c1);
@@ -422,16 +427,18 @@ inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const qs_prover_poly_deg
 	return out;
 }
 
-inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right)
 {
+	assert(!state->verifier);
 	qs_prover_poly_deg1 out;
 	out.c0 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c0));
 	out.c1 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c1));
 	return out;
 }
 
-inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
 {
+	assert(!state->verifier);
 	poly_secpar_vec out_vec[3] = {poly_secpar_set_zero()};
 	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
 	poly_secpar_vec right_vec[2] = {right.c0, right.c1};
@@ -443,8 +450,9 @@ inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const qs_prover_poly_deg
 	return out_d2;
 }
 
-inline qs_prover_poly_deg3 qs_prover_poly_deg1_mul_deg2(const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right)
+inline qs_prover_poly_deg3 qs_prover_poly_deg1_mul_deg2(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right)
 {
+	assert(!state->verifier);
 	poly_secpar_vec out_vec[4] = {poly_secpar_set_zero()};
 	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
 	poly_secpar_vec right_vec[3] = {right.c0, right.c1, right.c2};
