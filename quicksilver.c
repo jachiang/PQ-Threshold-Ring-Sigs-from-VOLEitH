@@ -216,10 +216,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 	qs_prover_poly_deg1 hotvec[FAEST_RING_SIZE];
 
 	qs_prover_poly_deg1 hotvecbit_sum;
-	quicksilver_init_deg1(&hotvecbit_sum);
+	quicksilver_prover_init_poly_deg1(&hotvecbit_sum);
 
 	qs_prover_poly_deg1 hotvecbit_mul_idx_sum;
-	quicksilver_init_deg1(&hotvecbit_mul_idx_sum);
+	quicksilver_prover_init_poly_deg1(&hotvecbit_mul_idx_sum);
 
 	uint32_t branch_loaded;
 	for (uint32_t branch = 0; branch < FAEST_RING_SIZE; branch++) {
@@ -277,7 +277,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 
 	// JC: Well-formedness of hotvec (single active bit).
 	qs_prover_poly_deg2 one_active_bit_constraint;
-	quicksilver_init_deg2(&one_active_bit_constraint);
+	quicksilver_prover_init_poly_deg2(&one_active_bit_constraint);
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 		qs_prover_poly_deg1 tmp = qs_prover_poly_const_add_deg1(_mm_set1_epi32(branch + 1), hotvecbit_mul_idx_sum);
 		qs_prover_poly_deg2 tmp2 = qs_prover_poly_deg1_mul_deg1(tmp, hotvec[branch]);
@@ -301,57 +301,63 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
 {
 	assert(state->verifier);
 
-	poly_secpar_vec key_hotvec0[FAEST_RING_SIZE];
-	poly_secpar_vec key_hotvec0_sum = poly_secpar_from_byte(0);
-	poly_secpar_vec key_hotvec0_mul_idx_sum = poly_secpar_from_byte(0);
+	qs_verifier_key hotvec[FAEST_RING_SIZE];
+	qs_verifier_key hotvec_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec_sum);
+	qs_verifier_key hotvec_mul_idx_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec_mul_idx_sum);
 
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
 
-		poly_secpar_vec key_branch = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch],
-												 &state->state_or_64_const[branch]);
-
-		poly_secpar_vec key_hotvec0_bit;
+		qs_verifier_key branch_constraint;
+		branch_constraint.key = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch], &state->state_or_64_const[branch]);
+		branch_constraint.deg = 2;
 
 		if (branch < FAEST_RING_SIZE - 1){
-			key_hotvec0_bit = poly_secpar_load_dup(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch]);
+			hotvec[branch].key = poly_secpar_load_dup(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + branch]);
+			hotvec[branch].deg = 1;
 		}
 		else {
-			key_hotvec0_bit = poly_secpar_add(key_hotvec0_sum, state->delta);
+			hotvec[branch] = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec_sum);
 		}
-		key_hotvec0[branch] = key_hotvec0_bit;
-		key_hotvec0_sum = poly_secpar_add(key_hotvec0_bit, key_hotvec0_sum);
-		key_hotvec0_mul_idx_sum = poly_secpar_add(key_hotvec0_mul_idx_sum,
-								   poly_2secpar_reduce_secpar(poly_secpar_mul(key_hotvec0_bit,_mm_set1_epi32(branch + 1))));
 
-		poly_secpar_vec key_hotvec_bits_mul_branch = poly_2secpar_reduce_secpar(poly_secpar_mul(key_branch, key_hotvec0_bit));
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_hotvec_bits_mul_branch);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_hotvec_bits_mul_branch);
+		hotvec_sum = quicksilver_verifier_key_add_key(state, hotvec_sum, hotvec[branch]);
+		qs_verifier_key tmp	= quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(branch + 1), hotvec[branch]);
+		hotvec_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec_mul_idx_sum, tmp);
+
+		qs_verifier_key final_branch_constraint = quicksilver_verifier_key_mul_key(state, hotvec[branch], branch_constraint);
+
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.key);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, final_branch_constraint.key);
 	}
 
 	// JC: Well-formedness of hotvec (selector bits sum to 1).
-	poly_secpar_vec key_hotvec0_constr1 = poly_2secpar_reduce_secpar(poly_secpar_mul(poly_secpar_add(key_hotvec0_sum, state->delta),state->deltaSq));
-	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_hotvec0_constr1);
-	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_hotvec0_constr1);
+	qs_verifier_key hotvec_const1 = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec_sum);
+	quicksilver_verifier_increase_key_deg(state, &hotvec_const1, 2);
+	assert(hotvec_const1.deg == 3);
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec_const1.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec_const1.key);
 
 	// JC: Well-formedness of hotvec (single active bit).
-    poly_secpar_vec key_hotvec0_constr2 = poly_secpar_from_byte(0);
+	qs_verifier_key hotvec_const2;
+	quicksilver_verifier_init_key_0(state, &hotvec_const2);
+
 	for (uint32_t branch = 0; branch <FAEST_RING_SIZE; branch++) {
-		poly_secpar_vec key_tmp = poly_secpar_add(key_hotvec0_mul_idx_sum,
-								  poly_2secpar_reduce_secpar(poly_secpar_mul(_mm_set1_epi32(branch + 1), state->delta)));
-		key_hotvec0_constr2 = poly_secpar_add(key_hotvec0_constr2,
-						 poly_2secpar_reduce_secpar(poly_secpar_mul(key_tmp, key_hotvec0[branch])));
+		qs_verifier_key tmp = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(branch + 1), hotvec_mul_idx_sum);
+		tmp = quicksilver_verifier_key_mul_key(state, tmp, hotvec[branch]);
+		hotvec_const2 = quicksilver_verifier_key_add_key(state, hotvec_const2, tmp);
 	}
 
-	// JC: TODO - bump up by one degree and add constraint to hasher state.
-	key_hotvec0_constr2 = poly_2secpar_reduce_secpar(poly_secpar_mul(key_hotvec0_constr2, state->delta));
-	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, key_hotvec0_constr2);
-	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, key_hotvec0_constr2);
+	// JC: Bump up by one degree and add constraint to hasher state.
+	quicksilver_verifier_increase_key_deg(state, &hotvec_const2, 1);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec_const2.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec_const2.key);
 
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
 	poly_secpar_vec quad_term = poly_secpar_load_dup(proof_quad);
 
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
-	// poly_2secpar_vec mac_mask = poly256_set_zero();
 
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quad_term, state->deltaSq));
