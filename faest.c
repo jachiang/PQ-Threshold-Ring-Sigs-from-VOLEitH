@@ -135,52 +135,34 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		int curr_bit_idx = 0;
 
 		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-
-			int remaining_bits;
-			// if ((decomp[i] != 0) && (decomp[i] != base - 1)) {
+			// JC: Remaining free bits in current byte.
+			int remaining_bits = 8 - curr_bit_idx;
 			if ((decomp[i] != base - 1)) {
 				// JC: Hotvector has exactly one active bit.
 				uint32_t hotvector_idx = decomp[i];
-				remaining_bits = 8 - curr_bit_idx;  // JC: Remaining free bits in current byte.
 				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
 				int active_byte_idx = curr_byte_idx;
 				if (hotvector_idx + 1 > remaining_bits) {
 					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
 				}
-				printf("Active byte idx: %u \n", active_byte_idx);
-				printf("Active bit idx: %u \n", active_bit_idx);
+				// printf("Active byte idx: %u \n", active_byte_idx);
+				// printf("Active bit idx: %u \n", active_bit_idx);
 
 				// JC: Activate bit in hotvectors byte array.
 				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
 			}
-			else{
-				// if ((decomp[i] == 0)) { printf("Zero hotvector in hotvector %u\n", i); }
-				if (decomp[i] == base - 1) { printf("Last active bit omitted in hotvector %u\n", i); }
-			}
-			// JC: Update indices vars.
+			// else{
+			// 	if (decomp[i] == base - 1) {
+			// 		printf("Last active bit omitted in hotvector %u\n", i);
+			// 	}
+			// }
+			// // JC: Update indices vars.
 			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
 			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
 		}
+
 		// JC: Copy hotvector serialization to witness.
 		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
-
-		// JC: Insert hotvector bits (1-dim).
-		// JC: If last bit exceeds hotvector bytes, no bit is activated.
-		// size_t byte = (sk->idx) / 8;
-		// size_t bit_shift = (sk->idx) % 8;
-		// for (size_t i = 0; i < FAEST_RING_HOTVECTOR_BYTES; ++i)
-		// {
-		// 	if (i == byte) {
-		// 		memset(w_ptr, (1 << bit_shift), 1);
-		// 		// printf("Bit is set in idx %d\n", bit_shift);
-		// 	}
-		// 	else{
-		// 		memset(w_ptr, 0, 1);
-		// 		// printf("Bit is not set %d\n", 0);
-		// 	}
-		// 	w_ptr += 1;
-		// }
-		// assert(w_ptr - (uint8_t*) &sk->ring_witness == FAEST_RING_HOTVECTOR_BYTES + WITNESS_BITS / 8);
 	}
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)

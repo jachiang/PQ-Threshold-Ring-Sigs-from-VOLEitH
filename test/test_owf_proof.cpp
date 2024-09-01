@@ -40,9 +40,12 @@ TEST_CASE( "owf proof", "[owf proof]" ) {
 TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
     // JC: generate pk-ring.
+    // for (size_t test_idx = 0; test_idx < FAEST_RING_SIZE; ++test_idx)
+    // {
     public_key_ring pk_ring;
     secret_key sk;
-    sk.idx = 15;
+    // sk.idx = test_idx;
+    sk.idx = 12;
     for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
@@ -58,6 +61,8 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
+
+
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
@@ -66,4 +71,5 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
+    // }
 }

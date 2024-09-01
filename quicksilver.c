@@ -420,9 +420,15 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	}
 
 	free(hotvec0);
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	free(hotvec1);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
 	free(hotvec2);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	free(hotvec3);
+	#endif
 
 	// bool sat0 = poly128_eq(hotvec0_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
 	// bool sat1 = poly128_eq(hotvec1_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
@@ -695,9 +701,15 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	}
 
 	free(hotvec0);
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	free(hotvec1);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
 	free(hotvec2);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	free(hotvec3);
+	#endif
 
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
 	quicksilver_verifier_increase_key_deg(state, &hotvec0_const2, 1);
