@@ -64,6 +64,14 @@ void quicksilver_init_or_prover(
 	hasher_gfsecpar_init_state(&state->state_secpar_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 	hasher_gfsecpar_64_init_state(&state->state_64_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hasher_gfsecpar_init_state(&state->state_secpar_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hasher_gfsecpar_init_state(&state->state_secpar_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#endif
 
 	state->witness = witness;
 	state->macs = macs;
@@ -206,6 +214,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
 #elif (FAEST_RING_HOTVECTOR_DIM == 2)
 void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t* restrict proof_cubic,
                           uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check)
+#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t* restrict proof_quintic,
+						  uint8_t* restrict proof_quartic, uint8_t* restrict proof_cubic,
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check)
 #endif
 {
 	assert(!state->verifier);
@@ -221,13 +233,26 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_sum);
 	qs_prover_poly_deg1 hotvec0_mul_idx_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_mul_idx_sum);
-
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	qs_prover_poly_deg1 hotvec1[FAEST_RING_HOTVECTOR_BITS+1];
 	qs_prover_poly_deg1 hotvec1_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec1_sum);
 	qs_prover_poly_deg1 hotvec1_mul_idx_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec1_mul_idx_sum);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_prover_poly_deg1 hotvec2[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1 hotvec2_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec2_sum);
+	qs_prover_poly_deg1 hotvec2_mul_idx_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec2_mul_idx_sum);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_prover_poly_deg1 hotvec3[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1 hotvec3_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec3_sum);
+	qs_prover_poly_deg1 hotvec3_mul_idx_sum;
+	quicksilver_prover_init_poly_deg1(state, &hotvec3_mul_idx_sum);
 	#endif
 
 	uint32_t branch_loaded;
@@ -242,12 +267,28 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 			hotvec1[idx].c0 = hotvec1_bit.mac;
 			hotvec1[idx].c1 = poly128_from_1(hotvec1_bit.value);
 			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 2)
+			quicksilver_vec_gf2	hotvec2_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 2*FAEST_RING_HOTVECTOR_BITS);
+			hotvec2[idx].c0 = hotvec2_bit.mac;
+			hotvec2[idx].c1 = poly128_from_1(hotvec2_bit.value);
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 3)
+			quicksilver_vec_gf2	hotvec3_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 3*FAEST_RING_HOTVECTOR_BITS);
+			hotvec3[idx].c0 = hotvec3_bit.mac;
+			hotvec3[idx].c1 = poly128_from_1(hotvec3_bit.value);
+			#endif
 		}
 		else {
 			// JC: Derive final selector bit commitment from aggregate.
 			hotvec0[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec0_sum);
 			#if (FAEST_RING_HOTVECTOR_DIM > 1)
 			hotvec1[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec1_sum);
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 2)
+			hotvec2[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec2_sum);
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 3)
+			hotvec3[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec3_sum);
 			#endif
 		}
 		// JC: Aggregate selector bits and selector multiplied by branch index.
@@ -256,6 +297,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
 		hotvec1_sum = qs_prover_poly_deg1_add_deg1(state, hotvec1_sum, hotvec1[idx]);
 		hotvec1_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec1_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec1[idx]));
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 2)
+		hotvec2_sum = qs_prover_poly_deg1_add_deg1(state, hotvec2_sum, hotvec2[idx]);
+		hotvec2_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec2_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec2[idx]));
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 3)
+		hotvec3_sum = qs_prover_poly_deg1_add_deg1(state, hotvec3_sum, hotvec3[idx]);
+		hotvec3_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec3_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec3[idx]));
 		#endif
 	}
 
@@ -284,8 +333,8 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, final_branch_constraint.c2);
 
 		#elif (FAEST_RING_HOTVECTOR_DIM == 2)
-		qs_prover_poly_deg2 tmp = qs_prover_poly_deg1_mul_deg1(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
-		qs_prover_poly_deg4 final_branch_constraint = qs_prover_poly_deg2_mul_deg2(state, branch_constraint, tmp);
+		qs_prover_poly_deg2 selector = qs_prover_poly_deg1_mul_deg1(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
+		qs_prover_poly_deg4 final_branch_constraint = qs_prover_poly_deg2_mul_deg2(state, branch_constraint, selector);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.c0);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, final_branch_constraint.c1);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, final_branch_constraint.c2);
@@ -294,6 +343,29 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, final_branch_constraint.c1);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, final_branch_constraint.c2);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, final_branch_constraint.c3);
+
+		#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+		qs_prover_poly_deg2 tmp0 = qs_prover_poly_deg1_mul_deg1(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
+		qs_prover_poly_deg2 tmp1 = qs_prover_poly_deg1_mul_deg1(state, hotvec2[decomp[2]], hotvec3[decomp[3]]);
+		qs_prover_poly_deg4 selector = qs_prover_poly_deg2_mul_deg2(state, tmp0, tmp1);
+		bool sat = poly128_eq(selector.c4, poly_secpar_from_byte(1));
+		if(sat) {
+			printf("Active loaded selector: %u\n", branch);
+		}
+		qs_prover_poly_deg6 final_branch_constraint = qs_prover_poly_deg2_mul_deg4(state, branch_constraint, selector);
+
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.c0);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, final_branch_constraint.c1);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, final_branch_constraint.c2);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic, final_branch_constraint.c3);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, final_branch_constraint.c4);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, final_branch_constraint.c5);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, final_branch_constraint.c0);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, final_branch_constraint.c1);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, final_branch_constraint.c2);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, final_branch_constraint.c3);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, final_branch_constraint.c4);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, final_branch_constraint.c5);
 		#endif
 	}
 
@@ -307,6 +379,14 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	qs_prover_poly_deg2 hotvec1_single_active_bit_constraint;
 	quicksilver_prover_init_poly_deg2(state, &hotvec1_single_active_bit_constraint);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_prover_poly_deg2 hotvec2_single_active_bit_constraint;
+	quicksilver_prover_init_poly_deg2(state, &hotvec2_single_active_bit_constraint);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_prover_poly_deg2 hotvec3_single_active_bit_constraint;
+	quicksilver_prover_init_poly_deg2(state, &hotvec3_single_active_bit_constraint);
+	#endif
 
 	for (uint32_t idx = 0; idx <FAEST_RING_HOTVECTOR_BITS + 1; idx++) {
 		qs_prover_poly_deg1 tmp00 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec0_mul_idx_sum);
@@ -318,7 +398,26 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		qs_prover_poly_deg2 tmp11 = qs_prover_poly_deg1_mul_deg1(state, tmp10, hotvec1[idx]);
 		hotvec1_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec1_single_active_bit_constraint, tmp11);
 		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 2)
+		qs_prover_poly_deg1 tmp20 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec2_mul_idx_sum);
+		qs_prover_poly_deg2 tmp21 = qs_prover_poly_deg1_mul_deg1(state, tmp20, hotvec2[idx]);
+		hotvec2_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec2_single_active_bit_constraint, tmp21);
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 3)
+		qs_prover_poly_deg1 tmp30 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec3_mul_idx_sum);
+		qs_prover_poly_deg2 tmp31 = qs_prover_poly_deg1_mul_deg1(state, tmp30, hotvec3[idx]);
+		hotvec3_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec3_single_active_bit_constraint, tmp31);
+		#endif
 	}
+	// bool sat0 = poly128_eq(hotvec0_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
+	// bool sat1 = poly128_eq(hotvec1_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
+	// bool sat2 = poly128_eq(hotvec2_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
+	// bool sat3 = poly128_eq(hotvec3_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
+	// printf("Hotvec0 constraint:: %s\n", sat0 ? "true" : "false");
+	// printf("Hotvec1 constraint:: %s\n", sat1 ? "true" : "false");
+	// printf("Hotvec2 constraint:: %s\n", sat2 ? "true" : "false");
+	// printf("Hotvec3 constraint:: %s\n", sat3 ? "true" : "false");
+
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, hotvec0_single_active_bit_constraint.c0);
@@ -335,7 +434,6 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, hotvec0_single_active_bit_constraint.c0);
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, hotvec0_single_active_bit_constraint.c1);
-
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, hotvec1_single_active_bit_constraint.c0);
@@ -344,6 +442,58 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, hotvec1_single_active_bit_constraint.c0);
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, hotvec1_single_active_bit_constraint.c1);
+	#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, hotvec0_single_active_bit_constraint.c0);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, hotvec0_single_active_bit_constraint.c1);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, hotvec0_single_active_bit_constraint.c0);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, hotvec0_single_active_bit_constraint.c1);
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, hotvec1_single_active_bit_constraint.c0);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, hotvec1_single_active_bit_constraint.c1);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, hotvec1_single_active_bit_constraint.c0);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, hotvec1_single_active_bit_constraint.c1);
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, hotvec2_single_active_bit_constraint.c0);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, hotvec2_single_active_bit_constraint.c1);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, hotvec2_single_active_bit_constraint.c0);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, hotvec2_single_active_bit_constraint.c1);
+
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic,  poly_secpar_from_byte(0));
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, hotvec3_single_active_bit_constraint.c0);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, hotvec3_single_active_bit_constraint.c1);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, poly_secpar_from_byte(0));
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, hotvec3_single_active_bit_constraint.c0);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, hotvec3_single_active_bit_constraint.c1);
 	#endif
 
 	// JC: Final ZKHash.
@@ -353,6 +503,12 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	quicksilver_final(state, &state->state_secpar_cubic, &state->state_64_cubic, zero_mask, proof_cubic);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	quicksilver_final(state, &state->state_secpar_quartic, &state->state_64_quartic, zero_mask, proof_quartic);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	quicksilver_final(state, &state->state_secpar_quintic, &state->state_64_quintic, zero_mask, proof_quintic);
+	#endif
 }
 
 #if (FAEST_RING_HOTVECTOR_DIM == 1)
@@ -360,6 +516,10 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
                            const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check)
 #elif  (FAEST_RING_HOTVECTOR_DIM == 2)
 void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const uint8_t* restrict proof_cubic,
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check)
+#elif  (FAEST_RING_HOTVECTOR_DIM == 4)
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const uint8_t* restrict proof_quintic,
+						   const uint8_t* restrict proof_quartic, const uint8_t* restrict proof_cubic,
                            const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check)
 #endif
 {
@@ -378,6 +538,20 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	qs_verifier_key hotvec1_mul_idx_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec1_mul_idx_sum);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_verifier_key hotvec2[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key hotvec2_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec2_sum);
+	qs_verifier_key hotvec2_mul_idx_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec2_mul_idx_sum);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_verifier_key hotvec3[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key hotvec3_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec3_sum);
+	qs_verifier_key hotvec3_mul_idx_sum;
+	quicksilver_verifier_init_key_0(state, &hotvec3_mul_idx_sum);
+	#endif
 
 	for (uint32_t idx = 0; idx <FAEST_RING_HOTVECTOR_BITS+1; idx++) {
 		if (idx < FAEST_RING_HOTVECTOR_BITS){
@@ -387,11 +561,25 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 			hotvec1[idx].key = poly_secpar_load_dup(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + FAEST_RING_HOTVECTOR_BITS]);
 			hotvec1[idx].deg = 1;
 			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 2)
+			hotvec2[idx].key = poly_secpar_load_dup(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 2*FAEST_RING_HOTVECTOR_BITS]);
+			hotvec2[idx].deg = 1;
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 3)
+			hotvec3[idx].key = poly_secpar_load_dup(&state->macs[witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 3*FAEST_RING_HOTVECTOR_BITS]);
+			hotvec3[idx].deg = 1;
+			#endif
 		}
 		else {
 			hotvec0[idx] = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec0_sum);
 			#if (FAEST_RING_HOTVECTOR_DIM > 1)
 			hotvec1[idx] = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec1_sum);
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 2)
+			hotvec2[idx] = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec2_sum);
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 3)
+			hotvec3[idx] = quicksilver_verifier_const_add_key(state, poly_secpar_from_byte(1), hotvec3_sum);
 			#endif
 		}
 		hotvec0_sum = quicksilver_verifier_key_add_key(state, hotvec0_sum, hotvec0[idx]);
@@ -402,6 +590,16 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		hotvec1_sum = quicksilver_verifier_key_add_key(state, hotvec1_sum, hotvec1[idx]);
 		qs_verifier_key tmp1 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec1[idx]);
 		hotvec1_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec1_mul_idx_sum, tmp1);
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 2)
+		hotvec2_sum = quicksilver_verifier_key_add_key(state, hotvec2_sum, hotvec2[idx]);
+		qs_verifier_key tmp2 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec2[idx]);
+		hotvec2_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec2_mul_idx_sum, tmp2);
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 3)
+		hotvec3_sum = quicksilver_verifier_key_add_key(state, hotvec3_sum, hotvec3[idx]);
+		qs_verifier_key tmp3 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec3[idx]);
+		hotvec3_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec3_mul_idx_sum, tmp3);
 		#endif
 	}
 
@@ -415,8 +613,6 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
 		base_decompose(branch, base, decomp, FAEST_RING_HOTVECTOR_DIM);
-		// printf("Verifier hotvec0 idx: %u\n", decomp[0]);
-		// printf("Verifier hotvec1 idx: %u\n", decomp[1]);
 
 		#if (FAEST_RING_HOTVECTOR_DIM == 1)
 		qs_verifier_key final_branch_constraint = quicksilver_verifier_key_mul_key(state, hotvec0[decomp[0]], branch_constraint);
@@ -425,6 +621,13 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		#elif (FAEST_RING_HOTVECTOR_DIM == 2)
 		qs_verifier_key selector_tmp = quicksilver_verifier_key_mul_key(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
 		qs_verifier_key final_branch_constraint = quicksilver_verifier_key_mul_key(state, selector_tmp, branch_constraint);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.key);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, final_branch_constraint.key);
+		#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+		qs_verifier_key selector_tmp0 = quicksilver_verifier_key_mul_key(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
+		qs_verifier_key selector_tmp1 = quicksilver_verifier_key_mul_key(state, hotvec2[decomp[2]], hotvec3[decomp[3]]);
+		qs_verifier_key selector = quicksilver_verifier_key_mul_key(state, selector_tmp0, selector_tmp1);
+		qs_verifier_key final_branch_constraint = quicksilver_verifier_key_mul_key(state, selector, branch_constraint);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.key);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, final_branch_constraint.key);
 		#endif
@@ -437,6 +640,14 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	qs_verifier_key hotvec1_const2;
 	quicksilver_verifier_init_key_0(state, &hotvec1_const2);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_verifier_key hotvec2_const2;
+	quicksilver_verifier_init_key_0(state, &hotvec2_const2);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_verifier_key hotvec3_const2;
+	quicksilver_verifier_init_key_0(state, &hotvec3_const2);
+	#endif
 
 	for (uint32_t idx = 0; idx <FAEST_RING_HOTVECTOR_BITS+1; idx++) {
 		qs_verifier_key tmp = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec0_mul_idx_sum);
@@ -446,6 +657,16 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		qs_verifier_key tmp1 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec1_mul_idx_sum);
 		tmp1 = quicksilver_verifier_key_mul_key(state, tmp1, hotvec1[idx]);
 		hotvec1_const2 = quicksilver_verifier_key_add_key(state, hotvec1_const2, tmp1);
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 2)
+		qs_verifier_key tmp2 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec2_mul_idx_sum);
+		tmp2 = quicksilver_verifier_key_mul_key(state, tmp2, hotvec2[idx]);
+		hotvec2_const2 = quicksilver_verifier_key_add_key(state, hotvec2_const2, tmp2);
+		#endif
+		#if (FAEST_RING_HOTVECTOR_DIM > 3)
+		qs_verifier_key tmp3 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec3_mul_idx_sum);
+		tmp3 = quicksilver_verifier_key_mul_key(state, tmp3, hotvec3[idx]);
+		hotvec3_const2 = quicksilver_verifier_key_add_key(state, hotvec3_const2, tmp3);
 		#endif
 	}
 
@@ -460,6 +681,19 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	quicksilver_verifier_increase_key_deg(state, &hotvec1_const2, 2);
 	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec1_const2.key);
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec1_const2.key);
+	#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+	quicksilver_verifier_increase_key_deg(state, &hotvec0_const2, 4);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec0_const2.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec0_const2.key);
+	quicksilver_verifier_increase_key_deg(state, &hotvec1_const2, 4);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec1_const2.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec1_const2.key);
+	quicksilver_verifier_increase_key_deg(state, &hotvec2_const2, 4);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec2_const2.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec2_const2.key);
+	quicksilver_verifier_increase_key_deg(state, &hotvec3_const2, 4);
+	hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, hotvec3_const2.key);
+	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, hotvec3_const2.key);
 	#endif
 
 	poly_secpar_vec linear_term = poly_secpar_load_dup(proof_lin);
@@ -467,13 +701,28 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	poly_secpar_vec cubic_term = poly_secpar_load_dup(proof_cubic);
 	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	poly_secpar_vec quartic_term = poly_secpar_load_dup(proof_quartic);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	poly_secpar_vec quintic_term = poly_secpar_load_dup(proof_quintic);
+	#endif
 
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quad_term, state->deltaSq));
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
-	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(state->delta, poly_2secpar_reduce_secpar(poly_secpar_mul(cubic_term, state->deltaSq))));
+	poly_secpar_vec delta_cubic = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->deltaSq));
+	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(cubic_term,delta_cubic));
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	poly_secpar_vec delta_quartic = poly_2secpar_reduce_secpar(poly_secpar_mul(state->deltaSq, state->deltaSq));
+	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quartic_term, delta_quartic));
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	poly_secpar_vec delta_quintic = poly_2secpar_reduce_secpar(poly_secpar_mul(delta_quartic, state->delta));
+	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quintic_term, delta_quintic));
 	#endif
 	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 }

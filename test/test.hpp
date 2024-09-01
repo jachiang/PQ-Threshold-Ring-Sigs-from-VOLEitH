@@ -262,6 +262,13 @@ struct quicksilver_test_or_state
         #if (FAEST_RING_HOTVECTOR_DIM > 1)
         std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof_cubic;
         #endif
+        #if (FAEST_RING_HOTVECTOR_DIM > 2)
+        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof_quartic;
+        #endif
+        #if (FAEST_RING_HOTVECTOR_DIM > 3)
+        std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof_quintic;
+        #endif
+
         std::array<uint8_t, QUICKSILVER_CHECK_BYTES> check_prover, check_verifier;
 
         size_t witness_bits = 8 * witness.size() - SECURITY_PARAM;
@@ -272,6 +279,12 @@ struct quicksilver_test_or_state
         #elif (FAEST_RING_HOTVECTOR_DIM == 2)
         quicksilver_prove_or(&prover_state, witness_bits, proof_cubic.data(), proof_quad.data(),proof.data(), check_prover.data());
         quicksilver_verify_or(&verifier_state, witness_bits, proof_cubic.data(), proof_quad.data(), proof.data(), check_verifier.data());
+        #elif (FAEST_RING_HOTVECTOR_DIM == 4)
+        quicksilver_prove_or(&prover_state, witness_bits, proof_quintic.data(),
+                             proof_quartic.data(), proof_cubic.data(), proof_quad.data(),
+                             proof.data(), check_prover.data());
+        quicksilver_verify_or(&verifier_state, witness_bits, proof_quintic.data(),
+                             proof_quartic.data(), proof_cubic.data(), proof_quad.data(), proof.data(), check_verifier.data());
         #endif
 
         return {check_prover, check_verifier};
