@@ -228,27 +228,36 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	poly_2secpar_vec value_mask = poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
-	qs_prover_poly_deg1 hotvec0[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1* hotvec0;
+	size_t vec_size = (FAEST_RING_HOTVECTOR_BITS+1) * sizeof(qs_prover_poly_deg1);
+    hotvec0 = (qs_prover_poly_deg1 *)malloc(vec_size);
+    assert(hotvec0 != NULL);
 	qs_prover_poly_deg1 hotvec0_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_sum);
 	qs_prover_poly_deg1 hotvec0_mul_idx_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_mul_idx_sum);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
-	qs_prover_poly_deg1 hotvec1[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1* hotvec1;
+	hotvec1 = (qs_prover_poly_deg1 *)malloc(vec_size);
+    assert(hotvec1 != NULL);
 	qs_prover_poly_deg1 hotvec1_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec1_sum);
 	qs_prover_poly_deg1 hotvec1_mul_idx_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec1_mul_idx_sum);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
-	qs_prover_poly_deg1 hotvec2[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1* hotvec2;
+	hotvec2 = (qs_prover_poly_deg1 *)malloc(vec_size);
+    assert(hotvec2 != NULL);
 	qs_prover_poly_deg1 hotvec2_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec2_sum);
 	qs_prover_poly_deg1 hotvec2_mul_idx_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec2_mul_idx_sum);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
-	qs_prover_poly_deg1 hotvec3[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_prover_poly_deg1* hotvec3;
+	hotvec3 = (qs_prover_poly_deg1 *)malloc(vec_size);
+    assert(hotvec3 != NULL);
 	qs_prover_poly_deg1 hotvec3_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec3_sum);
 	qs_prover_poly_deg1 hotvec3_mul_idx_sum;
@@ -409,6 +418,12 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		hotvec3_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec3_single_active_bit_constraint, tmp31);
 		#endif
 	}
+
+	free(hotvec0);
+	free(hotvec1);
+	free(hotvec2);
+	free(hotvec3);
+
 	// bool sat0 = poly128_eq(hotvec0_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
 	// bool sat1 = poly128_eq(hotvec1_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
 	// bool sat2 = poly128_eq(hotvec2_single_active_bit_constraint.c2, poly_secpar_from_byte(0));
@@ -525,28 +540,37 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 {
 	assert(state->verifier);
 
-	qs_verifier_key hotvec0[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key* hotvec0;
+	size_t vec_size = (FAEST_RING_HOTVECTOR_BITS+1) * sizeof(qs_verifier_key);
+    hotvec0 = (qs_verifier_key *)malloc(vec_size);
+	assert(hotvec0 != NULL);
 	qs_verifier_key hotvec0_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec0_sum);
 	qs_verifier_key hotvec0_mul_idx_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec0_mul_idx_sum);
 
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
-	qs_verifier_key hotvec1[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key* hotvec1;
+    hotvec1 = (qs_verifier_key *)malloc(vec_size);
+	assert(hotvec1 != NULL);
 	qs_verifier_key hotvec1_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec1_sum);
 	qs_verifier_key hotvec1_mul_idx_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec1_mul_idx_sum);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
-	qs_verifier_key hotvec2[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key* hotvec2;
+    hotvec2 = (qs_verifier_key *)malloc(vec_size);
+	assert(hotvec2!= NULL);
 	qs_verifier_key hotvec2_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec2_sum);
 	qs_verifier_key hotvec2_mul_idx_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec2_mul_idx_sum);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
-	qs_verifier_key hotvec3[FAEST_RING_HOTVECTOR_BITS+1];
+	qs_verifier_key* hotvec3;
+    hotvec3 = (qs_verifier_key *)malloc(vec_size);
+	assert(hotvec3 != NULL);
 	qs_verifier_key hotvec3_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec3_sum);
 	qs_verifier_key hotvec3_mul_idx_sum;
@@ -669,6 +693,11 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		hotvec3_const2 = quicksilver_verifier_key_add_key(state, hotvec3_const2, tmp3);
 		#endif
 	}
+
+	free(hotvec0);
+	free(hotvec1);
+	free(hotvec2);
+	free(hotvec3);
 
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
 	quicksilver_verifier_increase_key_deg(state, &hotvec0_const2, 1);
