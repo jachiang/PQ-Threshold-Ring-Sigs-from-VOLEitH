@@ -48,7 +48,6 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     secret_key sk;
     // sk.idx = test_idx;
     sk.idx = 12;
-    printf("Key gen begin \n");
     for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
@@ -61,7 +60,6 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
         }
         pk_ring.pubkeys[i] = pk;
     }
-    printf("Key gen complete \n");
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
 
