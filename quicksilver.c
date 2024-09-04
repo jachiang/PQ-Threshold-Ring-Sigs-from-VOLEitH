@@ -43,7 +43,15 @@ void quicksilver_init_or_prover(
 	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
 	quicksilver_init_hash_keys(state, challenge);
 	// JC: init state of (ZK)Hash for batching constraints of each OR branch.
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_linear = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_quad = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_linear = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_quad = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+
 	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
+
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
 		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
 		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_sbox_constraints);
@@ -101,6 +109,9 @@ void quicksilver_init_or_verifier(
 	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
 
 	quicksilver_init_hash_keys(state, challenge);
+
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 
 	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){

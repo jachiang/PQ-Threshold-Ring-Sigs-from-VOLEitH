@@ -92,9 +92,12 @@ typedef struct
 	#endif
 
 	// JC: (Dis)satisfied OWF constraints.
-	hasher_gfsecpar_state state_or_secpar_const[FAEST_RING_SIZE];
-	hasher_gfsecpar_state state_or_secpar_linear[FAEST_RING_SIZE];
-	hasher_gfsecpar_state state_or_secpar_quad[FAEST_RING_SIZE];
+	// hasher_gfsecpar_state state_or_secpar_const[FAEST_RING_SIZE];
+	// hasher_gfsecpar_state state_or_secpar_linear[FAEST_RING_SIZE];
+	// hasher_gfsecpar_state state_or_secpar_quad[FAEST_RING_SIZE];
+	hasher_gfsecpar_state* state_or_secpar_const;
+	hasher_gfsecpar_state* state_or_secpar_linear;
+	hasher_gfsecpar_state* state_or_secpar_quad;
 
 	hasher_gfsecpar_64_key key_64;
 	// JC: Satisfied KE/OWF constraints.
@@ -112,9 +115,12 @@ typedef struct
 	#endif
 
 	// JC: (Dis)satisfied OWF constraints.
-	hasher_gfsecpar_64_state state_or_64_const[FAEST_RING_SIZE];
-	hasher_gfsecpar_64_state state_or_64_linear[FAEST_RING_SIZE];
-	hasher_gfsecpar_64_state state_or_64_quad[FAEST_RING_SIZE];
+	// hasher_gfsecpar_64_state state_or_64_const[FAEST_RING_SIZE];
+	// hasher_gfsecpar_64_state state_or_64_linear[FAEST_RING_SIZE];
+	// hasher_gfsecpar_64_state state_or_64_quad[FAEST_RING_SIZE];
+	hasher_gfsecpar_64_state* state_or_64_const;
+	hasher_gfsecpar_64_state* state_or_64_linear;
+	hasher_gfsecpar_64_state* state_or_64_quad;
 
 	poly_secpar_vec hash_combination[2];
 

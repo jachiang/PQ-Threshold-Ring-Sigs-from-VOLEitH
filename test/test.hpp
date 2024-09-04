@@ -287,6 +287,16 @@ struct quicksilver_test_or_state
                              proof_quartic.data(), proof_cubic.data(), proof_quad.data(), proof.data(), check_verifier.data());
         #endif
 
+        // JC: Free prover/verifier state.
+        free(prover_state.state_or_secpar_const);
+        free(prover_state.state_or_secpar_linear);
+        free(prover_state.state_or_secpar_quad);
+        free(prover_state.state_or_64_const);
+        free(prover_state.state_or_64_linear);
+        free(prover_state.state_or_64_quad);
+        free(verifier_state.state_or_secpar_const);
+        free(verifier_state.state_or_64_const);
+
         return {check_prover, check_verifier};
     }
 };
