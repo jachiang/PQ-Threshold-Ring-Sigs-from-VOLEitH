@@ -50,6 +50,13 @@ void quicksilver_init_or_prover(
 	state->state_or_64_linear = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 	state->state_or_64_quad = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 
+	assert(state->state_or_secpar_const != NULL);
+	assert(state->state_or_secpar_linear != NULL);
+	assert(state->state_or_secpar_quad != NULL);
+	assert(state->state_or_64_const != NULL);
+	assert(state->state_or_64_linear != NULL);
+	assert(state->state_or_64_quad != NULL);
+
 	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
 
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
@@ -113,12 +120,14 @@ void quicksilver_init_or_verifier(
 	state->state_or_secpar_const = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
 	state->state_or_64_const = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 
+	assert(state->state_or_secpar_const != NULL);
+	assert(state->state_or_64_const != NULL);
+
 	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
 		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
 		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
 	}
-
 	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 
@@ -368,10 +377,6 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		qs_prover_poly_deg2 tmp0 = qs_prover_poly_deg1_mul_deg1(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
 		qs_prover_poly_deg2 tmp1 = qs_prover_poly_deg1_mul_deg1(state, hotvec2[decomp[2]], hotvec3[decomp[3]]);
 		qs_prover_poly_deg4 selector = qs_prover_poly_deg2_mul_deg2(state, tmp0, tmp1);
-		bool sat = poly128_eq(selector.c4, poly_secpar_from_byte(1));
-		if(sat) {
-			printf("Active loaded selector: %u\n", branch);
-		}
 		qs_prover_poly_deg6 final_branch_constraint = qs_prover_poly_deg2_mul_deg4(state, branch_constraint, selector);
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.c0);
@@ -388,8 +393,6 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, final_branch_constraint.c5);
 		#endif
 	}
-
-	// printf("Active branch loaded: %zu\n", branch_loaded);
 
 	// JC: Well-formedness of hotvec (single active bit).
 	qs_prover_poly_deg2 hotvec0_single_active_bit_constraint;

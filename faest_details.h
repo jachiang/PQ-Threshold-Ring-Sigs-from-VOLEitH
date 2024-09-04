@@ -20,7 +20,7 @@ typedef struct public_key
 
 typedef struct public_key_ring
 {
-	struct public_key pubkeys[FAEST_RING_SIZE];
+	public_key* pubkeys;
 } public_key_ring;
 
 typedef struct
