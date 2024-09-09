@@ -331,9 +331,11 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    // JC: TODO
-    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0]);
+    for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
+        load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk_ring->pubkeys[branch].fixed_key);
+        enc_constraints_branch(state, branch, round_key_bits, round_key_bytes, 0,
+                               owf_block_set_low32(0), pk_ring->pubkeys[branch].owf_output[0]);
+    }
 #else
 #error "unsupported OWF"
 #endif
