@@ -6,6 +6,8 @@
 #define VOLE_COMMIT_SIZE ((VOLE_ROWS / 8) * (BITS_PER_WITNESS - 1))
 #define VOLE_COMMIT_CHECK_SIZE (2 * SECURITY_PARAM / 8)
 
+#define VOLE_RING_COMMIT_SIZE ((VOLE_RING_ROWS / 8) * (BITS_PER_WITNESS - 1))
+
 // Run the vector commitment and the small vole protocols.
 // - `forest` must be `VECTOR_COMMIT_NODES` blocks long.
 // - `hashed_leaves` must be VECTOR_COMMIT_LEAVES blocks long.
