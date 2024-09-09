@@ -57,15 +57,15 @@ void quicksilver_init_or_prover(
 	assert(state->state_or_64_linear != NULL);
 	assert(state->state_or_64_quad != NULL);
 
-	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
+	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
 
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
-		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
-		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_sbox_constraints);
-		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], num_sbox_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], num_sbox_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_sbox_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_enc_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_enc_constraints);
 	}
 	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
 	// JC: Ring number of branch constraints, 2 constraints for wellformedness for each hotvector.
@@ -123,10 +123,10 @@ void quicksilver_init_or_verifier(
 	assert(state->state_or_secpar_const != NULL);
 	assert(state->state_or_64_const != NULL);
 
-	size_t num_sbox_constraints = num_owf_constraints - num_ke_constraints;
+	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
-		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_sbox_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_sbox_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
 	}
 	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
