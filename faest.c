@@ -397,3 +397,169 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }
+
+bool faest_ring_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len)
+{
+	secret_key sk;
+
+	// uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	// if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
+	// 	return false;
+
+	// JC: Expand key schedule witness and 1-hotvector bytes.
+	if (!faest_unpack_secret_key(&sk, sk_packed, true))
+		return false;
+
+	// TODO: Do we need to domain separate by the faest parameters?
+
+	block_2secpar mu;
+	hash_state hasher;
+	hash_init(&hasher);
+	hash_update(&hasher, pk_ring_packed, FAEST_RING_SIZE * FAEST_PUBLIC_KEY_BYTES); // JC: hash packed ring.
+	hash_update(&hasher, msg, msg_len);
+	hash_update_byte(&hasher, 1);
+	hash_final(&hasher, &mu, sizeof(mu));
+
+	block_secpar seed;
+	block128 iv;
+	uint8_t seed_iv[sizeof(seed) + sizeof(iv)];
+	hash_init(&hasher);
+	hash_update(&hasher, &sk.sk, sizeof(sk.sk));
+	hash_update(&hasher, &mu, sizeof(mu));
+	if (random_seed)
+		hash_update(&hasher, random_seed, random_seed_len);
+	hash_update_byte(&hasher, 3);
+	hash_final(&hasher, seed_iv, sizeof(seed_iv));
+
+	memcpy(&seed, seed_iv, sizeof(seed));
+	memcpy(&iv, &seed_iv[sizeof(seed)], sizeof(iv));
+
+	block_secpar* forest =
+		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_NODES * sizeof(block_secpar));
+	block_2secpar* hashed_leaves =
+		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
+	vole_block* u =
+		aligned_alloc(alignof(vole_block), VOLE_RING_COL_BLOCKS * sizeof(vole_block));
+	vole_block* v =
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_RING_COL_BLOCKS * sizeof(vole_block));
+	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
+
+	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+
+	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &mu, sizeof(mu));
+	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
+	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update(&hasher, &iv, sizeof(iv));
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, &chal1[0], sizeof(chal1));
+
+	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
+
+	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
+	size_t remainder = (RING_WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
+	for (size_t i = 0; i < RING_WITNESS_BLOCKS - (remainder != 0); ++i)
+	{
+		vole_block correction_i = vole_block_xor(u[i], sk.witness[i]);
+		memcpy(correction + i * sizeof(vole_block), &correction_i, sizeof(vole_block));
+	}
+	if (remainder)
+	{
+		vole_block correction_i = vole_block_xor(u[RING_WITNESS_BLOCKS - 1], sk.witness[RING_WITNESS_BLOCKS - 1]);
+		memcpy(correction + (RING_WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction_i, remainder);
+	}
+
+	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, chal1, sizeof(chal1));
+    hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+    hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+    hash_update(&hasher, correction, RING_WITNESS_BITS / 8);
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, &chal2[0], sizeof(chal2));
+
+	block_secpar* macs =
+		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
+
+	memcpy(&u[0], &sk.witness[0], RING_WITNESS_BITS / 8);
+	static_assert(QUICKSILVER_RING_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
+	transpose_secpar(v, macs, VOLE_RING_COL_STRIDE, QUICKSILVER_RING_ROWS_PADDED);
+	free(v);
+
+	quicksilver_state qs;
+	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
+							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2);
+								// JC: TODO - OWF_NUM_CONSTRAINTS should include tag constraints.
+
+	// uint8_t* qs_proof = correction + RING_WITNESS_BITS / 8;
+	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
+	// quicksilver_prove(&qs, RING_WITNESS_BITS, qs_proof, qs_check);
+
+	uint8_t* qs_proof = correction + RING_WITNESS_BITS / 8;
+	uint8_t* qs_proof_quad = qs_proof + QUICKSILVER_PROOF_BYTES;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	uint8_t* qs_proof_cubic = qs_proof_quad + QUICKSILVER_PROOF_BYTES;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	uint8_t* qs_proof_quartic = qs_proof_cubic + QUICKSILVER_PROOF_BYTES;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	uint8_t* qs_proof_quintic = qs_proof_quartic + QUICKSILVER_PROOF_BYTES;
+	#endif
+
+	#if (FAEST_RING_HOTVECTOR_DIM == 1)
+	quicksilver_prove_or(&qs, RING_WITNESS_BITS,
+						 qs_proof_quad,
+						 qs_proof, qs_check);
+	#elif (FAEST_RING_HOTVECTOR_DIM == 2)
+	quicksilver_prove_or(&qs, RING_WITNESS_BITS,
+						 qs_proof_cubic, qs_proof_quad,
+						 qs_proof, qs_check);
+	#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+	quicksilver_prove_or(&qs, RING_WITNESS_BITS, qs_proof_quintic,
+						 qs_proof_quartic, qs_proof_cubic, qs_proof_quad,
+						 qs_proof, qs_check);
+	#endif
+
+	free(macs);
+	free(u);
+
+	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES*FAEST_PROOF_ELEMS;
+	uint8_t* delta = veccom_open_start + VECTOR_OPEN_SIZE;
+	hash_init(&hasher);
+	hash_update(&hasher, &chal2, sizeof(chal2));
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hash_update(&hasher, qs_proof_quintic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hash_update(&hasher, qs_proof_quartic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hash_update(&hasher, qs_proof_cubic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
+	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, delta, sizeof(block_secpar));
+
+	uint8_t delta_bytes[SECURITY_PARAM];
+	for (size_t i = 0; i < SECURITY_PARAM; ++i)
+		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
+
+	vector_open(forest, hashed_leaves, delta_bytes, veccom_open_start);
+	free(forest);
+	free(hashed_leaves);
+
+	uint8_t* iv_dst = delta + sizeof(block_secpar);
+	memcpy(iv_dst, &iv, sizeof(iv));
+
+	assert(iv_dst + sizeof(iv) == signature + FAEST_RING_SIGNATURE_BYTES); // JC: Update signature size.
+
+	return true;
+}
