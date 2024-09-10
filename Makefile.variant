@@ -1,0 +1,115 @@
+CPPFLAGS = $(ORIG_CPPFLAGS) -MMD -MP -MF $*.d
+
+keccak_sources = \
+	$(wildcard XKCP/lib/high/Keccak/FIPS202/KeccakHash.*)\
+	$(wildcard XKCP/lib/high/Keccak/KeccakSponge.*)\
+	$(wildcard XKCP/lib/common/*)\
+	$(wildcard XKCP/lib/low/common/*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600/common/*)
+keccak_avx2_sources = \
+	$(wildcard XKCP/lib/low/KeccakP-1600/AVX2/*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times2/SIMD128/KeccakP-1600-times2-*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times2/SIMD128/SSSE3-u2/SIMD128-config.h)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/KeccakP-1600-times4-*)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times4/AVX2/u12/SIMD256-config.h)\
+	$(wildcard XKCP/lib/low/KeccakP-1600-times8/fallback-on4/*)
+
+shared_sources = $(filter-out randomness_randombytes.c randomness_os.c,$(wildcard *.c *.h *.in *.inc)) $(keccak_sources)
+ref_sources = $(shared_sources) $(wildcard ref/*.c ref/*.h)
+avx2_sources = $(shared_sources) $(wildcard avx2/*.c avx2/*.h) $(keccak_avx2_sources)
+avx2_vaes_sources = $(shared_sources) $(wildcard avx2_vaes/*.c avx2_vaes/*.h) $(keccak_avx2_sources)
+test_sources = $(wildcard test/*.cpp test/*.hpp) $(common_headers) randomness_os.c
+test_bench_sources = test/test.hpp test/test_bench_api.cpp $(common_headers) randomness_os.c
+api_test_sources = test/api_test.c randomness_os.c
+kat_sources = test/rng.c test/rng.h test/PQCgenKAT_sign.c randomness_randombytes.c
+
+# Contains the shared and archtecture-specific source files
+sources := $($(ARCHNAME)_sources)
+
+define srcs-to-objs
+	$(patsubst %.s,%.o,$(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(filter %.cpp %.c %.s,$(1)))))
+endef
+define to-subdir
+	$(foreach f,$(1),$(SUBDIR)/$(notdir $(f)))
+endef
+
+objects = $(call to-subdir,$(call srcs-to-objs,$(sources)))
+headers = $(call to-subdir,$(filter %.h %.inc %.macros,$(patsubst %.in,%,$(sources))))
+test_headers = $(call to-subdir,$(filter %.hpp,$(test_sources)))
+test_objects = $(call to-subdir,$(call srcs-to-objs,$(test_sources)) $(common_objects))
+kat_headers = $(call to-subdir,$(filter %.h,$(kat_sources)))
+kat_objects = $(call to-subdir,$(call srcs-to-objs,$(kat_sources)))
+api_test_headers = $(call to-subdir,$(filter %.h,$(api_test_sources)))
+api_test_objects = $(call to-subdir,$(call srcs-to-objs,$(api_test_sources)))
+test_bench_objects = $(call to-subdir,$(call srcs-to-objs,$(test_bench_sources)) $(common_objects))
+default_targets = $(objects) $(headers) $(SUBDIR)/$(VARIANT)_bench $(SUBDIR)/Makefile
+targets = $(default_targets) $(SUBDIR)/$(VARIANT)_test $(SUBDIR)/api_test $(SUBDIR)/PQCgenKAT_sign
+depfiles = $(patsubst %.o,%.d,$(objects) $(test_objects) $(kat_objects) api_test.o)
+
+default : $(default_targets)
+.PHONY : default
+
+all : $(targets)
+.PHONY : all
+
+define link-recipe
+$(1)/$(notdir $(2)) : $(3) | $(dir $(1)/$(notdir $(2)))
+	rm -f $$@
+	$(CP_L) $$< $$@
+endef
+
+# hard link all source files into the variant directory. Also copy common object files.
+$(foreach src,$(sources) $(test_sources) $(common_objects) $(kat_sources) test/api_test.c,$(eval $(call link-recipe,$(SUBDIR),$(src),$(src))))
+
+$(eval $(call link-recipe,$(SUBDIR),Makefile,Makefile.subfolder))
+
+# generate config.h and api.h with the setting-specific constants
+$(SUBDIR)/% : %.in scripts/get_signature_size.py | $(SUBDIR)/
+	sed $(foreach substitution,\
+		"%SECURITY_PARAM%/$(SECURITY_PARAM)"\
+		"%OWF%/$(OWF)"\
+		"%PRG%/$(PRG)"\
+		"%TREE_PRG%/$(TREE_PRG)"\
+		"%LEAF_PRG%/$(LEAF_PRG)"\
+		"%TAU%/$(TAU)"\
+		"%SEEDS_THRESHOLD%/$(SEEDS_THRESHOLD)"\
+		"%ZERO_BITS%/$(ZERO_BITS)"\
+		,\
+		-e "s/"$(substitution)"/g"\
+	) \
+	-e "s/%VERSION%/`python3 scripts/get_faest_name.py $(VARIANT:_$(ARCHNAME)=)`/g" \
+	`python3 scripts/get_signature_size.py --sed $(VARIANT)` $< > $@
+
+# object files depend on the headers (build order only)
+headers : $(headers)
+.PHONY: headers
+$(objects)) : | headers
+
+# same for test files
+test-headers : $(test_headers) $(kat_headers) $(api_test_headers)
+.PHONY: test-headers
+$(test_objects) $(kat_objects) $(api_test_objects) $(SUBDIR)/api_test.o : | headers test-headers
+
+# target for test binary
+$(SUBDIR)/$(VARIANT)_test : $(test_objects) $(objects)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LDLIBS)
+
+$(SUBDIR)/$(VARIANT)_bench : $(test_bench_objects) $(objects)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LDLIBS)
+
+$(SUBDIR)/PQCgenKAT_sign : $(kat_objects) $(objects)
+	$(CC) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LDLIBS)
+
+$(SUBDIR)/api_test : $(api_test_objects) $(objects)
+	$(CXX) -o $@ $^ $(LDLIBS) $(LDFLAGS) $(LDLIBS)
+
+# targets to create (sub)directories
+$(SUBDIR)/:
+	$(MKDIR_P) $@
+$(SUBDIR)/%/:
+	$(MKDIR_P) $@
+
+# magic to generate dependency files
+# https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
+$(depfiles):
+include $(wildcard $(depfiles))

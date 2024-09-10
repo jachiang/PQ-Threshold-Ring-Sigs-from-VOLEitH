@@ -1,0 +1,29 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define SECURITY_PARAM %SECURITY_PARAM%
+#define OWF_%OWF%
+#define PRG_%PRG%
+#define TREE_PRG_%TREE_PRG%
+#define LEAF_PRG_%LEAF_PRG%
+#define BITS_PER_WITNESS %TAU%
+#define ZERO_BITS_IN_CHALLENGE_3 %ZERO_BITS%
+
+#if %SEEDS_THRESHOLD% == -1
+#define USE_IMPROVED_VECTOR_COMMITMENTS 0
+#define BATCH_VECTOR_OPENING_SEEDS_TRESHOLD SECURITY_PARAM
+#else
+#define USE_IMPROVED_VECTOR_COMMITMENTS 1
+#define BATCH_VECTOR_OPENING_SEEDS_TRESHOLD %SEEDS_THRESHOLD%
+#endif
+
+// SHA3 is currently the only option.
+#define RANDOM_ORACLE_SHA3
+
+// XKCP configuration.
+#define XKCP_has_KeccakP1600
+#define XKCP_has_KeccakP1600times2
+#define XKCP_has_KeccakP1600times4
+#define XKCP_has_KeccakP1600times8
+
+#endif
