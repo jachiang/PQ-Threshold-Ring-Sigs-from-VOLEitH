@@ -52,13 +52,11 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
         std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
         std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
         test_gen_keypair(packed_pk.data(), packed_sk.data());
-        public_key pk;
-        faest_unpack_public_key(&pk, packed_pk.data());
+        faest_unpack_public_key(&pk_ring.pubkeys[i], packed_pk.data());
         if (i == sk.idx) {
             // JC: Expanded witness encodes active branch and is stored in sk.
             faest_unpack_secret_key(&sk, packed_sk.data(), true);
         }
-        pk_ring.pubkeys[i] = pk;
     }
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
