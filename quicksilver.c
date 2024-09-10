@@ -130,6 +130,7 @@ extern inline poly_secpar_vec quicksilver_get_delta(const quicksilver_state* sta
 extern inline quicksilver_vec_gf2 quicksilver_add_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, quicksilver_vec_gf2 y);
 extern inline quicksilver_vec_gfsecpar quicksilver_add_gfsecpar(const quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
 extern inline quicksilver_vec_deg2 quicksilver_add_deg2(const quicksilver_state* state, quicksilver_vec_deg2 x, quicksilver_vec_deg2 y);
+extern inline quicksilver_vec_deg2 quicksilver_add_deg2_deg1(const quicksilver_state* state, quicksilver_vec_deg2 x, quicksilver_vec_gfsecpar y);
 extern inline quicksilver_vec_gf2 quicksilver_zero_gf2();
 extern inline quicksilver_vec_gfsecpar quicksilver_zero_gfsecpar();
 extern inline quicksilver_vec_deg2 quicksilver_zero_deg2();
@@ -152,5 +153,7 @@ extern inline quicksilver_vec_gfsecpar quicksilver_combine_secpar_bits(const qui
 extern inline quicksilver_vec_gfsecpar quicksilver_const_8_bits(const quicksilver_state* state, const void* s);
 extern inline quicksilver_vec_gfsecpar quicksilver_const_secpar_bits(const quicksilver_state* state, const void* s);
 extern inline quicksilver_vec_gfsecpar quicksilver_get_witness_8_bits(const quicksilver_state* state, size_t bit_index);
+extern inline quicksilver_vec_gfsecpar quicksilver_sq_bits(const quicksilver_state* state, const quicksilver_vec_gf2* x_bits);
 extern inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg2 x);
 extern inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
+extern inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq);

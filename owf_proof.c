@@ -18,6 +18,8 @@
 
 #if defined(OWF_AES_CTR)
 
+#define S_KE (56 + 28 * (SECURITY_PARAM >> 8) - (SECURITY_PARAM >> 3))
+
 static ALWAYS_INLINE void key_sched_fwd(quicksilver_state* state, quicksilver_vec_gf2* output) {
     for (size_t bit_i = 0; bit_i < SECURITY_PARAM; ++bit_i) {
         output[bit_i] = quicksilver_get_witness_vec(state, bit_i);
@@ -39,21 +41,36 @@ static ALWAYS_INLINE void key_sched_fwd(quicksilver_state* state, quicksilver_ve
     }
 }
 
+// #if defined(ALLOW_ZERO_SBOX)
+static ALWAYS_INLINE void key_sched_lift_and_sq_round_key_bits(quicksilver_state* state,
+        const quicksilver_vec_gf2* round_key_bits, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output) {
+    for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_i) {
+        output[byte_i] = quicksilver_combine_8_bits(state, &round_key_bits[8 * byte_i]);
+        sq_output[byte_i] = quicksilver_sq_bits(state, &round_key_bits[8 * byte_i]);
+    }
+}
+// #else
 static ALWAYS_INLINE void key_sched_lift_round_key_bits(quicksilver_state* state,
         const quicksilver_vec_gf2* round_key_bits, quicksilver_vec_gfsecpar* output) {
     for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1); ++byte_i) {
         output[byte_i] = quicksilver_combine_8_bits(state, &round_key_bits[8 * byte_i]);
     }
 }
+// #endif
 
+#if defined(ALLOW_ZERO_SBOX)
+static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
+        quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output) {
+#else
 static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* output) {
+#endif
     size_t i_wd = 0; // bit index to the round key word we are currently handling
     size_t i_rcon = 0; // round constant index
     bool remove_rcon = true; // flag indicating if we need to remove the round constant from the
                              // next word
     const quicksilver_vec_gf2 qs_one = quicksilver_one_gf2(state);
-    for (size_t sbox_j = 0; sbox_j < OWF_KEY_SCHEDULE_CONSTRAINTS; ++sbox_j) {
+    for (size_t sbox_j = 0; sbox_j < S_KE; ++sbox_j) {
         // load the witness byte
         quicksilver_vec_gf2 sbox_out[8];
         for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
@@ -85,6 +102,9 @@ static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksi
 
         // lift into a field element and store in the output buffer
         output[sbox_j] = quicksilver_combine_8_bits(state, inv_out);
+#if defined(ALLOW_ZERO_SBOX)
+        sq_output[sbox_j] = quicksilver_sq_bits(state, inv_out);
+#endif
 
         if (sbox_j % 4 == 3) {
             // increase i_wd to point to the next word
@@ -102,31 +122,51 @@ static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksi
 
 static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
         quicksilver_vec_gfsecpar* round_key_bytes) {
-    quicksilver_vec_gfsecpar key_schedule_inv_outs[OWF_KEY_SCHEDULE_CONSTRAINTS];
+    quicksilver_vec_gfsecpar key_schedule_inv_outs[S_KE];
+    quicksilver_vec_gfsecpar key_schedule_inv_sq_outs[S_KE];
+    quicksilver_vec_gfsecpar round_key_sq_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
     key_sched_fwd(state, round_key_bits);
+#if defined(ALLOW_ZERO_SBOX)
+    key_sched_bkwd(state, round_key_bits, key_schedule_inv_outs, key_schedule_inv_sq_outs);
+    key_sched_lift_and_sq_round_key_bits(state, round_key_bits, round_key_bytes, round_key_sq_bytes);
+#else
     key_sched_bkwd(state, round_key_bits, key_schedule_inv_outs);
     key_sched_lift_round_key_bits(state, round_key_bits, round_key_bytes);
-
+#endif
     // byte index of the current word to read from the round keys
     size_t i_wd = 4 * (N_WD - 1);
     // for 256 bit we only rotate every second time
     bool rotate_word = true;
     quicksilver_vec_gfsecpar lhss[4];
     quicksilver_vec_gfsecpar rhss[4];
-    for (size_t sboxwd_j = 0; sboxwd_j < OWF_KEY_SCHEDULE_CONSTRAINTS / 4; ++sboxwd_j) {
+    quicksilver_vec_gfsecpar sq_lhss[4];
+    quicksilver_vec_gfsecpar sq_rhss[4];
+    for (size_t sboxwd_j = 0; sboxwd_j < S_KE / 4; ++sboxwd_j) {
         if (rotate_word) {
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 lhss[(row_k + 3) % 4] = round_key_bytes[i_wd + row_k];
                 rhss[row_k] = key_schedule_inv_outs[4 * sboxwd_j + row_k];
+#if defined(ALLOW_ZERO_SBOX)
+                sq_lhss[(row_k + 3) % 4] = round_key_sq_bytes[i_wd + row_k];
+                sq_rhss[row_k] = key_schedule_inv_sq_outs[4 * sboxwd_j + row_k];
+#endif
             }
         } else {
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 lhss[row_k] = round_key_bytes[i_wd + row_k];
                 rhss[row_k] = key_schedule_inv_outs[4 * sboxwd_j + row_k];
+#if defined(ALLOW_ZERO_SBOX)
+                sq_lhss[row_k] = round_key_sq_bytes[i_wd + row_k];
+                sq_rhss[row_k] = key_schedule_inv_sq_outs[4 * sboxwd_j + row_k];
+#endif
             }
         }
         for (size_t row_k = 0; row_k < 4; ++row_k) {
+#if defined(ALLOW_ZERO_SBOX)
+            quicksilver_pseudoinverse_constraint(state, lhss[row_k], rhss[row_k], sq_lhss[row_k], sq_rhss[row_k]);
+#else
             quicksilver_inverse_constraint(state, lhss[row_k], rhss[row_k]);
+#endif
         }
         // increase i_wd to point to the next word
         if (SECURITY_PARAM == 192) {
@@ -166,14 +206,27 @@ static ALWAYS_INLINE void load_fixed_round_key(quicksilver_state* state, quicksi
 #endif
 
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, size_t witness_bit_offset, owf_block in,
+#if defined(ALLOW_ZERO_SBOX)
+static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block in,
+    quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output) {
+#else
+static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block in,
     quicksilver_vec_gfsecpar* output) {
+#endif
     const uint8_t* in_bytes = (uint8_t*)&in;
 
     // first round: only add the round key
     for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
         quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
         output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
+#if defined(ALLOW_ZERO_SBOX)
+        quicksilver_vec_gf2 tmp_bits[8];
+        for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
+            quicksilver_vec_gf2 input_bit = quicksilver_const_gf2(state, poly1_load(in_bytes[byte_i], bit_j));
+            tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]);
+        }
+        sq_output[byte_i] = quicksilver_sq_bits(state, tmp_bits);
+#endif
     }
 
     const poly_secpar_vec c_two = poly_secpar_from_byte(0x02);
@@ -184,10 +237,35 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
         for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             quicksilver_vec_gfsecpar col_wit_bytes[4];
+            quicksilver_vec_gf2 col_wit_bits[4*8];
+            quicksilver_vec_gf2 col_bits_by_two[4*8];
+            quicksilver_vec_gf2 output_bits[8];
+
             for (size_t row_k = 0; row_k < 4; ++row_k) {
+#if defined(ALLOW_ZERO_SBOX)
+                for (size_t bit_l = 0; bit_l < 8; ++bit_l) {
+                    col_wit_bits[row_k*8 + bit_l] = quicksilver_get_witness_vec(state, witness_bit_offset + row_k * 8 + bit_l);
+                }
+                quicksilver_mul_by_two(state, &(col_wit_bits[row_k*8]), &(col_bits_by_two[row_k*8]));
+#else
                 col_wit_bytes[row_k] = quicksilver_get_witness_8_bits(state, witness_bit_offset + row_k * 8);
+#endif
             }
+            // mix columns, bit-wise
             for (size_t row_k = 0; row_k < 4; ++row_k) {
+#if defined(ALLOW_ZERO_SBOX)
+                for (size_t bit_l = 0; bit_l < 8; ++bit_l) {
+                    output_bits[bit_l] = quicksilver_add_gf2(state, col_bits_by_two[row_k*8 + bit_l],
+                        quicksilver_add_gf2(state, col_wit_bits[((row_k + 2) % 4) * 8 + bit_l],
+                        quicksilver_add_gf2(state, col_wit_bits[((row_k + 3) % 4) * 8 + bit_l],
+                        quicksilver_add_gf2(state, col_wit_bits[((row_k + 1) % 4) * 8 + bit_l],
+                        quicksilver_add_gf2(state, col_bits_by_two[((row_k + 1) % 4) * 8 + bit_l],
+                            round_key_bits[(round_key_byte_offset + row_k)*8 + bit_l])))));
+                }
+
+                output[output_byte_offset + row_k] = quicksilver_combine_8_bits(state, output_bits);
+                sq_output[output_byte_offset + row_k] = quicksilver_sq_bits(state, output_bits);
+#else
                 output[output_byte_offset + row_k] =
                     quicksilver_add_gfsecpar(state,
                         quicksilver_mul_const(state, col_wit_bytes[row_k], c_two),
@@ -196,6 +274,7 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
                             quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
                                 quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4],
                                                          round_key_bytes[round_key_byte_offset + row_k]))));
+#endif
             }
             witness_bit_offset += 32;
             round_key_byte_offset += 4;
@@ -206,7 +285,11 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
 #endif
 
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+#if defined(ALLOW_ZERO_SBOX)
+static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output) {
+#else
 static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
+#endif
     const uint8_t* out_bytes = (uint8_t*)&out;
     const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
 
@@ -256,6 +339,9 @@ static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_v
 
                 // lift into a field element and store in the output buffer
                 output[round_i * OWF_BLOCK_SIZE + 4 * col_j + row_k] = quicksilver_combine_8_bits(state, inv_out);
+#if defined(ALLOW_ZERO_SBOX)
+                sq_output[round_i * OWF_BLOCK_SIZE + 4 * col_j + row_k] = quicksilver_sq_bits(state, inv_out);
+#endif
             }
         }
     }
@@ -417,11 +503,22 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
 #endif
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar inv_outputs[S_ENC];
-    enc_fwd(state, round_key_bytes, witness_bit_offset, in, inv_inputs);
+#if defined(ALLOW_ZERO_SBOX)
+    quicksilver_vec_gfsecpar sq_inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar sq_inv_outputs[S_ENC];
+    enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs, sq_inv_inputs);
+    enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs, sq_inv_outputs);
+#else
+    enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs);
     enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
+#endif
 
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
+#if defined(ALLOW_ZERO_SBOX)
+        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j]);
+#else
         quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+#endif
     }
 }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)

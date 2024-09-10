@@ -1,6 +1,8 @@
 #ifndef OWF_PROOF_H
 #define OWF_PROOF_H
 
+#include <stdio.h>
+
 #if defined(OWF_AES_CTR)
 
 	// Number of applications of the round function per encryption (need OWF_ROUNDS + 1 round keys).
@@ -11,7 +13,11 @@
 	// (1 for 128 bit, 2 for 192/256 bit to compensate for the 128 bit block size)
 	#define OWF_BLOCKS ((SECURITY_PARAM + 127) / 128)
 	// How many constraints are used to encode the correctness of evaluating a single round.
+#if defined(ALLOW_ZERO_SBOX)
+	#define OWF_CONSTRAINTS_PER_ROUND (2*OWF_BLOCK_SIZE)
+#else
 	#define OWF_CONSTRAINTS_PER_ROUND OWF_BLOCK_SIZE
+#endif
 
 	// Spacing in bytes of the sub_words operation in the key schedule.
 	#if SECURITY_PARAM == 256
@@ -21,10 +27,17 @@
 	#endif
 
 	// Number of S-boxes in the key schedule.
+#if defined(ALLOW_ZERO_SBOX)
+	#define OWF_KEY_SCHEDULE_CONSTRAINTS \
+		(8 * (((AES_ROUNDS + 1) * 16 - SECURITY_PARAM / 8 + \
+			OWF_KEY_SCHEDULE_PERIOD - 1) / OWF_KEY_SCHEDULE_PERIOD))
+	#define OWF_KEY_WITNESS_BITS (SECURITY_PARAM + 4 * OWF_KEY_SCHEDULE_CONSTRAINTS)
+#else
 	#define OWF_KEY_SCHEDULE_CONSTRAINTS \
 		(4 * (((AES_ROUNDS + 1) * 16 - SECURITY_PARAM / 8 + \
 			OWF_KEY_SCHEDULE_PERIOD - 1) / OWF_KEY_SCHEDULE_PERIOD))
 	#define OWF_KEY_WITNESS_BITS (SECURITY_PARAM + 8 * OWF_KEY_SCHEDULE_CONSTRAINTS)
+#endif
 
 	typedef block128 owf_block;
 	inline owf_block owf_block_xor(owf_block x, owf_block y) { return block128_xor(x, y); }
@@ -36,7 +49,11 @@
 	#define OWF_KEY_SCHEDULE_CONSTRAINTS 0
 	#define OWF_KEY_WITNESS_BITS SECURITY_PARAM
 	#define OWF_BLOCK_SIZE (SECURITY_PARAM / 8)
+#if defined(ALLOW_ZERO_SBOX)
+	#define OWF_CONSTRAINTS_PER_ROUND (2*OWF_BLOCK_SIZE)
+#else
 	#define OWF_CONSTRAINTS_PER_ROUND OWF_BLOCK_SIZE
+#endif
 	#define OWF_BLOCKS 1
 
 	#if SECURITY_PARAM == 128

@@ -131,7 +131,7 @@ bool faest_compute_witness(secret_key* sk)
 	{
 		for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 		{
-			#if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+			#if !defined(ALLOW_ZERO_SBOX) && (defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR))
 			// The block is about to go into the SBox, so check for zeros.
 			if (owf_block_any_zeros(sk->pk.owf_output[i]))
 				return false;

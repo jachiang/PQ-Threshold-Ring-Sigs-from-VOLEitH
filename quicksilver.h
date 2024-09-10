@@ -123,6 +123,21 @@ inline quicksilver_vec_deg2 quicksilver_add_deg2(const quicksilver_state* state,
 	return out;
 }
 
+inline quicksilver_vec_deg2 quicksilver_add_deg2_deg1(const quicksilver_state* state, quicksilver_vec_deg2 x, quicksilver_vec_gfsecpar y)
+{
+	quicksilver_vec_deg2 out;
+	
+	if (state->verifier)
+		out.mac0 = poly_2secpar_add(x.mac0, poly_secpar_mul(state->delta, y.mac));
+	else
+	{
+		out.mac0 = x.mac0;
+		out.mac1 = poly_2secpar_add(poly_2secpar_add(x.mac1,
+			poly_2secpar_from_secpar(y.mac)), poly_2secpar_from_secpar(y.value));
+	}
+	return out;
+}
+
 inline quicksilver_vec_gf2 quicksilver_zero_gf2()
 {
 	quicksilver_vec_gf2 out;
@@ -265,6 +280,18 @@ inline quicksilver_vec_gfsecpar quicksilver_mul_const(const quicksilver_state* s
 	if (!state->verifier)
 		x.value = poly_2secpar_reduce_secpar(poly_secpar_mul(c, x.value));
 	return x;
+}
+
+inline void quicksilver_mul_by_two(const quicksilver_state* state, const quicksilver_vec_gf2* x_bits, quicksilver_vec_gf2* res)
+{
+	res[0] = x_bits[7];
+	res[1] = quicksilver_add_gf2(state, x_bits[7], x_bits[0]);
+	res[2] = x_bits[1];
+	res[3] = quicksilver_add_gf2(state, x_bits[7], x_bits[2]);
+	res[4] = quicksilver_add_gf2(state, x_bits[7], x_bits[3]);
+	res[5] = x_bits[4];
+	res[6] = x_bits[5];
+	res[7] = x_bits[6];
 }
 
 inline quicksilver_vec_deg2 quicksilver_mul_const_deg2_gf2(const quicksilver_state* state, quicksilver_vec_deg2 x, poly1_vec c)
@@ -470,6 +497,41 @@ inline quicksilver_vec_gfsecpar quicksilver_get_witness_secpar_bits(const quicks
     return quicksilver_combine_secpar_bits(state, input_bits);
 }
 
+// square 8 bits and embed into GF(2^lambda)
+inline quicksilver_vec_gfsecpar quicksilver_sq_bits(const quicksilver_state* state, const quicksilver_vec_gf2* x_bits)
+{
+	quicksilver_vec_gf2 sq_bits[8];
+	sq_bits[0] = quicksilver_add_gf2(state, x_bits[0],
+		quicksilver_add_gf2(state, x_bits[4],
+			x_bits[6]));
+	sq_bits[1] =
+		quicksilver_add_gf2(state, x_bits[4],
+		quicksilver_add_gf2(state, x_bits[6],
+			x_bits[7]));
+	sq_bits[2] =
+		quicksilver_add_gf2(state, x_bits[1],
+			x_bits[5]);
+	sq_bits[3] =
+		quicksilver_add_gf2(state, x_bits[4],
+		quicksilver_add_gf2(state, x_bits[5],
+		quicksilver_add_gf2(state, x_bits[6],
+			x_bits[7])));
+	sq_bits[4] =
+		quicksilver_add_gf2(state, x_bits[2],
+		quicksilver_add_gf2(state, x_bits[4],
+			x_bits[7]));
+	sq_bits[5] =
+		quicksilver_add_gf2(state, x_bits[5],
+			x_bits[6]);
+	sq_bits[6] =
+		quicksilver_add_gf2(state, x_bits[3],
+			x_bits[5]);
+	sq_bits[7] =
+		quicksilver_add_gf2(state, x_bits[6],
+			x_bits[7]);
+	return quicksilver_combine_8_bits(state, sq_bits);
+}
+
 // Add the constraint that a given degree 2 polynomial must be 0.
 inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg2 x)
 {
@@ -497,10 +559,31 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
 {
 	// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)));
-
 	quicksilver_vec_deg2 mul = quicksilver_mul(state, x, y);
 	quicksilver_vec_deg2 constraint = quicksilver_add_deg2(state, mul, quicksilver_one_deg2(state));
 	quicksilver_constraint(state, constraint);
+}
+
+//#include <stdio.h>
+// Add the constraints x^2 y == x and x y^2 = y
+inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq)
+{
+	// if (!state->verifier) {
+	// 	if (!(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)))) {
+	// 		if (poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(0))) {
+	// 			printf("zero sbox,");
+	// 		}
+	// 		else {
+	// 			printf("incorrect sbox\n");
+	// 		}
+	// 	}
+	// }
+	quicksilver_vec_deg2 mul1 = quicksilver_mul(state, x_sq, y);
+	quicksilver_vec_deg2 mul2 = quicksilver_mul(state, x, y_sq);
+	quicksilver_vec_deg2 constraint1 = quicksilver_add_deg2_deg1(state, mul1, x);
+	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
+	quicksilver_constraint(state, constraint1);
+	quicksilver_constraint(state, constraint2);
 }
 
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
