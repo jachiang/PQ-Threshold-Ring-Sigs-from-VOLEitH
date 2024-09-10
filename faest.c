@@ -43,6 +43,24 @@ void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 #endif
 }
 
+void faest_pack_pk_ring(uint8_t* pk_ring_packed, const public_key_ring* pk_ring_unpacked)
+{
+    uint8_t* pk_ptr = pk_ring_packed;
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+		faest_pack_public_key(pk_ptr, &pk_ring_unpacked->pubkeys[i]);
+		pk_ptr = pk_ptr + FAEST_PUBLIC_KEY_BYTES;
+    }
+}
+
+void faest_unpack_pk_ring(public_key_ring* pk_ring_unpacked, const uint8_t* pk_ring_packed)
+{
+	const uint8_t* pk_ptr = pk_ring_packed;
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+		faest_unpack_public_key(&pk_ring_unpacked->pubkeys[i], pk_ptr);
+		pk_ptr = pk_ptr + FAEST_PUBLIC_KEY_BYTES;
+	}
+}
+
 bool faest_compute_witness(secret_key* sk, bool ring)
 {
 	uint8_t* w_ptr;
@@ -399,16 +417,21 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 }
 
 bool faest_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
 	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len)
 {
-	secret_key sk;
+	secret_key sk; sk.idx = branch;
+    public_key_ring pk_ring;
+    pk_ring.pubkeys = (public_key *)malloc(FAEST_RING_SIZE * sizeof(public_key));
+
+	faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
 
 	// uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	// if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
 	// 	return false;
 
 	// JC: Expand key schedule witness and 1-hotvector bytes.
+	// JC: true bit activates ring signer flag.
 	if (!faest_unpack_secret_key(&sk, sk_packed, true))
 		return false;
 
@@ -492,9 +515,10 @@ bool faest_ring_sign(
 	free(v);
 
 	quicksilver_state qs;
+	// JC: TODO - OWF_NUM_CONSTRAINTS should include tag constraints.
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
 							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2);
-								// JC: TODO - OWF_NUM_CONSTRAINTS should include tag constraints.
+	owf_constraints_prover_all_branches(&qs, &pk_ring);
 
 	// uint8_t* qs_proof = correction + RING_WITNESS_BITS / 8;
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];

@@ -71,5 +71,5 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
 
 bool faest_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
 	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len);
