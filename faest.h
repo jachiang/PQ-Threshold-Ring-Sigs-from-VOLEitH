@@ -33,18 +33,18 @@
 	16)
 
 #if (FAEST_RING_HOTVECTOR_DIM == 1)
-#define FAEST_PROOF_ELEMS (2)
+#define FAEST_RING_PROOF_ELEMS (2)
 #elif  (FAEST_RING_HOTVECTOR_DIM == 2)
-#define FAEST_PROOF_ELEMS (3)
+#define FAEST_RING_PROOF_ELEMS (3)
 #elif  (FAEST_RING_HOTVECTOR_DIM == 4)
-#define FAEST_PROOF_ELEMS (5)
+#define FAEST_RING_PROOF_ELEMS (5)
 #endif
 
 #define FAEST_RING_SIGNATURE_BYTES ( \
 	VOLE_RING_COMMIT_SIZE + \
 	VOLE_CHECK_PROOF_BYTES + \
 	RING_WITNESS_BITS / 8 + \
-	QUICKSILVER_PROOF_BYTES * FAEST_PROOF_ELEMS + \
+	QUICKSILVER_PROOF_BYTES * FAEST_RING_PROOF_ELEMS + \
 	VECTOR_OPEN_SIZE + \
 	SECURITY_PARAM / 8 + \
 	16)
@@ -70,6 +70,8 @@ bool faest_sign(
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
 
-bool faest_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
-	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len);
+bool faest_ring_sign(uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
+					 const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len);
+
+bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  	   const uint8_t* pk_ring_packed);

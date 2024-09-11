@@ -4,6 +4,8 @@
 #include "test_faest_tvs.hpp"
 #include "test_witness.hpp"
 
+#include <stdio.h>
+
 extern "C" {
 
 #include "config.h"
@@ -176,7 +178,11 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
         }
         pk_ptr = pk_ptr + FAEST_PUBLIC_KEY_BYTES;
     }
+    public_key pk;
+    printf("PK in: %u\n", sizeof(pk.owf_input));
+    printf("PK out: %u\n", sizeof(pk.owf_output));
+    printf("FAEST_PUBLIC_KEY_BYTES: %u\n", FAEST_PUBLIC_KEY_BYTES);
 
-    // REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), active_branch, packed_pk_ring, NULL, 0) );
-
+    REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), active_branch, packed_pk_ring, NULL, 0) );
+    REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk_ring) );
 }
