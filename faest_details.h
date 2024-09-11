@@ -40,7 +40,7 @@ void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring);
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
-void faest_pack_ring(uint8_t* pk_ring_packed, const public_key_ring* pk_ring_unpacked);
-void faest_unpack_ring(public_key_ring* pk_ring_unpacked, const uint8_t* pk_ring_packed);
+void faest_pack_pk_ring(uint8_t* pk_ring_packed, const public_key_ring* pk_ring_unpacked);
+void faest_unpack_pk_ring(public_key_ring* pk_ring_unpacked, const uint8_t* pk_ring_packed);
 
 #endif // FAEST_DETAILS_H

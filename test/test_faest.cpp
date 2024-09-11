@@ -178,10 +178,16 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
         }
         pk_ptr = pk_ptr + FAEST_PUBLIC_KEY_BYTES;
     }
-    public_key pk;
-    printf("PK in: %u\n", sizeof(pk.owf_input));
-    printf("PK out: %u\n", sizeof(pk.owf_output));
-    printf("FAEST_PUBLIC_KEY_BYTES: %u\n", FAEST_PUBLIC_KEY_BYTES);
+
+    // // Unpack
+    // public_key_ring ring_unpacked;
+    // ring_unpacked.pubkeys = (public_key *)malloc(FAEST_RING_SIZE * sizeof(public_key));
+    // faest_unpack_pk_ring(&ring_unpacked, packed_pk_ring);
+    // // Pack again
+    // uint8_t* packed_pk_ring2 = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+    // faest_pack_pk_ring(packed_pk_ring2, &ring_unpacked);
+    // // Compare pk
+    // REQUIRE( memcmp(packed_pk_ring, packed_pk_ring2, FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE) == 0 );
 
     REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), active_branch, packed_pk_ring, NULL, 0) );
     REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk_ring) );
