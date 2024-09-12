@@ -743,7 +743,23 @@ inline poly256_vec poly256_set_zero()
 	out.data[1] = poly128_set_zero();
 	return out;
 }
-
+inline poly384_vec poly384_set_zero()
+{
+	poly384_vec out;
+	out.data[0] = poly128_set_zero();
+	out.data[1] = poly128_set_zero();
+	out.data[2] = poly128_set_zero();
+	return out;
+}
+inline poly512_vec poly512_set_zero()
+{
+	poly512_vec out;
+	out.data[0] = poly128_set_zero();
+	out.data[1] = poly128_set_zero();
+	out.data[2] = poly128_set_zero();
+	out.data[3] = poly128_set_zero();
+	return out;
+}
 inline poly64_vec poly64_set_low32(uint32_t x);
 inline poly128_vec poly128_set_low32(uint32_t x);
 inline poly192_vec poly192_set_low32(uint32_t x);

@@ -194,6 +194,14 @@ inline poly_secpar_vec poly_secpar_set_zero()
 {
 	return poly128_set_zero();
 }
+inline poly_2secpar_vec poly_2secpar_set_zero()
+{
+	return poly256_set_zero();
+}
+inline poly_secpar_vec poly_secpar_from_1(poly1_vec x)
+{
+	return poly128_from_1(x);
+}
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {
 	return poly128_set_low32(x);
@@ -304,6 +312,14 @@ inline poly_secpar_vec poly_secpar_set_zero()
 {
 	return poly192_set_zero();
 }
+inline poly_2secpar_vec poly_2secpar_set_zero()
+{
+	return poly384_set_zero();
+}
+inline poly_secpar_vec poly_secpar_from_1(poly1_vec x)
+{
+	return poly192_from_1(x);
+}
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {
 	return poly192_set_low32(x);
@@ -413,6 +429,14 @@ inline poly_secpar_vec poly_secpar_load_dup(const void* s)
 inline poly_secpar_vec poly_secpar_set_zero()
 {
 	return poly256_set_zero();
+}
+inline poly_2secpar_vec poly_2secpar_set_zero()
+{
+	return poly512_set_zero();
+}
+inline poly_secpar_vec poly_secpar_from_1(poly1_vec x)
+{
+	return poly256_from_1(x);
 }
 inline poly_secpar_vec poly_secpar_set_low32(uint32_t x)
 {

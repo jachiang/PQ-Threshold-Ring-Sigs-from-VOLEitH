@@ -143,7 +143,7 @@ static poly_secpar_vec quicksilver_lincombine_hasher_state(
 	hashes[0] = hasher_gfsecpar_final(state_secpar);
 	hashes[1] = hasher_gfsecpar_64_final(state_64);
 
-	poly_2secpar_vec sum = poly256_set_zero(); // JC: Set to zero, No mask required.
+	poly_2secpar_vec sum = poly_2secpar_set_zero(); // JC: Set to zero, No mask required.
 	for (size_t i = 0; i < 2; ++i) {
 		sum = poly_2secpar_add(sum, poly_secpar_mul(state->hash_combination[i], hashes[i]));
 	}
@@ -244,7 +244,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	assert(witness_bits % 8 == 0);
 
 	// JC: TODO: Implement higher degree masks.
-	poly_2secpar_vec zero_mask = poly256_set_zero();
+	poly_2secpar_vec zero_mask = poly_2secpar_set_zero();
 	poly_2secpar_vec value_mask = poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
@@ -290,21 +290,21 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 			// JC: Load branch selector bit commitment.
 			quicksilver_vec_gf2	hotvec0_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx);
 			hotvec0[idx].c0 = hotvec0_bit.mac;
-			hotvec0[idx].c1 = poly128_from_1(hotvec0_bit.value);
+			hotvec0[idx].c1 = poly_secpar_from_1(hotvec0_bit.value);
 			#if (FAEST_RING_HOTVECTOR_DIM > 1)
 			quicksilver_vec_gf2	hotvec1_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + FAEST_RING_HOTVECTOR_BITS);
 			hotvec1[idx].c0 = hotvec1_bit.mac;
-			hotvec1[idx].c1 = poly128_from_1(hotvec1_bit.value);
+			hotvec1[idx].c1 = poly_secpar_from_1(hotvec1_bit.value);
 			#endif
 			#if (FAEST_RING_HOTVECTOR_DIM > 2)
 			quicksilver_vec_gf2	hotvec2_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 2*FAEST_RING_HOTVECTOR_BITS);
 			hotvec2[idx].c0 = hotvec2_bit.mac;
-			hotvec2[idx].c1 = poly128_from_1(hotvec2_bit.value);
+			hotvec2[idx].c1 = poly_secpar_from_1(hotvec2_bit.value);
 			#endif
 			#if (FAEST_RING_HOTVECTOR_DIM > 3)
 			quicksilver_vec_gf2	hotvec3_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx + 3*FAEST_RING_HOTVECTOR_BITS);
 			hotvec3[idx].c0 = hotvec3_bit.mac;
-			hotvec3[idx].c1 = poly128_from_1(hotvec3_bit.value);
+			hotvec3[idx].c1 = poly_secpar_from_1(hotvec3_bit.value);
 			#endif
 		}
 		else {
@@ -322,18 +322,18 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		}
 		// JC: Aggregate selector bits and selector multiplied by branch index.
 		hotvec0_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_sum, hotvec0[idx]);
-		hotvec0_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec0[idx]));
+		hotvec0_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, poly_secpar_from_1(idx + 1), hotvec0[idx]));
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
 		hotvec1_sum = qs_prover_poly_deg1_add_deg1(state, hotvec1_sum, hotvec1[idx]);
-		hotvec1_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec1_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec1[idx]));
+		hotvec1_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec1_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, poly_secpar_from_1(idx + 1), hotvec1[idx]));
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 2)
 		hotvec2_sum = qs_prover_poly_deg1_add_deg1(state, hotvec2_sum, hotvec2[idx]);
-		hotvec2_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec2_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec2[idx]));
+		hotvec2_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec2_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, poly_secpar_from_1(idx + 1), hotvec2[idx]));
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 3)
 		hotvec3_sum = qs_prover_poly_deg1_add_deg1(state, hotvec3_sum, hotvec3[idx]);
-		hotvec3_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec3_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, _mm_set1_epi32(idx + 1), hotvec3[idx]));
+		hotvec3_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec3_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, poly_secpar_from_1(idx + 1), hotvec3[idx]));
 		#endif
 	}
 
@@ -412,22 +412,22 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#endif
 
 	for (uint32_t idx = 0; idx <FAEST_RING_HOTVECTOR_BITS + 1; idx++) {
-		qs_prover_poly_deg1 tmp00 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec0_mul_idx_sum);
+		qs_prover_poly_deg1 tmp00 = qs_prover_poly_const_add_deg1(state, poly_secpar_from_1(idx + 1), hotvec0_mul_idx_sum);
 		qs_prover_poly_deg2 tmp01 = qs_prover_poly_deg1_mul_deg1(state, tmp00, hotvec0[idx]);
 		hotvec0_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec0_single_active_bit_constraint, tmp01);
 
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
-		qs_prover_poly_deg1 tmp10 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec1_mul_idx_sum);
+		qs_prover_poly_deg1 tmp10 = qs_prover_poly_const_add_deg1(state, poly_secpar_from_1(idx + 1), hotvec1_mul_idx_sum);
 		qs_prover_poly_deg2 tmp11 = qs_prover_poly_deg1_mul_deg1(state, tmp10, hotvec1[idx]);
 		hotvec1_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec1_single_active_bit_constraint, tmp11);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 2)
-		qs_prover_poly_deg1 tmp20 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec2_mul_idx_sum);
+		qs_prover_poly_deg1 tmp20 = qs_prover_poly_const_add_deg1(state, poly_secpar_from_1(idx + 1), hotvec2_mul_idx_sum);
 		qs_prover_poly_deg2 tmp21 = qs_prover_poly_deg1_mul_deg1(state, tmp20, hotvec2[idx]);
 		hotvec2_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec2_single_active_bit_constraint, tmp21);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 3)
-		qs_prover_poly_deg1 tmp30 = qs_prover_poly_const_add_deg1(state, _mm_set1_epi32(idx + 1), hotvec3_mul_idx_sum);
+		qs_prover_poly_deg1 tmp30 = qs_prover_poly_const_add_deg1(state, poly_secpar_from_1(idx + 1), hotvec3_mul_idx_sum);
 		qs_prover_poly_deg2 tmp31 = qs_prover_poly_deg1_mul_deg1(state, tmp30, hotvec3[idx]);
 		hotvec3_single_active_bit_constraint = qs_prover_poly_deg2_add_deg2(state, hotvec3_single_active_bit_constraint, tmp31);
 		#endif
@@ -627,22 +627,22 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 			#endif
 		}
 		hotvec0_sum = quicksilver_verifier_key_add_key(state, hotvec0_sum, hotvec0[idx]);
-		qs_verifier_key tmp	= quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec0[idx]);
+		qs_verifier_key tmp	= quicksilver_verifier_const_mul_key(state, poly_secpar_from_1(idx + 1), hotvec0[idx]);
 		hotvec0_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec0_mul_idx_sum, tmp);
 
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
 		hotvec1_sum = quicksilver_verifier_key_add_key(state, hotvec1_sum, hotvec1[idx]);
-		qs_verifier_key tmp1 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec1[idx]);
+		qs_verifier_key tmp1 = quicksilver_verifier_const_mul_key(state, poly_secpar_from_1(idx + 1), hotvec1[idx]);
 		hotvec1_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec1_mul_idx_sum, tmp1);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 2)
 		hotvec2_sum = quicksilver_verifier_key_add_key(state, hotvec2_sum, hotvec2[idx]);
-		qs_verifier_key tmp2 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec2[idx]);
+		qs_verifier_key tmp2 = quicksilver_verifier_const_mul_key(state, poly_secpar_from_1(idx + 1), hotvec2[idx]);
 		hotvec2_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec2_mul_idx_sum, tmp2);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 3)
 		hotvec3_sum = quicksilver_verifier_key_add_key(state, hotvec3_sum, hotvec3[idx]);
-		qs_verifier_key tmp3 = quicksilver_verifier_const_mul_key(state, _mm_set1_epi32(idx + 1), hotvec3[idx]);
+		qs_verifier_key tmp3 = quicksilver_verifier_const_mul_key(state, poly_secpar_from_1(idx + 1), hotvec3[idx]);
 		hotvec3_mul_idx_sum = quicksilver_verifier_key_add_key(state, hotvec3_mul_idx_sum, tmp3);
 		#endif
 	}
@@ -694,21 +694,21 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	#endif
 
 	for (uint32_t idx = 0; idx <FAEST_RING_HOTVECTOR_BITS+1; idx++) {
-		qs_verifier_key tmp = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec0_mul_idx_sum);
+		qs_verifier_key tmp = quicksilver_verifier_const_add_key(state, poly_secpar_from_1(idx + 1), hotvec0_mul_idx_sum);
 		tmp = quicksilver_verifier_key_mul_key(state, tmp, hotvec0[idx]);
 		hotvec0_const2 = quicksilver_verifier_key_add_key(state, hotvec0_const2, tmp);
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
-		qs_verifier_key tmp1 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec1_mul_idx_sum);
+		qs_verifier_key tmp1 = quicksilver_verifier_const_add_key(state, poly_secpar_from_1(idx + 1), hotvec1_mul_idx_sum);
 		tmp1 = quicksilver_verifier_key_mul_key(state, tmp1, hotvec1[idx]);
 		hotvec1_const2 = quicksilver_verifier_key_add_key(state, hotvec1_const2, tmp1);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 2)
-		qs_verifier_key tmp2 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec2_mul_idx_sum);
+		qs_verifier_key tmp2 = quicksilver_verifier_const_add_key(state, poly_secpar_from_1(idx + 1), hotvec2_mul_idx_sum);
 		tmp2 = quicksilver_verifier_key_mul_key(state, tmp2, hotvec2[idx]);
 		hotvec2_const2 = quicksilver_verifier_key_add_key(state, hotvec2_const2, tmp2);
 		#endif
 		#if (FAEST_RING_HOTVECTOR_DIM > 3)
-		qs_verifier_key tmp3 = quicksilver_verifier_const_add_key(state, _mm_set1_epi32(idx + 1), hotvec3_mul_idx_sum);
+		qs_verifier_key tmp3 = quicksilver_verifier_const_add_key(state, poly_secpar_from_1(idx + 1), hotvec3_mul_idx_sum);
 		tmp3 = quicksilver_verifier_key_mul_key(state, tmp3, hotvec3[idx]);
 		hotvec3_const2 = quicksilver_verifier_key_add_key(state, hotvec3_const2, tmp3);
 		#endif
