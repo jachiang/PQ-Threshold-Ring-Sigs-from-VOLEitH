@@ -38,6 +38,8 @@ const unsigned char gf8_in_gf256[7][32] = {
 extern inline poly_secpar_vec poly_secpar_load(const void* s);
 extern inline poly_secpar_vec poly_secpar_load_dup(const void* s);
 extern inline poly_secpar_vec poly_secpar_set_zero();
+extern inline poly_2secpar_vec poly_2secpar_set_zero();
+extern inline poly_secpar_vec poly_secpar_from_1(poly1_vec x);
 extern inline poly_secpar_vec poly_secpar_set_low32(uint32_t x);
 extern inline void poly_secpar_store(void* d, poly_secpar_vec s);
 extern inline void poly_secpar_store1(void* d, poly_secpar_vec s);
