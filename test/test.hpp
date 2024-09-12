@@ -309,4 +309,20 @@ inline void test_gen_keypair(unsigned char* pk, unsigned char* sk)
 	} while (!faest_pubkey(pk, sk));
 }
 
+// inline void test_gen_tagged_keypair_1_block(unsigned char* pk, unsigned char* sk, unsigned char* tag_owf_out, unsigned char* tag_owf_in)
+// {
+//     uint8_t owf_in_bytes[FAEST_IV_BYTES] = {1}; // fixed to 1's.
+// 	do
+// 	{
+//         // 1 block;
+//         // std::generate(sk, sk + FAEST_SECRET_KEY_BYTES, rand<uint8_t>);
+//         // std::generate(sk, sk + (SECURITY_PARAM / 8), rand<uint8_t>);
+//         // memcpy(sk + (SECURITY_PARAM / 8), owf_in_bytes, FAEST_IV_BYTES);
+
+// 	} while (!faest_pubkey(pk, sk)); // fixed owf_in
+//     // Single block tag.
+//     // tag_owf_out = faest_tag(sk, tag_owf_in);
+// }
+
+
 #endif
