@@ -1,6 +1,7 @@
 #include "quicksilver.h"
 
 #include <assert.h>
+#include <stdalign.h>
 #include <stdio.h> // JC: for debugging.
 
 // TODO: Figure out how to vectorize things here, for a later VAES implementation
@@ -43,12 +44,12 @@ void quicksilver_init_or_prover(
 	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
 	quicksilver_init_hash_keys(state, challenge);
 	// JC: init state of (ZK)Hash for batching constraints of each OR branch.
-	state->state_or_secpar_const = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
-	state->state_or_secpar_linear = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
-	state->state_or_secpar_quad = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
-	state->state_or_64_const = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
-	state->state_or_64_linear = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
-	state->state_or_64_quad = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_linear = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_quad = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_linear = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_quad = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 
 	assert(state->state_or_secpar_const != NULL);
 	assert(state->state_or_secpar_linear != NULL);
@@ -117,8 +118,8 @@ void quicksilver_init_or_verifier(
 
 	quicksilver_init_hash_keys(state, challenge);
 
-	state->state_or_secpar_const = (hasher_gfsecpar_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
-	state->state_or_64_const = (hasher_gfsecpar_64_state *)malloc(FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
 
 	assert(state->state_or_secpar_const != NULL);
 	assert(state->state_or_64_const != NULL);
@@ -248,9 +249,11 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	poly_2secpar_vec value_mask = poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
 	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
+
+
 	qs_prover_poly_deg1* hotvec0;
 	size_t vec_size = (FAEST_RING_HOTVECTOR_BITS+1) * sizeof(qs_prover_poly_deg1);
-    hotvec0 = (qs_prover_poly_deg1 *)malloc(vec_size);
+    hotvec0 = (qs_prover_poly_deg1 *)aligned_alloc(alignof(qs_prover_poly_deg1), vec_size);
     assert(hotvec0 != NULL);
 	qs_prover_poly_deg1 hotvec0_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_sum);
@@ -258,7 +261,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	quicksilver_prover_init_poly_deg1(state, &hotvec0_mul_idx_sum);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	qs_prover_poly_deg1* hotvec1;
-	hotvec1 = (qs_prover_poly_deg1 *)malloc(vec_size);
+	hotvec1 = (qs_prover_poly_deg1 *)aligned_alloc(alignof(qs_prover_poly_deg1), vec_size);
     assert(hotvec1 != NULL);
 	qs_prover_poly_deg1 hotvec1_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec1_sum);
@@ -267,7 +270,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
 	qs_prover_poly_deg1* hotvec2;
-	hotvec2 = (qs_prover_poly_deg1 *)malloc(vec_size);
+	hotvec2 = (qs_prover_poly_deg1 *)aligned_alloc(alignof(qs_prover_poly_deg1), vec_size);
     assert(hotvec2 != NULL);
 	qs_prover_poly_deg1 hotvec2_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec2_sum);
@@ -276,7 +279,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	qs_prover_poly_deg1* hotvec3;
-	hotvec3 = (qs_prover_poly_deg1 *)malloc(vec_size);
+	hotvec3 = (qs_prover_poly_deg1 *)aligned_alloc(alignof(qs_prover_poly_deg1), vec_size);
     assert(hotvec3 != NULL);
 	qs_prover_poly_deg1 hotvec3_sum;
 	quicksilver_prover_init_poly_deg1(state, &hotvec3_sum);
@@ -562,7 +565,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 
 	qs_verifier_key* hotvec0;
 	size_t vec_size = (FAEST_RING_HOTVECTOR_BITS+1) * sizeof(qs_verifier_key);
-    hotvec0 = (qs_verifier_key *)malloc(vec_size);
+    hotvec0 = (qs_verifier_key *)aligned_alloc(alignof(qs_verifier_key), vec_size);
 	assert(hotvec0 != NULL);
 	qs_verifier_key hotvec0_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec0_sum);
@@ -571,7 +574,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	qs_verifier_key* hotvec1;
-    hotvec1 = (qs_verifier_key *)malloc(vec_size);
+    hotvec1 = (qs_verifier_key *)aligned_alloc(alignof(qs_verifier_key), vec_size);
 	assert(hotvec1 != NULL);
 	qs_verifier_key hotvec1_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec1_sum);
@@ -580,7 +583,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
 	qs_verifier_key* hotvec2;
-    hotvec2 = (qs_verifier_key *)malloc(vec_size);
+    hotvec2 = (qs_verifier_key *)aligned_alloc(alignof(qs_verifier_key), vec_size);
 	assert(hotvec2!= NULL);
 	qs_verifier_key hotvec2_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec2_sum);
@@ -589,7 +592,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	qs_verifier_key* hotvec3;
-    hotvec3 = (qs_verifier_key *)malloc(vec_size);
+    hotvec3 = (qs_verifier_key *)aligned_alloc(alignof(qs_verifier_key), vec_size);
 	assert(hotvec3 != NULL);
 	qs_verifier_key hotvec3_sum;
 	quicksilver_verifier_init_key_0(state, &hotvec3_sum);

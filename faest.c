@@ -24,7 +24,6 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool r
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
-
 	return faest_compute_witness(unpacked, ring);
 }
 
@@ -421,7 +420,7 @@ bool faest_ring_sign(
 	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len)
 {
     public_key_ring pk_ring;
-    pk_ring.pubkeys = (public_key *)malloc(FAEST_RING_SIZE * sizeof(public_key));
+    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
 	faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
 
 	// JC: Expand key schedule witness and encode 1-hot vectors.
@@ -682,7 +681,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	// public_key pk;
 	// faest_unpack_public_key(&pk, pk_packed);
     public_key_ring pk_ring;
-    pk_ring.pubkeys = (public_key *)malloc(FAEST_RING_SIZE * sizeof(public_key));
+    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
 	faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
 
 	quicksilver_state qs;
