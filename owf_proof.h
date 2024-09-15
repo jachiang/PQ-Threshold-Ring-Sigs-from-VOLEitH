@@ -60,6 +60,17 @@ inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x);
 #define WITNESS_BITS (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1) + OWF_KEY_WITNESS_BITS)
 #define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
+#if (SECURITY_PARAM == 128 && defined(OWF_AES_CTR))
+#define TAGGED_RING_OWF_NUM (2)
+#elif  (SECURITY_PARAM == 192 && defined(OWF_AES_CTR))
+#define TAGGED_RING_OWF_NUM (3)
+#elif  (SECURITY_PARAM == 256 && defined(OWF_AES_CTR))
+#define TAGGED_RING_OWF_NUM (4)
+#else
+#define TAGGED_RING_OWF_NUM (2)
+#endif
+#define TAGGED_RING_WITNESS_BITS (TAGGED_RING_OWF_NUM * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
+
 #include "aes.h"
 #include "quicksilver.h"
 

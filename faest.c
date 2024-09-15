@@ -13,7 +13,6 @@
 #include "util.h"
 
 #include <stdio.h>
-
 bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring)
 {
 	memcpy(&unpacked->pk.owf_input, packed, sizeof(unpacked->pk.owf_input));
@@ -24,7 +23,41 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool r
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked->pk.fixed_key, unpacked->pk.owf_input[0]);
 #endif
-	return faest_compute_witness(unpacked, ring);
+	return faest_compute_witness(unpacked, ring, false);
+}
+
+#if (TAGGED_RING_OWF_NUM == 2)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1)
+#elif (TAGGED_RING_OWF_NUM == 3)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2)
+#elif (TAGGED_RING_OWF_NUM == 4)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2, const uint8_t* owf_input3)
+#endif
+{
+	// AES: owf_inputs are fixed, and owf_key is identical for all 4 owf.
+	// EM: owf_keys are fixed, and owf_inputs are identical for all 4 owf.
+	memcpy(&unpacked_sk->pk.owf_input, owf_input0, sizeof(unpacked_sk->pk.owf_input));
+	memcpy(&unpacked_sk->pk1.owf_input, owf_input1, sizeof(unpacked_sk->pk1.owf_input));
+	#if (TAGGED_RING_OWF_NUM > 2)
+	memcpy(&unpacked_sk->pk2.owf_input, owf_input2, sizeof(unpacked_sk->pk2.owf_input));
+	#endif
+	#if (TAGGED_RING_OWF_NUM > 3)
+	memcpy(&unpacked_sk->pk3.owf_input, owf_input3, sizeof(unpacked_sk->pk3.owf_input));
+	#endif
+	memcpy(&unpacked_sk->sk, owf_key + sizeof(unpacked_sk->pk.owf_input), sizeof(unpacked_sk->sk));
+#if defined(OWF_AES_CTR)
+	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(&unpacked_sk->pk.fixed_key, unpacked_sk->pk.owf_input[0]);
+	rijndael_keygen(&unpacked_sk->pk1.fixed_key, unpacked_sk->pk1.owf_input[0]);
+	#if (TAGGED_RING_OWF_NUM > 2)
+	rijndael_keygen(&unpacked_sk->pk2.fixed_key, unpacked_sk->pk2.owf_input[0]);
+	#endif
+	#if (TAGGED_RING_OWF_NUM > 3)
+	rijndael_keygen(&unpacked_sk->pk3.fixed_key, unpacked_sk->pk3.owf_input[0]);
+	#endif
+#endif
+	return faest_compute_witness(unpacked_sk, true, true);
 }
 
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
@@ -60,16 +93,18 @@ void faest_unpack_pk_ring(public_key_ring* pk_ring_unpacked, const uint8_t* pk_r
 	}
 }
 
-bool faest_compute_witness(secret_key* sk, bool ring)
+bool faest_compute_witness(secret_key* sk, bool ring, bool tag)
 {
 	uint8_t* w_ptr;
 	if (!ring) {
 		w_ptr = (uint8_t*) &sk->witness;
 	}
-	else {
+	else if (ring && !tag) {
 		w_ptr = (uint8_t*) &sk->ring_witness;
 	}
-
+	else if (ring && tag) {
+		w_ptr = (uint8_t*) &sk->tagged_ring_witness;
+	}
 	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
 	w_ptr += sizeof(sk->sk);
 
@@ -94,45 +129,119 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	}
 #endif
 
-#if defined(OWF_AES_CTR)
-	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
-		sk->pk.owf_output[i] =
-			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	static_assert(OWF_BLOCKS == 1, "");
-	sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
-#endif
+	// JC: Repeat witness expansion for each OWF and identical key schedule.
+	size_t owf_num;
+	if (tag) {owf_num = TAGGED_RING_OWF_NUM;}
+	else {owf_num = 1;}
 
-	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
+	for (size_t owf_id = 0; owf_id < owf_num; ++owf_id)
 	{
-		for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
-		{
-			// The block is about to go into the SBox, so check for zeros.
-			if (owf_block_any_zeros(sk->pk.owf_output[i]))
-				return false;
 
-			owf_block after_sbox;
-#if defined(OWF_AES_CTR)
-			aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-#if SECURITY_PARAM == 128
-			aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
-#elif SECURITY_PARAM == 192
-			rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
-#elif SECURITY_PARAM == 256
-			rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
-#endif
-#endif
+	#if defined(OWF_AES_CTR)
+		// Condition on specific OWF.
+		if (owf_id == 0) {
+			for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+				sk->pk.owf_output[i] =
+					owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+		} else if (owf_id == 1) {
+			for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+				sk->pk1.owf_output[i] =
+					owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
+		} else if (owf_id == 2) {
+			for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+				sk->pk2.owf_output[i] =
+					owf_block_xor(sk->round_keys.keys[0], sk->pk2.owf_input[i]);
+		} else if (owf_id == 3) {
+			for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+				sk->pk3.owf_output[i] =
+					owf_block_xor(sk->round_keys.keys[0], sk->pk3.owf_input[i]);
+		}
+	#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+		// TODO: Condition on specific OWF.
+		static_assert(OWF_BLOCKS == 1, "");
+		if (owf_id == 0) {
+			sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+		} else if (owf_id == 1) {
+			sk->pk1.owf_output[0] = owf_block_xor(sk->pk1.fixed_key.keys[0], sk->sk);
+		} else if (owf_id == 2) {
+			sk->pk2.owf_output[0] = owf_block_xor(sk->pk2.fixed_key.keys[0], sk->sk);
+		} else if (owf_id == 3) {
+			sk->pk3.owf_output[0] = owf_block_xor(sk->pk3.fixed_key.keys[0], sk->sk);
+		}
+	#endif
+
+		for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
+		{
+			for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+			{
+				if (owf_id == 0) {
+					// The block is about to go into the SBox, so check for zeros.
+					if (owf_block_any_zeros(sk->pk.owf_output[i]))
+						return false;
+				} else if (owf_id == 1) {
+					if (owf_block_any_zeros(sk->pk1.owf_output[i]))
+						return false;
+				} else if (owf_id == 2) {
+					if (owf_block_any_zeros(sk->pk2.owf_output[i]))
+						return false;
+				} else if (owf_id == 3) {
+					if (owf_block_any_zeros(sk->pk3.owf_output[i]))
+						return false;
+				}
+				owf_block after_sbox;
+	#if defined(OWF_AES_CTR)
+				if (owf_id == 0) {
+					aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 1) {
+					aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 2) {
+					aes_round_function(&sk->round_keys, &sk->pk2.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 3) {
+					aes_round_function(&sk->round_keys, &sk->pk3.owf_output[i], &after_sbox, round);
+				}
+	#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	#if SECURITY_PARAM == 128
+				if (owf_id == 0) {
+					aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 1) {
+					aes_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 2) {
+					aes_round_function(&sk->pk2.fixed_key, &sk->pk2.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 3) {
+					aes_round_function(&sk->pk3.fixed_key, &sk->pk3.owf_output[i], &after_sbox, round);
+				}
+	#elif SECURITY_PARAM == 192
+				if (owf_id == 0) {
+					rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 1) {
+					rijndael192_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 2) {
+					rijndael192_round_function(&sk->pk2.fixed_key, &sk->pk2.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 3) {
+					rijndael192_round_function(&sk->pk3.fixed_key, &sk->pk3.owf_output[i], &after_sbox, round);
+				}
+	#elif SECURITY_PARAM == 256
+				if (owf_id == 0) {
+					rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 1) {
+					rijndael256_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 2) {
+					rijndael256_round_function(&sk->pk2.fixed_key, &sk->pk2.owf_output[i], &after_sbox, round);
+				} else if (owf_id == 3) {
+					rijndael256_round_function(&sk->pk3.fixed_key, &sk->pk3.owf_output[i], &after_sbox, round);
+				}
+	#endif
+	#endif
+				if (round < OWF_ROUNDS)
+					memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
+			}
 
 			if (round < OWF_ROUNDS)
-				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
+				w_ptr += sizeof(owf_block);
 		}
-
-		if (round < OWF_ROUNDS)
-			w_ptr += sizeof(owf_block);
+		w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
 	}
-
-	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
+	// JC: End of iterating through each OWF.
 
 	if(!ring) {
 		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
