@@ -274,16 +274,18 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
     }
 }
 
-// JC: identical to enc_constraints, but passes on active branch index.
+// JC: TODO - add a owf identifier.
 static ALWAYS_INLINE void enc_constraints_branch(quicksilver_state* state, size_t branch, const quicksilver_vec_gf2* round_key_bits,
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
 #if defined(OWF_AES_CTR)
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
+    // JC: TODO - adapt for 2nd, 3rd, 4th owf identifier.
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     assert(block_num == 0);
     const size_t witness_bit_offset = SECURITY_PARAM;
+    // JC: TODO - adapt for 2nd, 3rd, 4th owf identifier.
 #endif
 
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
@@ -328,6 +330,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
             enc_constraints_branch(state, branch, round_key_bits, round_key_bytes, block,
                                    pk_ring->pubkeys[branch].owf_input[block],
                                    pk_ring->pubkeys[branch].owf_output[block]);
+            // JC: TODO - repeat constraints for 2nd owf with same key schedule.
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
@@ -335,6 +338,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk_ring->pubkeys[branch].fixed_key);
         enc_constraints_branch(state, branch, round_key_bits, round_key_bytes, 0,
                                owf_block_set_low32(0), pk_ring->pubkeys[branch].owf_output[0]);
+        // JC: TODO - repeat constraints for 2nd owf with same owf_input.
     }
 #else
 #error "unsupported OWF"
