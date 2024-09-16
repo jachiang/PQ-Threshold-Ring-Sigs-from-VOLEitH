@@ -8,6 +8,7 @@
 #include "vole_params.h"
 #include "vector_com.h"
 #include "vole_commit.h"
+#include "faest_details.h"
 
 #if defined(OWF_AES_CTR)
 #define FAEST_IV_BYTES (OWF_BLOCKS * OWF_BLOCK_SIZE)
@@ -70,8 +71,15 @@ bool faest_sign(
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
 
-bool faest_ring_sign(uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
-					 const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len);
+// bool faest_ring_sign(uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
+// 					 const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len);
+
+bool faest_ring_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const secret_key sk,
+	const public_key_ring* pk_ring, const uint8_t* random_seed, size_t random_seed_len);
+
+// bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+//                   	   const uint8_t* pk_ring_packed);
 
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  	   const uint8_t* pk_ring_packed);
+                  	   const public_key_ring* pk_ring);

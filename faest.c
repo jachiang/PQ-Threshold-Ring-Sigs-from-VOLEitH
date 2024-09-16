@@ -524,19 +524,24 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }
 
+// bool faest_ring_sign(
+// 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
+// 	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len)
 bool faest_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed, uint32_t branch,
-	const uint8_t* pk_ring_packed, const uint8_t* random_seed, size_t random_seed_len)
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const secret_key sk,
+	const public_key_ring* pk_ring, const uint8_t* random_seed, size_t random_seed_len)
 {
-    public_key_ring pk_ring;
-    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-	faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
+    // public_key_ring pk_ring;
+    // pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+	// faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
+    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
 
 	// JC: Expand key schedule witness and encode 1-hot vectors.
 	// JC: true bit activates ring signer flag.
-	secret_key sk; sk.idx = branch;
-	if (!faest_unpack_secret_key(&sk, sk_packed, true))
-		return false;
+	// secret_key sk; sk.idx = branch;
+	// if (!faest_unpack_secret_key(&sk, sk_packed, true))
+	// 	return false;
 
 	// TODO: Do we need to domain separate by the faest parameters?
 
@@ -583,11 +588,11 @@ bool faest_ring_sign(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	printf("Prover chall 1:");
-    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal1[i]);
-	}
-	printf("\n");
+	// printf("Prover chall 1:");
+    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal1[i]);
+	// }
+	// printf("\n");
 
 	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
@@ -615,11 +620,11 @@ bool faest_ring_sign(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	printf("Prover chall 2:");
-    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal2[i]);
-	}
-	printf("\n");
+	// printf("Prover chall 2:");
+    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal2[i]);
+	// }
+	// printf("\n");
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
@@ -632,7 +637,7 @@ bool faest_ring_sign(
 	quicksilver_state qs;
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
 							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2);
-	owf_constraints_prover_all_branches(&qs, &pk_ring);
+	owf_constraints_prover_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 
@@ -700,9 +705,14 @@ bool faest_ring_sign(
 }
 
 
+// bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+//                   	   const uint8_t* pk_ring_packed)
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  	   const uint8_t* pk_ring_packed)
+                  	   const public_key_ring* pk_ring)
 {
+    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+	faest_pack_pk_ring(pk_ring_packed, pk_ring);
+
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
@@ -749,11 +759,11 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	printf("Verifier chall 1:");
-    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal1[i]);
-	}
-	printf("\n");
+	// printf("Verifier chall 1:");
+    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal1[i]);
+	// }
+	// printf("\n");
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
@@ -767,11 +777,11 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	printf("Verifier chall 2:");
-    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal2[i]);
-	}
-	printf("\n");
+	// printf("Verifier chall 2:");
+    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal2[i]);
+	// }
+	// printf("\n");
 
 	vole_block correction_blocks[RING_WITNESS_BLOCKS];
 	memcpy(&correction_blocks, correction, RING_WITNESS_BITS / 8);
@@ -787,15 +797,9 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	block_secpar delta_block;
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
-	// public_key pk;
-	// faest_unpack_public_key(&pk, pk_packed);
-    public_key_ring pk_ring;
-    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-	faest_unpack_pk_ring(&pk_ring, pk_ring_packed);
-
 	quicksilver_state qs;
 	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2);
-	owf_constraints_verifier_all_branches(&qs, &pk_ring);
+	owf_constraints_verifier_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)

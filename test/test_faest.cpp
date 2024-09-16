@@ -157,15 +157,35 @@ TEST_CASE( "test vector", "[faest]" ) {
 #endif
 
 TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
-    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
-    uint8_t* packed_pk_ring;
-    packed_pk_ring = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 
     std::array<uint8_t, FAEST_RING_SIGNATURE_BYTES> ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous ring signature.";
 
-    // Generate test keys in packed form.
+    public_key_ring pk_ring;
+    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+    if (pk_ring.pubkeys == NULL) {
+        printf("Memory allocation failed!\n");
+    }
+    secret_key sk;
+    sk.idx = 12;
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+        std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+        std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+        test_gen_keypair(packed_pk.data(), packed_sk.data());
+        public_key* pubkey_ptr = &pk_ring.pubkeys[i];
+        faest_unpack_public_key(pubkey_ptr, packed_pk.data());
+        if (i == sk.idx) {
+            faest_unpack_secret_key(&sk, packed_sk.data(), true);
+        }
+    }
+
+    REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), sk, &pk_ring, NULL, 0) );
+    REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
+
+    free(pk_ring.pubkeys);
+
+    // // Generate test keys in packed form.
     // uint32_t active_branch = 12;
     // uint8_t* pk_ptr = packed_pk_ring;
     // for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
@@ -191,4 +211,8 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
 
     // REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), active_branch, packed_pk_ring, NULL, 0) );
     // REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk_ring) );
+
+    // ...
+
+
 }
