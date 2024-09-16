@@ -48,19 +48,8 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
         printf("Memory allocation failed!\n");
     }
     secret_key sk;
-    // sk.idx = test_idx;
-    sk.idx = 12;
-    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
-        std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
-        std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
-        test_gen_keypair(packed_pk.data(), packed_sk.data());
-        public_key* pubkey_ptr = &pk_ring.pubkeys[i];
-        faest_unpack_public_key(pubkey_ptr, packed_pk.data());
-        if (i == sk.idx) {
-            // JC: Expanded witness encodes active branch and is stored in sk.
-            faest_unpack_secret_key(&sk, packed_sk.data(), true);
-        }
-    }
+    test_gen_ring_keys(&pk_ring, &sk, 12);
+
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
 

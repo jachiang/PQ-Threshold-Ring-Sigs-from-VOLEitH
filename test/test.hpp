@@ -310,6 +310,20 @@ inline void test_gen_keypair(unsigned char* pk, unsigned char* sk)
 	} while (!faest_pubkey(pk, sk));
 }
 
+inline void test_gen_ring_keys(public_key_ring* pk_ring, secret_key* sk, uint32_t active_branch)
+{
+    sk->idx = active_branch;
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+        std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+        std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+        test_gen_keypair(packed_pk.data(), packed_sk.data());
+        faest_unpack_public_key(&pk_ring->pubkeys[i], packed_pk.data());
+        if (i == sk->idx) {
+            faest_unpack_secret_key(sk, packed_sk.data(), true);
+        }
+    }
+}
+
 #if (TAGGED_RING_OWF_NUM == 2)
 inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, public_key* pk1, unsigned char* owf_input0, unsigned char* owf_input1)
 #elif (TAGGED_RING_OWF_NUM == 3)

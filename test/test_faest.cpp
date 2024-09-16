@@ -168,17 +168,18 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
         printf("Memory allocation failed!\n");
     }
     secret_key sk;
-    sk.idx = 12;
-    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
-        std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
-        std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
-        test_gen_keypair(packed_pk.data(), packed_sk.data());
-        public_key* pubkey_ptr = &pk_ring.pubkeys[i];
-        faest_unpack_public_key(pubkey_ptr, packed_pk.data());
-        if (i == sk.idx) {
-            faest_unpack_secret_key(&sk, packed_sk.data(), true);
-        }
-    }
+    test_gen_ring_keys(&pk_ring, &sk, 12);
+    // sk.idx = 12;
+    // for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+    //     std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+    //     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+    //     test_gen_keypair(packed_pk.data(), packed_sk.data());
+    //     // public_key* pubkey_ptr = &pk_ring.pubkeys[i];
+    //     faest_unpack_public_key(&pk_ring.pubkeys[i], packed_pk.data());
+    //     if (i == sk.idx) {
+    //         faest_unpack_secret_key(&sk, packed_sk.data(), true);
+    //     }
+    // }
 
     REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), sk, &pk_ring, NULL, 0) );
     REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
