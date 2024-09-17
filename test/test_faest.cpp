@@ -120,7 +120,7 @@ TEST_CASE( "unpack sk", "[faest]" ) {
     memcpy(packed_sk.data() + OWF_BLOCKS * OWF_BLOCK_SIZE, key, SECURITY_PARAM / 8);
 
     secret_key sk;
-    REQUIRE( faest_unpack_secret_key(&sk, packed_sk.data()) );
+    REQUIRE( faest_unpack_secret_key(&sk, packed_sk.data(), false) );
 
     const auto computed_output = std::vector(reinterpret_cast<uint8_t*>(sk.pk.owf_output),
                                              reinterpret_cast<uint8_t*>(sk.pk.owf_output) + OWF_BLOCKS * OWF_BLOCK_SIZE);

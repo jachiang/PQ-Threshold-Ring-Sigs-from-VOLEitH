@@ -41,3 +41,32 @@ TEST_CASE( "owf proof", "[owf proof]" ) {
     faest_free_public_key(&pk);
     faest_free_secret_key(&sk);
 }
+
+TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
+
+    // JC: generate pk-ring.
+    // for (size_t test_idx = 0; test_idx < FAEST_RING_SIZE; ++test_idx)
+    // {
+    public_key_ring pk_ring;
+    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+    if (pk_ring.pubkeys == NULL) {
+        printf("Memory allocation failed!\n");
+    }
+    secret_key sk;
+    test_gen_ring_keys(&pk_ring, &sk, 12);
+
+    const auto delta = rand<block_secpar>();
+    // quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
+
+    // auto& qs_state_prover = qs_test.prover_state;
+    // auto& qs_state_verifier = qs_test.verifier_state;
+
+    // owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring);
+    // owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring);
+
+	// auto [check_prover, check_verifier] = qs_test.compute_check();
+    // REQUIRE(check_prover == check_verifier);
+
+    free(pk_ring.pubkeys);
+    // }
+}

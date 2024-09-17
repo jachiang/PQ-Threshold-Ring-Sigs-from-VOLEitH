@@ -15,6 +15,7 @@ extern "C" {
 #include "faest.h"
 #include "polynomials.h"
 #include "quicksilver.h"
+#include "faest_details.h"
 }
 
 inline std::string poly_vec_to_string(const uint8_t* buf, size_t poly_size) {
@@ -236,6 +237,20 @@ inline void test_gen_keypair(unsigned char* pk, unsigned char* sk)
 	{
         std::generate(sk, sk + FAEST_SECRET_KEY_BYTES, rand<uint8_t>);
 	} while (!faest_pubkey(pk, sk));
+}
+
+inline void test_gen_ring_keys(public_key_ring* pk_ring, secret_key* sk, uint32_t active_branch)
+{
+    sk->idx = active_branch;
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+        std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+        std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+        test_gen_keypair(packed_pk.data(), packed_sk.data());
+        faest_unpack_public_key(&pk_ring->pubkeys[i], packed_pk.data());
+        if (i == sk->idx) {
+            faest_unpack_secret_key(sk, packed_sk.data(), true);
+        }
+    }
 }
 
 #endif

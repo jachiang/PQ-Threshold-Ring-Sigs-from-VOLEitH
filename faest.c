@@ -27,7 +27,7 @@ void faest_free_secret_key(secret_key* sk)
 }
 
 // done
-bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
+bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring)
 {
 	memcpy(&unpacked->pk.owf_input, packed, sizeof(unpacked->pk.owf_input));				// for MQ, here goes the seed
 	memcpy(&unpacked->sk, packed + sizeof(unpacked->pk.owf_input), sizeof(unpacked->sk));	// for MQ, here goes the x
@@ -44,7 +44,7 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed)
 	mq_initialize(unpacked->sk, unpacked->pk.owf_input[0], unpacked->pk.mq_A_b, unpacked->pk.mq_y_gfsecpar, unpacked->pk.owf_output);
 #endif
 
-	if (!faest_compute_witness(unpacked))
+	if (!faest_compute_witness(unpacked, ring)) // TODO: handle tagged ring flag.
 	{
 		faest_free_secret_key(unpacked);
 		return false;
@@ -74,20 +74,24 @@ void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 }
 
 // done
-bool faest_compute_witness(secret_key* sk)
+bool faest_compute_witness(secret_key* sk, bool ring)
 {
+	uint8_t* w_ptr;
+	if (!ring) {
+		w_ptr = (uint8_t*) &sk->witness;
+	}
+	else if (ring) {
+		w_ptr = (uint8_t*) &sk->ring_witness;
+	}
 
 #if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
 
 	// Setting key
-	uint8_t* w_ptr = (uint8_t*) &sk->witness;
 	memcpy(w_ptr, sk->sk, MQ_N_BYTES);
 	w_ptr += (MQ_M*MQ_GF_BITS)/8;
 
 	return true;
 #else
-	uint8_t* w_ptr = (uint8_t*) &sk->witness;
-
 	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
 	w_ptr += sizeof(sk->sk);
 
@@ -200,8 +204,54 @@ bool faest_compute_witness(secret_key* sk)
 	}
 
 	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
-	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
-	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+
+	if(!ring) {
+		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
+		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+	}
+	else {
+		// JC: Decompose active branch index (according to hotvector size/dim).
+		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
+		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
+		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
+
+		// JC: Serialization of hotvectors as bytes.
+		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
+
+		// JC: Init indices and vars.
+		int curr_byte_idx = 0;
+		int curr_bit_idx = 0;
+
+		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
+			// JC: Remaining free bits in current byte.
+			int remaining_bits = 8 - curr_bit_idx;
+			if ((decomp[i] != base - 1)) {
+				// JC: Hotvector has exactly one active bit.
+				uint32_t hotvector_idx = decomp[i];
+				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
+				int active_byte_idx = curr_byte_idx;
+				if (hotvector_idx + 1 > remaining_bits) {
+					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
+				}
+				// printf("Active byte idx: %u \n", active_byte_idx);
+				// printf("Active bit idx: %u \n", active_bit_idx);
+
+				// JC: Activate bit in hotvectors byte array.
+				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
+			}
+			// else{
+			// 	if (decomp[i] == base - 1) {
+			// 		printf("Last active bit omitted in hotvector %u\n", i);
+			// 	}
+			// }
+			// // JC: Update indices vars.
+			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
+			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
+		}
+
+		// JC: Copy hotvector serialization to witness.
+		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
+	}
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
@@ -215,7 +265,7 @@ bool faest_compute_witness(secret_key* sk)
 // done
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {
-	if (!faest_unpack_secret_key(sk, sk_packed))
+	if (!faest_unpack_secret_key(sk, sk_packed, false)) // JC: Unpacks sk with witness for non-ring sig.
 		return false;
 
 	faest_pack_public_key(pk_packed, &sk->pk);
