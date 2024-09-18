@@ -205,6 +205,13 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
 
+#if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+		sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+#endif
+
+#endif
+
 	if(!ring) {
 		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
 		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
@@ -252,16 +259,9 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 		// JC: Copy hotvector serialization to witness.
 		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 	}
-
-#if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
-		sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
-#endif
-
 	return true;
-
-#endif
 }
+
 // done
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {

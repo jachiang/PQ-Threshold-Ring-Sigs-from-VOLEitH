@@ -328,7 +328,7 @@ inline poly_secpar_vec poly_secpar_from_8_poly64(const poly64_vec* polys)
 	return poly128_from_8_poly64(polys);
 }
 // NEW
-inline poly_secpar_vec poly_secpar_from_secpar_poly_secpar(const poly_secpar_vec* polys) 
+inline poly_secpar_vec poly_secpar_from_secpar_poly_secpar(const poly_secpar_vec* polys)
 {
 	return poly128_from_128_poly128(polys);
 }
@@ -590,7 +590,7 @@ inline poly_secpar_vec poly_secpar_from_8_poly1(const poly1_vec* bits)
 	return poly256_from_8_poly1(bits);
 }
 // NEW
-inline poly_secpar_vec poly_secpar_from_secpar_poly1(const poly1_vec* bits) 
+inline poly_secpar_vec poly_secpar_from_secpar_poly1(const poly1_vec* bits)
 {
 	return poly256_from_256_poly1(bits);
 }
@@ -607,7 +607,7 @@ inline poly_secpar_vec poly_secpar_from_8_poly64(const poly64_vec* polys)
 	return poly256_from_8_poly64(polys);
 }
 // NEW
-inline poly_secpar_vec poly_secpar_from_secpar_poly_secpar(const poly_secpar_vec* polys) 
+inline poly_secpar_vec poly_secpar_from_secpar_poly_secpar(const poly_secpar_vec* polys)
 {
 	return poly256_from_256_poly256(polys);
 }
@@ -625,6 +625,19 @@ inline poly_secpar_vec poly_secpar_exp(poly_secpar_vec base, size_t power)
 inline poly_2secpar_vec poly_2secpar_set_zero()
 {
 	return poly_2secpar_from_secpar(poly_secpar_set_zero());
+}
+
+// Multiply polynomials coefficient-wise.
+inline void qs_polynomial_mul(const poly_secpar_vec* in1, size_t dim1, const poly_secpar_vec* in2, size_t dim2, poly_secpar_vec* out)
+{
+	// JC: out must be initialized to zero.
+	for (size_t i = 0; i < dim1; ++i)
+	{
+		for (size_t j = 0; j < dim2; ++j)
+		{
+			out[i+j] = poly_secpar_add(out[i+j],poly_2secpar_reduce_secpar(poly_secpar_mul(in1[i], in2[j])));
+		}
+	}
 }
 
 #endif

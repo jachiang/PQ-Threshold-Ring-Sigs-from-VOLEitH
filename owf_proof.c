@@ -749,7 +749,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #endif
 #if defined(OWF_AES_CTR)
-    key_sched_constraints(state, round_key_bits, round_key_bytes, false);
+    key_sched_constraints(state, round_key_bits, round_key_bytes, true);
         for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
             for (size_t i = 0; i < OWF_BLOCKS; ++i) {
                 enc_constraints_to_branch(state, branch, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i]);

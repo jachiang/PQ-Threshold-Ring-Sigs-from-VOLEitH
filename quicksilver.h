@@ -4,6 +4,7 @@
 #include "polynomials.h"
 #include "universal_hash.h"
 #include "util.h"
+#include <stdio.h> // JC: for debugging.
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
 #define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)
@@ -40,6 +41,55 @@ typedef struct
 	poly_2secpar_vec mac1;
 	poly_2secpar_vec value; // JC: Needed for unsatisfied ring branches.
 } quicksilver_vec_deg2;
+
+// JC: QS polynomials represented as coefficient terms.
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+} qs_prover_poly_deg1;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+} qs_prover_poly_deg2;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+} qs_prover_poly_deg3;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+	poly_secpar_vec c4;
+} qs_prover_poly_deg4;
+
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+	poly_secpar_vec c4;
+	poly_secpar_vec c5;
+	poly_secpar_vec c6;
+} qs_prover_poly_deg6;
+
+typedef struct
+{
+	poly_secpar_vec key;
+	size_t deg;
+} qs_verifier_key;
+
 typedef struct
 {
 	bool verifier;
@@ -178,6 +228,9 @@ inline quicksilver_vec_deg2 quicksilver_add_deg2_deg1(const quicksilver_state* s
 		out.mac0 = x.mac0;
 		out.mac1 = poly_2secpar_add(poly_2secpar_add(x.mac1,
 			poly_2secpar_from_secpar(y.mac)), poly_2secpar_from_secpar(y.value));
+		if (state->ring) {
+			out.value = poly_2secpar_add(x.value, poly_2secpar_from_secpar(y.value));
+		}
 	}
 	return out;
 }
@@ -670,10 +723,15 @@ inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t 
 	}
 	else
 	{
-		// Convert from polynomial evaluations to terms, similarly to Karatsuba.
-		// quad_term + lin_term + const_term = x.mac1.
+		// Convert from polynomial evaluations to coefficient terms.
+		// quad_term + lin_term + const_term(x.mac0) = x.mac1.
 		poly_secpar_vec lin_term = poly_2secpar_reduce_secpar(poly_2secpar_add(x.value, poly_2secpar_add(x.mac0, x.mac1)));
 		poly_secpar_vec quad_term = poly_2secpar_reduce_secpar(x.value);
+
+		bool zero_term = poly128_eq(quad_term, poly_secpar_from_byte(0));
+		if (zero_term) {
+			printf("Zero term added to branch: %u\n", branch);
+		}
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], const_term);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_linear[branch], lin_term);
@@ -733,9 +791,226 @@ inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* st
 	quicksilver_constraint_to_branch(state, branch, constraint2);
 }
 
+// JC: Various operations over polynomials represented as coefficients.
+inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in)
+{
+	assert(!state->verifier);
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+}
+
+inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs_prover_poly_deg2* in)
+{
+	assert(!state->verifier);
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+	in->c2 = poly_secpar_set_zero();
+}
+
+inline void quicksilver_verifier_init_key_0(const quicksilver_state* state, qs_verifier_key* in)
+{
+	assert(state->verifier);
+	in->key = poly_secpar_set_zero();
+	in->deg = 1;
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg1 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	return out;
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg1 out;
+	out.c0 = right.c0;
+	out.c1 = poly_secpar_add(left,right.c1);
+	return out;
+}
+
+inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg2 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = poly_secpar_add(left.c2,right.c2);
+	return out;
+}
+
+inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg1 out;
+	out.c0 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c0));
+	out.c1 = poly_2secpar_reduce_secpar(poly_secpar_mul(left,right.c1));
+	return out;
+}
+
+inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right)
+{
+	assert(!state->verifier);
+	poly_secpar_vec out_vec[3] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
+	poly_secpar_vec right_vec[2] = {right.c0, right.c1};
+	qs_polynomial_mul(left_vec, 2, right_vec, 2, out_vec);
+	qs_prover_poly_deg2 out_d2;
+	out_d2.c0 = out_vec[0];
+	out_d2.c1 = out_vec[1];
+	out_d2.c2 = out_vec[2];
+	return out_d2;
+}
+
+inline qs_prover_poly_deg3 qs_prover_poly_deg1_mul_deg2(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right)
+{
+	assert(!state->verifier);
+	poly_secpar_vec out_vec[4] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[2] = {left.c0, left.c1};
+	poly_secpar_vec right_vec[3] = {right.c0, right.c1, right.c2};
+	qs_polynomial_mul(left_vec, 2, right_vec, 3, out_vec);
+	qs_prover_poly_deg3 out_d3;
+	out_d3.c0 = out_vec[0];
+	out_d3.c1 = out_vec[1];
+	out_d3.c2 = out_vec[2];
+	out_d3.c3 = out_vec[3];
+	return out_d3;
+}
+
+inline qs_prover_poly_deg4 qs_prover_poly_deg2_mul_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right)
+{
+	assert(!state->verifier);
+	poly_secpar_vec out_vec[5] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[3] = {left.c0, left.c1, left.c2};
+	poly_secpar_vec right_vec[3] = {right.c0, right.c1, right.c2};
+	qs_polynomial_mul(left_vec, 3, right_vec, 3, out_vec);
+	qs_prover_poly_deg4 out_d4;
+	out_d4.c0 = out_vec[0];
+	out_d4.c1 = out_vec[1];
+	out_d4.c2 = out_vec[2];
+	out_d4.c3 = out_vec[3];
+	out_d4.c4 = out_vec[4];
+	return out_d4;
+}
+
+inline qs_prover_poly_deg6 qs_prover_poly_deg2_mul_deg4(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg4 right)
+{
+	assert(!state->verifier);
+	poly_secpar_vec out_vec[7] = {poly_secpar_set_zero()};
+	poly_secpar_vec left_vec[3] = {left.c0, left.c1, left.c2};
+	poly_secpar_vec right_vec[5] = {right.c0, right.c1, right.c2, right.c3, right.c4};
+	qs_polynomial_mul(left_vec, 3, right_vec, 5, out_vec);
+	qs_prover_poly_deg6 out_d6;
+	out_d6.c0 = out_vec[0];
+	out_d6.c1 = out_vec[1];
+	out_d6.c2 = out_vec[2];
+	out_d6.c3 = out_vec[3];
+	out_d6.c4 = out_vec[4];
+	out_d6.c5 = out_vec[5];
+	out_d6.c6 = out_vec[6];
+	return out_d6;
+}
+
+inline qs_verifier_key quicksilver_verifier_const_add_key(const quicksilver_state* state, const poly_secpar_vec left, const qs_verifier_key right)
+{
+	assert(state->verifier);
+	poly_secpar_vec tmp = state->delta;
+	for (size_t i = 0; i < right.deg-1; ++i)
+	{
+		tmp = poly_2secpar_reduce_secpar(poly_secpar_mul(tmp,state->delta));
+	}
+	tmp = poly_2secpar_reduce_secpar(poly_secpar_mul(left, tmp));
+	qs_verifier_key res;
+	res.key = poly_secpar_add(tmp, right.key);
+	res.deg = right.deg;
+	return res;
+}
+
+inline qs_verifier_key quicksilver_verifier_const_mul_key(const quicksilver_state* state, const poly_secpar_vec left, const qs_verifier_key right)
+{
+	assert(state->verifier);
+	qs_verifier_key res;
+	res.key = poly_2secpar_reduce_secpar(poly_secpar_mul(left, right.key));
+	res.deg = right.deg;
+	return res;
+}
+
+inline qs_verifier_key quicksilver_verifier_key_add_key(const quicksilver_state* state, const qs_verifier_key left, const qs_verifier_key right)
+{
+	assert(state->verifier);
+	size_t max_deg;
+	qs_verifier_key left_tmp = left;
+	qs_verifier_key right_tmp = right;
+	if (left.deg > right.deg) {
+        max_deg = left.deg;
+		for (size_t i = 0; i < left.deg - right.deg; ++i)
+		{
+			right_tmp.key = poly_2secpar_reduce_secpar(poly_secpar_mul(right_tmp.key, state->delta));
+		}
+		right_tmp.deg = max_deg;
+    }
+	else if (right.deg > left.deg) {
+		max_deg = right.deg;
+		for (size_t i = 0; i < right.deg - left.deg; ++i)
+		{
+			left_tmp.key = poly_2secpar_reduce_secpar(poly_secpar_mul(left_tmp.key, state->delta));
+		}
+		left_tmp.deg = max_deg;
+	}
+	else {
+		max_deg = left.deg;
+	}
+	qs_verifier_key res;
+	res.deg = max_deg;
+	res.key = poly_secpar_add(left.key, right.key);
+	return res;
+}
+
+inline qs_verifier_key quicksilver_verifier_key_mul_key(const quicksilver_state* state, const qs_verifier_key left, const qs_verifier_key right)
+{
+	assert(state->verifier);
+	qs_verifier_key res;
+	res.deg = left.deg + right.deg;
+	res.key = poly_2secpar_reduce_secpar(poly_secpar_mul(left.key, right.key));
+	return res;
+}
+
+inline void quicksilver_verifier_increase_key_deg(const quicksilver_state* state, qs_verifier_key* in, size_t deg)
+{
+	assert(state->verifier);
+	for (size_t i = 0; i < deg; ++i)
+	{
+		in->key = poly_2secpar_reduce_secpar(poly_secpar_mul(in->key, state->delta));
+		in->deg = in->deg + 1;
+	}
+}
+
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
                        uint8_t* restrict proof, uint8_t* restrict check);
 void quicksilver_verify(const quicksilver_state* restrict state, size_t witness_bits,
                         const uint8_t* restrict proof, uint8_t* restrict check);
+#if (FAEST_RING_HOTVECTOR_DIM == 1)
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits,
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits,
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);
+#elif (FAEST_RING_HOTVECTOR_DIM == 2)
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t* restrict proof_cubic,
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin, uint8_t* restrict check);
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const uint8_t* restrict proof_cubic,
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin, uint8_t* restrict check);
+#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t* restrict proof_quintic,
+						  uint8_t* restrict proof_quartic, uint8_t* restrict proof_cubic,
+                          uint8_t* restrict proof_quad, uint8_t* restrict proof_lin,
+						  uint8_t* restrict check);
+void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const uint8_t* restrict proof_quintic,
+						   const uint8_t* restrict proof_quartic, const uint8_t* restrict proof_cubic,
+                           const uint8_t* restrict proof_quad, const uint8_t* restrict proof_lin,
+						   uint8_t* restrict check);
+#endif
 
 #endif
