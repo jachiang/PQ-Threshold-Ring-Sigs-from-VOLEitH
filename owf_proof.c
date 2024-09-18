@@ -121,7 +121,7 @@ static ALWAYS_INLINE void key_sched_bkwd(quicksilver_state* state, const quicksi
 }
 
 static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
-        quicksilver_vec_gfsecpar* round_key_bytes) {
+        quicksilver_vec_gfsecpar* round_key_bytes, bool ring) {
     quicksilver_vec_gfsecpar key_schedule_inv_outs[S_KE];
     quicksilver_vec_gfsecpar key_schedule_inv_sq_outs[S_KE];
     quicksilver_vec_gfsecpar round_key_sq_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -163,9 +163,9 @@ static ALWAYS_INLINE void key_sched_constraints(quicksilver_state* state, quicks
         }
         for (size_t row_k = 0; row_k < 4; ++row_k) {
 #if defined(ALLOW_ZERO_SBOX)
-            quicksilver_pseudoinverse_constraint(state, lhss[row_k], rhss[row_k], sq_lhss[row_k], sq_rhss[row_k]);
+            quicksilver_pseudoinverse_constraint(state, lhss[row_k], rhss[row_k], sq_lhss[row_k], sq_rhss[row_k], ring);
 #else
-            quicksilver_inverse_constraint(state, lhss[row_k], rhss[row_k]);
+            quicksilver_inverse_constraint(state, lhss[row_k], rhss[row_k], ring);
 #endif
         }
         // increase i_wd to point to the next word
@@ -515,9 +515,9 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
 
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
-        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j]);
+        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j], false);
 #else
-        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], false);
 #endif
     }
 }
@@ -533,7 +533,7 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, owf_block in
     enc_bkwd(state, witness_bit_offset, out, inv_outputs);
 
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
-        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], false);
     }
 }
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
@@ -599,7 +599,7 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const public
             owf_i = quicksilver_add_deg2(state, owf_i, quicksilver_mul(state, x_j, Ax_plus_b_j));
         }
 
-        quicksilver_constraint(state, quicksilver_add_deg2(state, owf_i, quicksilver_const_deg2(state, pk->mq_y_gfsecpar[i])));
+        quicksilver_constraint(state, quicksilver_add_deg2(state, owf_i, quicksilver_const_deg2(state, pk->mq_y_gfsecpar[i])), false);
     }
 }
 
@@ -612,7 +612,7 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #endif
 #if defined(OWF_AES_CTR)
-    key_sched_constraints(state, round_key_bits, round_key_bytes);
+    key_sched_constraints(state, round_key_bits, round_key_bytes, false);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
     }

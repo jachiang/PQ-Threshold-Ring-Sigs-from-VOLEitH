@@ -638,17 +638,17 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 }
 
 // Add the constraint x*y == 1.
-inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
+inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, bool ring)
 {
 	// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)));
 	quicksilver_vec_deg2 mul = quicksilver_mul(state, x, y);
 	quicksilver_vec_deg2 constraint = quicksilver_add_deg2(state, mul, quicksilver_one_deg2(state));
-	quicksilver_constraint(state, constraint, false);
+	quicksilver_constraint(state, constraint, ring);
 }
 
 //#include <stdio.h>
 // Add the constraints x^2 y == x and x y^2 = y
-inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq)
+inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq, bool ring)
 {
 	// if (!state->verifier) {
 	// 	if (!(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)))) {
@@ -664,8 +664,8 @@ inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quick
 	quicksilver_vec_deg2 mul2 = quicksilver_mul(state, x, y_sq);
 	quicksilver_vec_deg2 constraint1 = quicksilver_add_deg2_deg1(state, mul1, x);
 	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
-	quicksilver_constraint(state, constraint1, false);
-	quicksilver_constraint(state, constraint2, false);
+	quicksilver_constraint(state, constraint1, ring);
+	quicksilver_constraint(state, constraint2, ring);
 }
 
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,

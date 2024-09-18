@@ -241,5 +241,5 @@ extern inline quicksilver_vec_gfsecpar quicksilver_const_secpar_bits(const quick
 extern inline quicksilver_vec_gfsecpar quicksilver_get_witness_8_bits(const quicksilver_state* state, size_t bit_index);
 extern inline quicksilver_vec_gfsecpar quicksilver_sq_bits(const quicksilver_state* state, const quicksilver_vec_gf2* x_bits);
 extern inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg2 x, bool ring);
-extern inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
-extern inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq);
+extern inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, bool ring);
+extern inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq, bool ring);
