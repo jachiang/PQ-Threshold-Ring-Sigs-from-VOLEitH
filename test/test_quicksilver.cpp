@@ -32,8 +32,8 @@ TEST_CASE( "one", "[quicksilver]" ) {
     const auto one_p = quicksilver_one_gfsecpar(&qs_state_prover);
     const auto one_v = quicksilver_one_gfsecpar(&qs_state_verifier);
 
-    quicksilver_inverse_constraint(&qs_state_prover, one_p, one_p);
-    quicksilver_inverse_constraint(&qs_state_verifier, one_v, one_v);
+    quicksilver_inverse_constraint(&qs_state_prover, one_p, one_p, false);
+    quicksilver_inverse_constraint(&qs_state_verifier, one_v, one_v, false);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
@@ -52,8 +52,8 @@ TEST_CASE( "constant", "[quicksilver]" ) {
     const auto c_42inv_p = quicksilver_const_gfsecpar(&qs_state_prover, c_42inv);
     const auto c_42inv_v = quicksilver_const_gfsecpar(&qs_state_verifier, c_42inv);
 
-    quicksilver_inverse_constraint(&qs_state_prover, c_42_p, c_42inv_p);
-    quicksilver_inverse_constraint(&qs_state_verifier, c_42_v, c_42inv_v);
+    quicksilver_inverse_constraint(&qs_state_prover, c_42_p, c_42inv_p, false);
+    quicksilver_inverse_constraint(&qs_state_verifier, c_42_v, c_42inv_v, false);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
@@ -74,8 +74,8 @@ TEST_CASE( "mul constant", "[quicksilver]" ) {
     const auto one_p = quicksilver_one_gfsecpar(&qs_state_prover);
     const auto one_v = quicksilver_one_gfsecpar(&qs_state_verifier);
 
-    quicksilver_inverse_constraint(&qs_state_prover, c_42_x_42inv_p, one_p);
-    quicksilver_inverse_constraint(&qs_state_verifier, c_42_x_42inv_v, one_v);
+    quicksilver_inverse_constraint(&qs_state_prover, c_42_x_42inv_p, one_p, false);
+    quicksilver_inverse_constraint(&qs_state_verifier, c_42_x_42inv_v, one_v, false);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);

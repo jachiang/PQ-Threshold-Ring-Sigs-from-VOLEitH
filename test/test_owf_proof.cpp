@@ -58,11 +58,11 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
 
-    // auto& qs_state_prover = qs_test.prover_state;
-    // auto& qs_state_verifier = qs_test.verifier_state;
+    auto& qs_state_prover = qs_test.prover_state;
+    auto& qs_state_verifier = qs_test.verifier_state;
 
-    // owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring);
-    // owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring);
+    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring);
+    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring);
 
 	// auto [check_prover, check_verifier] = qs_test.compute_check();
     // REQUIRE(check_prover == check_verifier);
