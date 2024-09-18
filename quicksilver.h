@@ -566,12 +566,24 @@ inline quicksilver_vec_gfsecpar quicksilver_sq_bits(const quicksilver_state* sta
 }
 
 // Add the constraint that a given degree 2 polynomial must be 0.
-inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg2 x)
+inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg2 x, bool ring)
 {
 	poly_secpar_vec const_term = poly_2secpar_reduce_secpar(x.mac0);
 
 	if (state->verifier)
 	{
+		if (ring){
+			const_term = poly_2secpar_reduce_secpar(poly_secpar_mul(const_term, state->delta));
+			#if (FAEST_RING_HOTVECTOR_DIM > 1)
+			const_term = poly_2secpar_reduce_secpar(poly_secpar_mul(const_term, state->delta));
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 2)
+			const_term = poly_2secpar_reduce_secpar(poly_secpar_mul(const_term, state->delta));
+			#endif
+			#if (FAEST_RING_HOTVECTOR_DIM > 3)
+			const_term = poly_2secpar_reduce_secpar(poly_secpar_mul(const_term, state->delta));
+			#endif
+		}
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, const_term);
 		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, const_term);
 	}
@@ -581,10 +593,47 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 		// constraint is valid, so plaintext value = evaluation at infinity = 0.
 		poly_secpar_vec lin_term = poly_secpar_add(const_term, poly_2secpar_reduce_secpar(x.mac1));
 
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, const_term);
-		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, lin_term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, const_term);
-		hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, lin_term);
+		if (ring) {
+			#if (FAEST_RING_HOTVECTOR_DIM == 1)
+			// JC: For hotvector dim 1, the final satisified QS poly degree is 3.
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, const_term);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, const_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, lin_term);
+			#elif (FAEST_RING_HOTVECTOR_DIM == 2)
+			// JC: For hotvector dim 2, the final satisified QS poly degree is 4.
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, const_term);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, const_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, lin_term);
+			#elif (FAEST_RING_HOTVECTOR_DIM == 4)
+			// JC: For hotvector dim 4, the final satisified QS poly degree is 6.
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_cubic, poly_secpar_set_zero());
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quartic, const_term);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quintic, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, poly_secpar_set_zero());
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quartic, const_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, lin_term);
+			#endif
+		}
+		else{
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, const_term);
+			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, lin_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_const, const_term);
+			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, lin_term);
+		}
 	}
 }
 
@@ -594,7 +643,7 @@ inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver
 	// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)));
 	quicksilver_vec_deg2 mul = quicksilver_mul(state, x, y);
 	quicksilver_vec_deg2 constraint = quicksilver_add_deg2(state, mul, quicksilver_one_deg2(state));
-	quicksilver_constraint(state, constraint);
+	quicksilver_constraint(state, constraint, false);
 }
 
 //#include <stdio.h>
@@ -615,8 +664,8 @@ inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quick
 	quicksilver_vec_deg2 mul2 = quicksilver_mul(state, x, y_sq);
 	quicksilver_vec_deg2 constraint1 = quicksilver_add_deg2_deg1(state, mul1, x);
 	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
-	quicksilver_constraint(state, constraint1);
-	quicksilver_constraint(state, constraint2);
+	quicksilver_constraint(state, constraint1, false);
+	quicksilver_constraint(state, constraint2, false);
 }
 
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,

@@ -88,7 +88,7 @@ inline void dot_product_constraints(quicksilver_state* state)
     const auto c_42 = quicksilver_const_gfsecpar(state, p_42);
     const auto c_42_x_1 = quicksilver_mul(state, c_42, c_1);
     const auto c_42_x_1_p_42 = quicksilver_add_deg2(state, c_42_x_1, quicksilver_const_deg2(state, p_42));
-    quicksilver_constraint(state, c_42_x_1_p_42);
+    quicksilver_constraint(state, c_42_x_1_p_42, false);
 }
 
 TEST_CASE( "dot product", "[quicksilver]" ) {
