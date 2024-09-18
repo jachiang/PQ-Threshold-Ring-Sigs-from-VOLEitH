@@ -38,7 +38,7 @@ typedef struct
 {
 	poly_2secpar_vec mac0;
 	poly_2secpar_vec mac1;
-	// poly_2secpar_vec value;
+	poly_2secpar_vec value; // JC: Needed for unsatisfied ring branches.
 } quicksilver_vec_deg2;
 typedef struct
 {
@@ -46,6 +46,7 @@ typedef struct
 	poly_secpar_vec delta; // All components are equal
 	poly_secpar_vec deltaSq; // Ditto
 
+	bool ring;
 	hasher_gfsecpar_key key_secpar;
 
 	// JC: Hasher state for KE + hashed OR constraints.
@@ -151,7 +152,9 @@ inline quicksilver_vec_deg2 quicksilver_add_deg2(const quicksilver_state* state,
 	if (!state->verifier)
 	{
 		out.mac1 = poly_2secpar_add(x.mac1, y.mac1);
-		// out.value = poly_2secpar_add(x.value, y.value);
+		if (state->ring) {
+			out.value = poly_2secpar_add(x.value, y.value);
+		}
 	}
 	return out;
 }
@@ -192,7 +195,7 @@ inline quicksilver_vec_deg2 quicksilver_zero_deg2()
 	quicksilver_vec_deg2 out;
 	out.mac0 = poly_2secpar_set_zero();
 	out.mac1 = poly_2secpar_set_zero();
-	// out.value = poly_2secpar_set_zero();
+	out.value = poly_2secpar_set_zero();
 	return out;
 }
 
@@ -231,7 +234,7 @@ inline quicksilver_vec_deg2 quicksilver_one_deg2(const quicksilver_state* state)
 	{
 		out.mac0 = poly_2secpar_set_zero();
 		out.mac1 = poly_2secpar_from_secpar(poly_secpar_set_low32(1));
-		// out.value = poly_2secpar_from_secpar(poly_secpar_set_low32(1));
+		out.value = poly_2secpar_from_secpar(poly_secpar_set_low32(1));
 	}
 	return out;
 }
@@ -271,7 +274,9 @@ inline quicksilver_vec_deg2 quicksilver_const_deg2(const quicksilver_state* stat
 	{
 		out.mac0 = poly_2secpar_set_zero();
 		out.mac1 = poly_2secpar_from_secpar(c);
-		// out.value = poly_2secpar_from_secpar(c);
+		if (state->ring) {
+			out.value = poly_2secpar_from_secpar(c);
+		}
 	}
 	return out;
 }
@@ -285,7 +290,9 @@ inline quicksilver_vec_deg2 quicksilver_const_deg2_gf2(const quicksilver_state* 
 	{
 		out.mac0 = poly_2secpar_set_zero();
 		out.mac1 = poly_2secpar_from_secpar(poly_secpar_from_1(c));
-		// out.value = poly_2secpar_from_secpar(poly_secpar_from_1(c));
+		if (state->ring) {
+			out.value = poly_2secpar_from_secpar(poly_secpar_from_1(c));
+		}
 	}
 	return out;
 }
@@ -334,7 +341,9 @@ inline quicksilver_vec_deg2 quicksilver_mul_const_deg2_gf2(const quicksilver_sta
 	if (!state->verifier)
 	{
 		out.mac1 = poly1x2secpar_mul(c, x.mac1);
-		// out.value = poly1x2secpar_mul(c, x.value);
+		if (state->ring) {
+			out.value = poly1x2secpar_mul(c, x.value);
+		}
 	}
 	return out;
 }
@@ -346,7 +355,9 @@ inline quicksilver_vec_deg2 quicksilver_mul_const_deg2(const quicksilver_state* 
 	if (!state->verifier)
 	{
 		out.mac1 = poly_secpar_mul(c, poly_2secpar_reduce_secpar(x.mac1));
-		// out.value = poly_secpar_mul(c, poly_2secpar_reduce_secpar(x.value));
+		if (state->ring) {
+			out.value = poly_secpar_mul(c, poly_2secpar_reduce_secpar(x.value));
+		}
 	}
 	return out;
 }
@@ -358,7 +369,9 @@ inline quicksilver_vec_deg2 quicksilver_mul(const quicksilver_state* state, quic
 	if (!state->verifier)
 	{
 		out.mac1 = poly_secpar_mul(poly_secpar_add(x.value, x.mac), poly_secpar_add(y.value, y.mac));
-		// out.value = poly_secpar_mul(x.value, y.value);
+		if (state->ring) {
+			out.value = poly_secpar_mul(x.value, y.value);
+		}
 	}
 	return out;
 }

@@ -53,6 +53,7 @@ void quicksilver_init_or_prover(
 	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge)
 {
 	state->verifier = false;
+	state->ring = true;
 
 	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
 	quicksilver_init_hash_keys(state, challenge);
@@ -111,6 +112,8 @@ void quicksilver_init_or_verifier(
 	block_secpar delta, const uint8_t* challenge)
 {
 	state->verifier = true;
+	state->ring = true;
+
 	state->delta = poly_secpar_load_dup(&delta);
 	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
 
