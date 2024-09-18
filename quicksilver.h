@@ -650,6 +650,32 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 	}
 }
 
+// Add degree 2 polynomial; assume this is an unsatisfied constraint.
+inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_deg2 x)
+{
+	poly_secpar_vec const_term = poly_2secpar_reduce_secpar(x.mac0);
+
+	if (state->verifier)
+	{
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], const_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_const[branch], const_term);
+	}
+	else
+	{
+		// Convert from polynomial evaluations to terms, similarly to Karatsuba.
+		// quad_term + lin_term + const_term = x.mac1.
+		poly_secpar_vec lin_term = poly_2secpar_reduce_secpar(poly_2secpar_add(x.value, poly_2secpar_add(x.mac0, x.mac1)));
+		poly_secpar_vec quad_term = poly_2secpar_reduce_secpar(x.value);
+
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], const_term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_linear[branch], lin_term);
+		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_quad[branch], quad_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_const[branch], const_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_linear[branch], lin_term);
+		hasher_gfsecpar_64_update(&state->key_64, &state->state_or_64_quad[branch], quad_term);
+	}
+}
+
 // Add the constraint x*y == 1.
 inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, bool ring)
 {
@@ -657,6 +683,14 @@ inline void quicksilver_inverse_constraint(quicksilver_state* state, quicksilver
 	quicksilver_vec_deg2 mul = quicksilver_mul(state, x, y);
 	quicksilver_vec_deg2 constraint = quicksilver_add_deg2(state, mul, quicksilver_one_deg2(state));
 	quicksilver_constraint(state, constraint, ring);
+}
+
+inline void quicksilver_inverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y)
+{
+	// assert(poly_secpar_eq(poly_2secpar_reduce_secpar(poly_secpar_mul(x.value, y.value)), poly_secpar_set_low32(1)));
+	quicksilver_vec_deg2 mul = quicksilver_mul(state, x, y);
+	quicksilver_vec_deg2 constraint = quicksilver_add_deg2(state, mul, quicksilver_one_deg2(state));
+	quicksilver_constraint_to_branch(state, branch, constraint);
 }
 
 //#include <stdio.h>
@@ -679,6 +713,16 @@ inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state, quick
 	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
 	quicksilver_constraint(state, constraint1, ring);
 	quicksilver_constraint(state, constraint2, ring);
+}
+
+inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq)
+{
+	quicksilver_vec_deg2 mul1 = quicksilver_mul(state, x_sq, y);
+	quicksilver_vec_deg2 mul2 = quicksilver_mul(state, x, y_sq);
+	quicksilver_vec_deg2 constraint1 = quicksilver_add_deg2_deg1(state, mul1, x);
+	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
+	quicksilver_constraint_to_branch(state, branch, constraint1);
+	quicksilver_constraint_to_branch(state, branch, constraint2);
 }
 
 void quicksilver_prove(const quicksilver_state* restrict state, size_t witness_bits,
