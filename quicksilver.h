@@ -40,7 +40,6 @@ typedef struct
 	poly_2secpar_vec mac1;
 	// poly_2secpar_vec value;
 } quicksilver_vec_deg2;
-
 typedef struct
 {
 	bool verifier;
@@ -48,12 +47,46 @@ typedef struct
 	poly_secpar_vec deltaSq; // Ditto
 
 	hasher_gfsecpar_key key_secpar;
+
+	// JC: Hasher state for KE + hashed OR constraints.
 	hasher_gfsecpar_state state_secpar_const;
 	hasher_gfsecpar_state state_secpar_linear;
+	hasher_gfsecpar_state state_secpar_quad;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hasher_gfsecpar_state state_secpar_cubic;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hasher_gfsecpar_state state_secpar_quartic;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hasher_gfsecpar_state state_secpar_quintic;
+	#endif
+
+	// JC: Hasher state for OR branch constraints.
+	hasher_gfsecpar_state* state_or_secpar_const;
+	hasher_gfsecpar_state* state_or_secpar_linear;
+	hasher_gfsecpar_state* state_or_secpar_quad;
 
 	hasher_gfsecpar_64_key key_64;
+
+	// JC: Hasher state for KE + hashed OR constraints.
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
+	hasher_gfsecpar_64_state state_64_quad;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hasher_gfsecpar_64_state state_64_cubic;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hasher_gfsecpar_64_state state_64_quartic;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hasher_gfsecpar_64_state state_64_quintic;
+	#endif
+
+	// JC: Hasher state for OR branch constraints.
+	hasher_gfsecpar_64_state* state_or_64_const;
+	hasher_gfsecpar_64_state* state_or_64_linear;
+	hasher_gfsecpar_64_state* state_or_64_quad;
 
 	poly_secpar_vec hash_combination[2];
 
@@ -126,7 +159,7 @@ inline quicksilver_vec_deg2 quicksilver_add_deg2(const quicksilver_state* state,
 inline quicksilver_vec_deg2 quicksilver_add_deg2_deg1(const quicksilver_state* state, quicksilver_vec_deg2 x, quicksilver_vec_gfsecpar y)
 {
 	quicksilver_vec_deg2 out;
-	
+
 	if (state->verifier)
 		out.mac0 = poly_2secpar_add(x.mac0, poly_secpar_mul(state->delta, y.mac));
 	else

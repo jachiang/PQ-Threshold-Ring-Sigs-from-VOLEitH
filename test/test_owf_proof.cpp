@@ -56,7 +56,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     test_gen_ring_keys(&pk_ring, &sk, 12);
 
     const auto delta = rand<block_secpar>();
-    // quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta);
 
     // auto& qs_state_prover = qs_test.prover_state;
     // auto& qs_state_verifier = qs_test.verifier_state;

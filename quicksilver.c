@@ -1,6 +1,7 @@
 #include "quicksilver.h"
 
 #include <assert.h>
+#include <stdalign.h>
 
 // TODO: Figure out how to vectorize things here, for a later VAES implementation
 static_assert(POLY_VEC_LEN == 1, "");
@@ -43,6 +44,91 @@ void quicksilver_init_verifier(
 	quicksilver_init_hash_keys(state, challenge);
 	hasher_gfsecpar_init_state(&state->state_secpar_const, num_constraints);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, num_constraints);
+
+	state->macs = macs;
+}
+
+void quicksilver_init_or_prover(
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
+	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge)
+{
+	state->verifier = false;
+
+	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
+	quicksilver_init_hash_keys(state, challenge);
+	// JC: init state of (ZK)Hash for batching constraints of each OR branch.
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_linear = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_secpar_quad = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_linear = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+	state->state_or_64_quad = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+
+	assert(state->state_or_secpar_const != NULL);
+	assert(state->state_or_secpar_linear != NULL);
+	assert(state->state_or_secpar_quad != NULL);
+	assert(state->state_or_64_const != NULL);
+	assert(state->state_or_64_linear != NULL);
+	assert(state->state_or_64_quad != NULL);
+
+	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
+
+	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_enc_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_enc_constraints);
+	}
+	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
+	// JC: Ring number of branch constraints, 2 constraints for wellformedness for each hotvector.
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hasher_gfsecpar_init_state(&state->state_secpar_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hasher_gfsecpar_init_state(&state->state_secpar_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hasher_gfsecpar_init_state(&state->state_secpar_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	#endif
+
+	state->witness = witness;
+	state->macs = macs;
+}
+
+void quicksilver_init_or_verifier(
+	quicksilver_state* state, const block_secpar* macs, size_t num_owf_constraints, size_t num_ke_constraints,
+	block_secpar delta, const uint8_t* challenge)
+{
+	state->verifier = true;
+	state->delta = poly_secpar_load_dup(&delta);
+	state->deltaSq = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->delta));
+
+	quicksilver_init_hash_keys(state, challenge);
+
+	state->state_or_secpar_const = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
+	state->state_or_64_const = (hasher_gfsecpar_64_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_64_state));
+
+	assert(state->state_or_secpar_const != NULL);
+	assert(state->state_or_64_const != NULL);
+
+	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
+	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
+	}
+	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
 
 	state->macs = macs;
 }
