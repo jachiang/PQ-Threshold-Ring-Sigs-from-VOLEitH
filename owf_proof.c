@@ -605,6 +605,120 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const public
 
 #endif
 
+#if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, const quicksilver_vec_gf2* round_key_bits,
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+    // compute the starting index of the witness bits corresponding to the s-boxes in this round of
+    // encryption
+#if defined(OWF_AES_CTR)
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    assert(block_num == 0);
+    const size_t witness_bit_offset = SECURITY_PARAM;
+#endif
+    quicksilver_vec_gfsecpar inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar inv_outputs[S_ENC];
+#if defined(ALLOW_ZERO_SBOX)
+    quicksilver_vec_gfsecpar sq_inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar sq_inv_outputs[S_ENC];
+    enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs, sq_inv_inputs);
+    enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs, sq_inv_outputs);
+#else
+    enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs);
+    enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
+#endif
+
+    for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
+#if defined(ALLOW_ZERO_SBOX)
+        quicksilver_pseudoinverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j]);
+#else
+        quicksilver_inverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+#endif
+    }
+}
+#elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
+static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, owf_block in, owf_block out) {
+    // compute the starting index of the witness bits corresponding to the s-boxes in this round of
+    // encryption
+    const size_t witness_bit_offset = SECURITY_PARAM;
+
+    quicksilver_vec_gfsecpar inv_inputs[S_ENC];
+    quicksilver_vec_gfsecpar inv_outputs[S_ENC];
+    enc_fwd(state, witness_bit_offset, in, inv_inputs);
+    enc_bkwd(state, witness_bit_offset, out, inv_outputs);
+
+    for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
+        quicksilver_inverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j]);
+    }
+}
+#elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
+static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, const public_key* pk) {
+
+    #if defined(OWF_MQ_2_1)
+    quicksilver_vec_gf2 x[MQ_M];
+    #else
+    quicksilver_vec_gfsecpar x[MQ_M];
+    #endif
+
+    // Get the witness bits x.
+    for (uint64_t k = 0; k < MQ_M; ++k) {
+        #if defined(OWF_MQ_2_1)
+        x[k] = quicksilver_get_witness_vec(state, k);
+        //y_deg2[k] = quicksilver_const_deg2(state, poly_secpar_from_1(poly1_load(mq_y[k/8], k%8)));
+
+        #elif defined(OWF_MQ_2_8)
+        quicksilver_vec_gf2 x_gf2[MQ_GF_BITS];
+        for (uint64_t bit_j = 0; bit_j < MQ_GF_BITS; bit_j++)
+            x_gf2[bit_j] = quicksilver_get_witness_vec(state, k*MQ_GF_BITS + bit_j);
+            //y_gf2[bit_j] = poly1_load(mq_y[k], bit_j);
+        x[k] = quicksilver_combine_8_bits(state, x_gf2);
+        //y_deg2[k] = quicksilver_const_deg2(state, poly_secpar_from_8_poly1(y_gf2));
+        #endif
+    }
+
+    bool skip_diag = (MQ_GF_BITS == 1);
+
+    for (uint64_t i = 0; i < OWF_NUM_CONSTRAINTS; i++)
+    {
+        quicksilver_vec_deg2 owf_i = quicksilver_zero_deg2();
+
+        // public const A
+        const block_secpar* A_b_i = pk->mq_A_b + i;
+        for (uint64_t j = 0; j < MQ_M; j++)
+        {
+            // b is interleaved with A, with b always being the first entry of the row.
+            poly_secpar_vec b_j = poly_secpar_load_dup(A_b_i);
+            A_b_i += OWF_NUM_CONSTRAINTS;
+            quicksilver_vec_gfsecpar Ax_plus_b_j = quicksilver_const_gfsecpar(state, b_j);
+
+            // Only the upper triangle is stored, so k should start from j (+1 for strictly upper
+            // triangular).
+            for (size_t k = j + skip_diag; k < MQ_M; ++k, A_b_i += OWF_NUM_CONSTRAINTS)
+            {
+                poly_secpar_vec A_jk = poly_secpar_load_dup(A_b_i);
+                #if defined(OWF_MQ_2_1)
+                quicksilver_vec_gfsecpar term = quicksilver_mul_const_gf2_gfsecpar(state, x[k], A_jk);
+                #else
+                quicksilver_vec_gfsecpar term = quicksilver_mul_const(state, x[k], A_jk);
+                #endif
+
+                Ax_plus_b_j = quicksilver_add_gfsecpar(state, Ax_plus_b_j, term);
+            }
+
+            #if defined(OWF_MQ_2_1)
+            quicksilver_vec_gfsecpar x_j = quicksilver_combine_1_bit(state, x[j]);
+            #else
+            quicksilver_vec_gfsecpar x_j = x[j];
+            #endif
+
+            owf_i = quicksilver_add_deg2(state, owf_i, quicksilver_mul(state, x_j, Ax_plus_b_j));
+        }
+
+        quicksilver_constraint_to_branch(state, branch, quicksilver_add_deg2(state, owf_i, quicksilver_const_deg2(state, pk->mq_y_gfsecpar[i])));
+    }
+}
+#endif
+
 static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public_key* pk)
 {
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
