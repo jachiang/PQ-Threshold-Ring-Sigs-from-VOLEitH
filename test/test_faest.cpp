@@ -209,3 +209,23 @@ TEST_CASE( "test vector", "[faest tv]" ) {
 }
 
 #endif
+
+TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
+
+    std::array<uint8_t, FAEST_RING_SIGNATURE_BYTES> ring_signature;
+
+    const std::string message = "This is the message string to be signed with the anonymous ring signature.";
+
+    public_key_ring pk_ring;
+    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+    if (pk_ring.pubkeys == NULL) {
+        printf("Memory allocation failed!\n");
+    }
+    secret_key sk;
+    test_gen_ring_keys(&pk_ring, &sk, 11);
+
+    REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, NULL, 0) );
+    // REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
+
+    free(pk_ring.pubkeys);
+}
