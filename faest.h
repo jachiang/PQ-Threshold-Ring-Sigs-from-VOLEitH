@@ -90,3 +90,6 @@ bool faest_ring_sign(
 // signature and false otherwise.
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
+
+bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  	   const public_key_ring* pk_ring);

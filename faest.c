@@ -637,7 +637,7 @@ static bool faest_ring_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_RING_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit_for_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -647,6 +647,12 @@ static bool faest_ring_sign_attempt(
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
+
+	printf("Prover chall 1:");
+    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal1[i]);
+	}
+	printf("\n");
 
 	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // JC: check VOLE_RING_COMMIT_SIZE
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
@@ -673,6 +679,11 @@ static bool faest_ring_sign_attempt(
     hash_update(&hasher, correction, RING_WITNESS_BITS / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
+
+	printf("Prover chall 2:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal2[i]);
+	}
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
@@ -822,4 +833,186 @@ bool faest_ring_sign(
 
 	faest_free_secret_key(sk);
 	return false;
+}
+
+// bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+//                   const uint8_t* pk_packed)
+bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  	   const public_key_ring* pk_ring)
+{
+    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+	faest_pack_pk_ring(pk_ring_packed, pk_ring);
+
+	block128 iv;
+	block_2secpar mu;
+	hash_state hasher;
+	hash_init(&hasher);
+	hash_update(&hasher, pk_ring_packed, FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+	hash_update(&hasher, msg, msg_len);
+	hash_update_byte(&hasher, 1);
+	hash_final(&hasher, &mu, sizeof(mu));
+
+	const uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE;
+	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
+	const uint8_t* qs_proof = correction + RING_WITNESS_BITS / 8;
+	const uint8_t* qs_proof_quad = qs_proof + QUICKSILVER_PROOF_BYTES;
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	const uint8_t* qs_proof_cubic = qs_proof_quad + QUICKSILVER_PROOF_BYTES;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	const uint8_t* qs_proof_quartic = qs_proof_cubic + QUICKSILVER_PROOF_BYTES;
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	const uint8_t* qs_proof_quintic = qs_proof_quartic + QUICKSILVER_PROOF_BYTES;
+	#endif
+	const uint8_t* veccom_open_start = qs_proof_quintic + QUICKSILVER_PROOF_BYTES;
+	const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
+	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
+
+	// const uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	// const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
+	// const uint8_t* qs_proof = correction + WITNESS_BITS / 8;
+	// const uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
+	// const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
+	// const uint8_t* iv_ptr = delta + sizeof(block_secpar);
+
+#if COUNTER_BYTES > 0
+	const uint8_t* counter = iv_ptr + sizeof(iv);
+#endif
+
+	uint8_t delta_bytes[SECURITY_PARAM];
+	for (size_t i = 0; i < SECURITY_PARAM; ++i)
+		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
+
+	vole_block* q =
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_RING_COL_BLOCKS * sizeof(vole_block));
+	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
+
+	// vole_block* q =
+	// 	aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
+	// uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
+
+	memcpy(&iv, iv_ptr, sizeof(iv));
+	bool reconstruct_success =  vole_reconstruct_for_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	if (reconstruct_success == 0){
+		free(q);
+		printf("Reconstruction failed\n");
+		return 0;
+	}
+
+	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &mu, sizeof(mu));
+	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
+	hash_update(&hasher, signature, VOLE_RING_COMMIT_SIZE);
+	hash_update(&hasher, &iv, sizeof(iv));
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, &chal1[0], sizeof(chal1));
+
+	printf("Verifier chall 1:");
+    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal1[i]);
+	}
+	printf("\n");
+
+	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+
+	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
+	hash_init(&hasher);
+	hash_update(&hasher, &chal1, sizeof(chal1));
+	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+	hash_update(&hasher, correction, RING_WITNESS_BITS / 8);
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, &chal2[0], sizeof(chal2));
+
+	printf("Verifier chall 2:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal2[i]);
+	}
+	printf("\n");
+
+	vole_block correction_blocks[RING_WITNESS_BLOCKS];
+	memcpy(&correction_blocks, correction, RING_WITNESS_BITS / 8);
+	memset(((uint8_t*) &correction_blocks) + RING_WITNESS_BITS / 8, 0,
+	       sizeof(correction_blocks) - RING_WITNESS_BITS / 8);
+	vole_receiver_apply_correction(RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes);
+
+	// vole_block correction_blocks[WITNESS_BLOCKS];
+	// memcpy(&correction_blocks, correction, WITNESS_BITS / 8);
+	// memset(((uint8_t*) &correction_blocks) + WITNESS_BITS / 8, 0,
+	//        sizeof(correction_blocks) - WITNESS_BITS / 8);
+	// vole_receiver_apply_correction(WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes);
+
+	block_secpar* macs =
+		aligned_alloc(alignof(block_secpar), VOLE_RING_ROWS_PADDED * sizeof(block_secpar));
+	transpose_secpar(q, macs, VOLE_RING_COL_STRIDE, QUICKSILVER_RING_ROWS_PADDED);
+	free(q);
+
+	// block_secpar* macs =
+	// 	aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
+	// transpose_secpar(q, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
+	// free(q);
+
+	block_secpar delta_block;
+	memcpy(&delta_block, delta, sizeof(delta_block));
+
+	// public_key pk;
+	// faest_unpack_public_key(&pk, pk_packed);
+
+	quicksilver_state qs;
+	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2);
+	owf_constraints_verifier_all_branches(&qs, pk_ring);
+
+	// quicksilver_state qs;
+	// quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
+	// owf_constraints_verifier(&qs, &pk);
+
+	// faest_free_public_key(&pk);
+
+	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
+	#if (FAEST_RING_HOTVECTOR_DIM == 1)
+	quicksilver_verify_or(&qs, RING_WITNESS_BITS, qs_proof_quad, qs_proof, qs_check);
+	#elif  (FAEST_RING_HOTVECTOR_DIM == 2)
+	quicksilver_verify_or(&qs, RING_WITNESS_BITS, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
+	#elif  (FAEST_RING_HOTVECTOR_DIM == 4)
+	quicksilver_verify_or(&qs, RING_WITNESS_BITS, qs_proof_quintic, qs_proof_quartic, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
+	#endif
+	free(macs);
+
+	// uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
+	// quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);
+	// free(macs);
+
+	block_secpar delta_check;
+	hash_init(&hasher);
+	hash_update(&hasher, &chal2, sizeof(chal2));
+	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
+	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hash_update(&hasher, qs_proof_cubic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	hash_update(&hasher, qs_proof_quartic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	hash_update(&hasher, qs_proof_quintic, QUICKSILVER_PROOF_BYTES);
+	#endif
+	// hash_update_byte(&hasher, 2);
+	// hash_final(&hasher, &delta_check, sizeof(delta_check));
+
+	// block_secpar delta_check;
+	// hash_init(&hasher);
+	// hash_update(&hasher, &chal2, sizeof(chal2));
+	// hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
+	// hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
+#if COUNTER_BYTES > 0
+	hash_update(&hasher, counter, COUNTER_BYTES);
+#endif
+	hash_update_byte(&hasher, 2);
+	hash_final(&hasher, &delta_check, sizeof(delta_check));
+
+	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }

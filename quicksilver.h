@@ -729,9 +729,9 @@ inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t 
 		poly_secpar_vec quad_term = poly_2secpar_reduce_secpar(x.value);
 
 		bool zero_term = poly128_eq(quad_term, poly_secpar_from_byte(0));
-		if (zero_term) {
-			printf("Zero term added to branch: %u\n", branch);
-		}
+		// if (zero_term) {
+		// 	printf("Zero term added to branch: %u\n", branch);
+		// }
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_const[branch], const_term);
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_or_secpar_linear[branch], lin_term);

@@ -225,7 +225,7 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
     test_gen_ring_keys(&pk_ring, &sk, 11);
 
     REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, NULL, 0) );
-    // REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
+    REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
 
     free(pk_ring.pubkeys);
 }
