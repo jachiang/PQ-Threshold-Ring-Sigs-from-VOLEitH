@@ -1,4 +1,5 @@
 #include "quicksilver.h"
+#include "owf_proof.h"
 
 #include <assert.h>
 #include <stdalign.h>
@@ -53,7 +54,7 @@ void quicksilver_init_verifier(
 
 void quicksilver_init_or_prover(
 	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs,
-	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge)
+	size_t num_owf_constraints, size_t num_ke_constraints, const uint8_t* challenge, bool tag)
 {
 	state->verifier = false;
 	state->ring = true;
@@ -78,32 +79,45 @@ void quicksilver_init_or_prover(
 	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
 
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
-		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
-		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], num_enc_constraints);
-		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], num_enc_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], num_enc_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], num_enc_constraints);
+		size_t branch_constraints;
+		if (!tag) {
+			branch_constraints = num_enc_constraints;
+		}
+		else{
+			branch_constraints = num_enc_constraints * TAGGED_RING_PK_OWF_NUM;
+		}
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], branch_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_linear[branch], branch_constraints);
+		hasher_gfsecpar_init_state(&state->state_or_secpar_quad[branch], branch_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], branch_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], branch_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], branch_constraints);
 	}
-	// JC: Init state for final ZKHash state of KE and each (batched) OR branch constraint.
-	// JC: Ring number of branch constraints, 1 constraint for wellformedness for each hotvector.
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_init_state(&state->state_secpar_linear, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_init_state(&state->state_secpar_quad, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_linear, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_quad, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	// JC: Init state for final ZKHash state of KE, (tag OWF) and each (batched) OR branch constraint.
+	size_t final_constraints;
+	if (!tag) {
+		final_constraints = num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
+	else{
+		final_constraints = num_ke_constraints + num_enc_constraints * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
+	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);
+	hasher_gfsecpar_init_state(&state->state_secpar_linear, final_constraints);
+	hasher_gfsecpar_init_state(&state->state_secpar_quad, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_linear, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_quad, final_constraints);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
-	hasher_gfsecpar_init_state(&state->state_secpar_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_cubic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_init_state(&state->state_secpar_cubic, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_cubic, final_constraints);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
-	hasher_gfsecpar_init_state(&state->state_secpar_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_quartic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_init_state(&state->state_secpar_quartic, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_quartic, final_constraints);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
-	hasher_gfsecpar_init_state(&state->state_secpar_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_quintic, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	hasher_gfsecpar_init_state(&state->state_secpar_quintic, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_quintic, final_constraints);
 	#endif
 
 	state->witness = witness;
@@ -112,7 +126,7 @@ void quicksilver_init_or_prover(
 
 void quicksilver_init_or_verifier(
 	quicksilver_state* state, const block_secpar* macs, size_t num_owf_constraints, size_t num_ke_constraints,
-	block_secpar delta, const uint8_t* challenge)
+	block_secpar delta, const uint8_t* challenge, bool tag)
 {
 	state->verifier = true;
 	state->ring = true;
@@ -130,11 +144,26 @@ void quicksilver_init_or_verifier(
 
 	size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
-		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], num_enc_constraints);
-		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], num_enc_constraints);
+		size_t branch_constraints;
+		if (!tag) {
+			branch_constraints = num_enc_constraints;
+		}
+		else{
+			branch_constraints = num_enc_constraints * TAGGED_RING_PK_OWF_NUM;
+		}
+		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], branch_constraints);
+		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], branch_constraints);
 	}
-	hasher_gfsecpar_init_state(&state->state_secpar_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
-	hasher_gfsecpar_64_init_state(&state->state_64_const, num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM);
+	// JC: TODO - Update number of constraints based on TAGGED_RING_TAG_OWF_NUM
+	size_t final_constraints;
+	if (!tag) {
+		final_constraints = num_ke_constraints + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
+	else{
+		final_constraints = num_ke_constraints + num_enc_constraints * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
+	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);
+	hasher_gfsecpar_64_init_state(&state->state_64_const, final_constraints);
 
 	state->macs = macs;
 }

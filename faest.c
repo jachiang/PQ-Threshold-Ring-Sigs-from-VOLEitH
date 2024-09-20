@@ -54,6 +54,42 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool r
 	return true;
 }
 
+#if (TAGGED_RING_PK_OWF_NUM == 2)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1)
+#elif (TAGGED_RING_PK_OWF_NUM == 3)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2)
+#elif (TAGGED_RING_PK_OWF_NUM == 4)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2, const uint8_t* owf_input3)
+#endif
+{
+	// AES: owf_inputs are fixed, and owf_key is identical for all 4 owf.
+	// EM: owf_keys are fixed, and owf_inputs are identical for all 4 owf.
+	memcpy(&unpacked_sk->pk.owf_input, owf_input0, sizeof(unpacked_sk->pk.owf_input));
+	memcpy(&unpacked_sk->pk1.owf_input, owf_input1, sizeof(unpacked_sk->pk1.owf_input));
+	#if (TAGGED_RING_PK_OWF_NUM > 2)
+	memcpy(&unpacked_sk->pk2.owf_input, owf_input2, sizeof(unpacked_sk->pk2.owf_input));
+	#endif
+	#if (TAGGED_RING_PK_OWF_NUM > 3)
+	memcpy(&unpacked_sk->pk3.owf_input, owf_input3, sizeof(unpacked_sk->pk3.owf_input));
+	#endif
+	memcpy(&unpacked_sk->sk, owf_key + sizeof(unpacked_sk->pk.owf_input), sizeof(unpacked_sk->sk));
+#if defined(OWF_AES_CTR)
+	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(&unpacked_sk->pk.fixed_key, unpacked_sk->pk.owf_input[0]);
+	rijndael_keygen(&unpacked_sk->pk1.fixed_key, unpacked_sk->pk1.owf_input[0]);
+	#if (TAGGED_RING_PK_OWF_NUM > 2)
+	rijndael_keygen(&unpacked_sk->pk2.fixed_key, unpacked_sk->pk2.owf_input[0]);
+	#endif
+	#if (TAGGED_RING_PK_OWF_NUM > 3)
+	rijndael_keygen(&unpacked_sk->pk3.fixed_key, unpacked_sk->pk3.owf_input[0]);
+	#endif
+#else
+#error "Unsupported OWF."
+#endif
+	return faest_compute_witness(unpacked_sk, true);
+}
+
 // nothing to do here i guess
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
 {
@@ -205,8 +241,8 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	#endif
 #endif
 
-			if (round < OWF_ROUNDS)
-				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
+		if (round < OWF_ROUNDS)
+			memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
 		}
 
 		if (round < OWF_ROUNDS)
@@ -648,11 +684,11 @@ static bool faest_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	printf("Prover chall 1:");
-    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal1[i]);
-	}
-	printf("\n");
+	// printf("Prover chall 1:");
+    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal1[i]);
+	// }
+	// printf("\n");
 
 	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // JC: check VOLE_RING_COMMIT_SIZE
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
@@ -680,10 +716,10 @@ static bool faest_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	printf("Prover chall 2:");
-    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal2[i]);
-	}
+	// printf("Prover chall 2:");
+    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal2[i]);
+	// }
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
@@ -697,8 +733,8 @@ static bool faest_ring_sign_attempt(
 	// quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
 	// owf_constraints_prover(&qs, &sk->pk);
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
-							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2);
-	owf_constraints_prover_all_branches(&qs, pk_ring);
+							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2, false);
+	owf_constraints_prover_all_branches(&qs, pk_ring, false);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 
@@ -909,11 +945,11 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	printf("Verifier chall 1:");
-    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal1[i]);
-	}
-	printf("\n");
+	// printf("Verifier chall 1:");
+    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal1[i]);
+	// }
+	// printf("\n");
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
@@ -927,11 +963,11 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	printf("Verifier chall 2:");
-    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-        printf("%02x", chal2[i]);
-	}
-	printf("\n");
+	// printf("Verifier chall 2:");
+    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+    //     printf("%02x", chal2[i]);
+	// }
+	// printf("\n");
 
 	vole_block correction_blocks[RING_WITNESS_BLOCKS];
 	memcpy(&correction_blocks, correction, RING_WITNESS_BITS / 8);
@@ -962,8 +998,8 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	// faest_unpack_public_key(&pk, pk_packed);
 
 	quicksilver_state qs;
-	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2);
-	owf_constraints_verifier_all_branches(&qs, pk_ring);
+	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2, false);
+	owf_constraints_verifier_all_branches(&qs, pk_ring, false);
 
 	// quicksilver_state qs;
 	// quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);

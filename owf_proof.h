@@ -116,16 +116,16 @@
 #define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
 #if (SECURITY_PARAM == 128 && defined(OWF_AES_CTR))
-#define TAGGED_RING_OWF_NUM (2)
+#define TAGGED_RING_PK_OWF_NUM (2)
 #elif  (SECURITY_PARAM == 192 && defined(OWF_AES_CTR))
-#define TAGGED_RING_OWF_NUM (3)
+#define TAGGED_RING_PK_OWF_NUM (3)
 #elif  (SECURITY_PARAM == 256 && defined(OWF_AES_CTR))
-#define TAGGED_RING_OWF_NUM (4)
+#define TAGGED_RING_PK_OWF_NUM (4)
 #else
 // TODO: Support MQ/RAIN OWF in tagged ring sig.
-#define TAGGED_RING_OWF_NUM (2)
+#define TAGGED_RING_PK_OWF_NUM (2)
 #endif
-#define TAGGED_RING_WITNESS_BITS (TAGGED_RING_OWF_NUM * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
+#define TAGGED_RING_WITNESS_BITS (TAGGED_RING_PK_OWF_NUM * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
 #include "aes.h"
 #include "rain.h"
@@ -138,6 +138,6 @@ typedef struct public_key_ring public_key_ring;
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
-void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk);
-void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk);
+void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tag);
+void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tag);
 #endif

@@ -238,7 +238,7 @@ struct quicksilver_test_or_state
     std::vector<block_secpar> tags;
     std::vector<block_secpar> keys;
 
-    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta) :
+    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag) :
         witness(witness_in, witness_in + witness_bits / 8)
     {
         auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
@@ -251,9 +251,9 @@ struct quicksilver_test_or_state
         std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
         std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
         quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(),
-                                   num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data());
+                                   num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data(), tag);
         quicksilver_init_or_verifier(&verifier_state, keys.data(),
-                                     num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data());
+                                     num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data(), tag);
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
@@ -323,6 +323,80 @@ inline void test_gen_ring_keys(public_key_ring* pk_ring, secret_key* sk, uint32_
             faest_unpack_secret_key(sk, packed_sk.data(), true);
         }
     }
+}
+
+
+#if (TAGGED_RING_PK_OWF_NUM == 2)
+inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, public_key* pk1, unsigned char* owf_input0, unsigned char* owf_input1)
+#elif (TAGGED_RING_PK_OWF_NUM == 3)
+inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, public_key* pk1, public_key* pk2, unsigned char* owf_input0, unsigned char* owf_input1, unsigned char* owf_input2)
+#elif (TAGGED_RING_PK_OWF_NUM == 4)
+inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, public_key* pk1, public_key* pk2, public_key* pk3, unsigned char* owf_input0, unsigned char* owf_input1, unsigned char* owf_input2, unsigned char* owf_input3)
+#endif
+{
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk0;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk0;
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk1;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk1;
+
+    #if (TAGGED_RING_PK_OWF_NUM > 2)
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk2;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk2;
+    #endif
+    #if (TAGGED_RING_PK_OWF_NUM > 3)
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk3;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk3;
+    #endif
+
+    std::array<uint8_t, SECURITY_PARAM / 8> owf_key;
+
+    // bool pk0_wellformed;
+    // bool pk1_wellformed;
+    // bool pk2_wellformed = true;
+    // bool pk3_wellformed = true;
+
+    // do {
+
+    std::generate(owf_key.data(), owf_key.data() + SECURITY_PARAM / 8, rand<uint8_t>);
+
+    memcpy(packed_sk0.data(), owf_input0, FAEST_IV_BYTES);
+    memcpy(packed_sk1.data(), owf_input1, FAEST_IV_BYTES);
+    memcpy(packed_sk0.data()+FAEST_IV_BYTES, owf_key.data(), SECURITY_PARAM / 8);
+    memcpy(packed_sk1.data()+FAEST_IV_BYTES, owf_key.data(), SECURITY_PARAM / 8);
+    // pk0_wellformed = faest_pubkey(packed_pk0.data(), packed_sk0.data());
+    // pk1_wellformed = faest_pubkey(packed_pk1.data(), packed_sk1.data());
+
+    #if (TAGGED_RING_PK_OWF_NUM > 2)
+    memcpy(packed_sk2.data(), owf_input2, FAEST_IV_BYTES);
+    memcpy(packed_sk2.data()+FAEST_IV_BYTES, owf_key.data(), SECURITY_PARAM / 8);
+    // pk2_wellformed = faest_pubkey(packed_pk2.data(), packed_sk2.data());
+    #endif
+    #if (TAGGED_RING_PK_OWF_NUM > 3)
+    memcpy(packed_sk3.data(), owf_input3, FAEST_IV_BYTES);
+    memcpy(packed_sk3.data()+FAEST_IV_BYTES, owf_key.data(), SECURITY_PARAM / 8);
+    // pk3_wellformed = faest_pubkey(packed_pk3.data(), packed_sk3.data());
+    #endif
+
+    // } while (!(pk0_wellformed && pk1_wellformed && pk2_wellformed && pk3_wellformed));
+
+    faest_unpack_public_key(pk0, packed_pk0.data());
+    faest_unpack_public_key(pk1, packed_pk1.data());
+    #if (TAGGED_RING_PK_OWF_NUM > 2)
+    faest_unpack_public_key(pk2, packed_pk2.data());
+    #endif
+    #if (TAGGED_RING_PK_OWF_NUM > 3)
+    faest_unpack_public_key(pk3, packed_pk3.data());
+    #endif
+
+    // Generate sk for consistent pk0, pk1 and expand witness.
+    // Ensure witness is consistent with pk0, pk1.
+    #if (TAGGED_RING_PK_OWF_NUM == 2)
+    return faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1);
+    #elif (TAGGED_RING_PK_OWF_NUM == 3)
+    return faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1, owf_input2);
+    #elif (TAGGED_RING_PK_OWF_NUM == 4)
+    return faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1, owf_input2, owf_input3);
+    #endif
 }
 
 #endif

@@ -50,6 +50,10 @@ typedef struct
 	public_key pk1;  // 2nd owf
 	public_key pk2;  // 3rd owf
 	public_key pk3;  // 4th owf
+
+	public_key tag0;
+	public_key tag1;
+
 	uint32_t idx;
 #if defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
 	uint8_t sk[MQ_N_BYTES];
@@ -68,6 +72,13 @@ void faest_free_public_key(public_key* pk);
 void faest_free_secret_key(secret_key* sk);
 
 bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool ring);
+#if (TAGGED_RING_PK_OWF_NUM == 2)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1);
+#elif (TAGGED_RING_PK_OWF_NUM == 3)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2);
+#elif (TAGGED_RING_PK_OWF_NUM == 4)
+bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2, const uint8_t* owf_input3);
+#endif
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring);
