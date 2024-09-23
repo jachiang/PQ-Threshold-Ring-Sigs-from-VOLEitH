@@ -382,10 +382,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		branch_constraint.c2 = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_quad[branch],
 														&state->state_or_64_quad[branch]);
 
-		bool branch_sat = poly128_eq(branch_constraint.c2, poly_secpar_from_byte(0));
-		if (branch_sat) {
-			printf("Sat branch index: %u\n", branch);
-		}
+		// bool branch_sat = poly128_eq(branch_constraint.c2, poly_secpar_from_byte(0));
+		// if (branch_sat) {
+		// 	printf("Sat branch index: %u\n", branch);
+		// }
 
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
@@ -416,10 +416,10 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		qs_prover_poly_deg2 tmp0 = qs_prover_poly_deg1_mul_deg1(state, hotvec0[decomp[0]], hotvec1[decomp[1]]);
 		qs_prover_poly_deg2 tmp1 = qs_prover_poly_deg1_mul_deg1(state, hotvec2[decomp[2]], hotvec3[decomp[3]]);
 		qs_prover_poly_deg4 selector = qs_prover_poly_deg2_mul_deg2(state, tmp0, tmp1);
-		bool not_selected = poly128_eq(selector.c4, poly_secpar_from_byte(0));
-		if (!not_selected) {
-			printf("Loaded index: %u\n", branch);
-		}
+		// bool not_selected = poly128_eq(selector.c4, poly_secpar_from_byte(0));
+		// if (!not_selected) {
+		// 	printf("Loaded index: %u\n", branch);
+		// }
 		qs_prover_poly_deg6 final_branch_constraint = qs_prover_poly_deg2_mul_deg4(state, branch_constraint, selector);
 
 		hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, final_branch_constraint.c0);

@@ -728,7 +728,7 @@ inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t 
 		poly_secpar_vec lin_term = poly_2secpar_reduce_secpar(poly_2secpar_add(x.value, poly_2secpar_add(x.mac0, x.mac1)));
 		poly_secpar_vec quad_term = poly_2secpar_reduce_secpar(x.value);
 
-		bool zero_term = poly128_eq(quad_term, poly_secpar_from_byte(0));
+		// bool zero_term = poly128_eq(quad_term, poly_secpar_from_byte(0));
 		// if (zero_term) {
 		// 	printf("Zero term added to branch: %u\n", branch);
 		// }
