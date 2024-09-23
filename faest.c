@@ -54,6 +54,7 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool r
 	return true;
 }
 
+// TODO: This extends faest_unpack_secret_key.
 #if (TAGGED_RING_PK_OWF_NUM == 2)
 bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1)
 #elif (TAGGED_RING_PK_OWF_NUM == 3)
@@ -72,8 +73,10 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 	#if (TAGGED_RING_PK_OWF_NUM > 3)
 	memcpy(&unpacked_sk->pk3.owf_input, owf_input3, sizeof(unpacked_sk->pk3.owf_input));
 	#endif
-	memcpy(&unpacked_sk->sk, owf_key + sizeof(unpacked_sk->pk.owf_input), sizeof(unpacked_sk->sk));
+	memcpy(&unpacked_sk->sk, owf_key, sizeof(unpacked_sk->sk));
 #if defined(OWF_AES_CTR)
+	// JC: just required for block key.
+	// JC: this also populates OWF output
 	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked_sk->pk.fixed_key, unpacked_sk->pk.owf_input[0]);
@@ -87,7 +90,13 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #else
 #error "Unsupported OWF."
 #endif
-	return faest_compute_witness(unpacked_sk, true);
+	// JC: ok, here sk->pk.owf_output is populated, but not for pk1, pk2, pk3.
+	if (!faest_compute_witness(unpacked_sk, true))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 // nothing to do here i guess
@@ -241,8 +250,8 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	#endif
 #endif
 
-		if (round < OWF_ROUNDS)
-			memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
+			if (round < OWF_ROUNDS)
+				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
 		}
 
 		if (round < OWF_ROUNDS)
