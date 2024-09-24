@@ -843,6 +843,7 @@ extern inline quicksilver_vec_deg2 quicksilver_const_deg2(const quicksilver_stat
 extern inline quicksilver_vec_deg2 quicksilver_const_deg2_gf2(const quicksilver_state* state, poly1_vec c);
 extern inline quicksilver_vec_gf2 quicksilver_mul_const_gf2(const quicksilver_state* state, quicksilver_vec_gf2 x, poly1_vec c);
 extern inline quicksilver_vec_gfsecpar quicksilver_mul_const(const quicksilver_state* state, quicksilver_vec_gfsecpar x, poly_secpar_vec c);
+extern inline void quicksilver_mul_by_two(const quicksilver_state* state, const quicksilver_vec_gf2* x_bits, quicksilver_vec_gf2* res);
 extern inline quicksilver_vec_deg2 quicksilver_mul_const_deg2_gf2(const quicksilver_state* state, quicksilver_vec_deg2 x, poly1_vec c);
 extern inline quicksilver_vec_deg2 quicksilver_mul_const_deg2(const quicksilver_state* state, quicksilver_vec_deg2 x, poly_secpar_vec c);
 extern inline quicksilver_vec_deg2 quicksilver_mul(const quicksilver_state* state, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
@@ -860,3 +861,20 @@ extern inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state
 extern inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_deg2 x);
 extern inline void quicksilver_inverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
 extern inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq);
+extern inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in);
+extern inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs_prover_poly_deg2* in);
+extern inline void quicksilver_verifier_init_key_0(const quicksilver_state* state, qs_verifier_key* in);
+extern inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right);
+extern inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right);
+extern inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right);
+extern inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right);
+extern inline qs_prover_poly_deg2 qs_prover_poly_deg1_mul_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right);
+extern inline qs_prover_poly_deg3 qs_prover_poly_deg1_mul_deg2(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right);
+extern inline qs_prover_poly_deg4 qs_prover_poly_deg2_mul_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right);
+extern inline qs_prover_poly_deg6 qs_prover_poly_deg2_mul_deg4(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg4 right);
+extern inline qs_verifier_key quicksilver_verifier_const_add_key(const quicksilver_state* state, const poly_secpar_vec left, const qs_verifier_key right);
+extern inline qs_verifier_key quicksilver_verifier_const_mul_key(const quicksilver_state* state, const poly_secpar_vec left, const qs_verifier_key right);
+extern inline qs_verifier_key quicksilver_verifier_key_add_key(const quicksilver_state* state, const qs_verifier_key left, const qs_verifier_key right);
+extern inline qs_verifier_key quicksilver_verifier_key_mul_key(const quicksilver_state* state, const qs_verifier_key left, const qs_verifier_key right);
+extern inline void quicksilver_verifier_increase_key_deg(const quicksilver_state* state, qs_verifier_key* in, size_t deg);
+
