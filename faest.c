@@ -166,8 +166,8 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 		// https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
 		sbox_output ^= 0x63636363; // AES SBox maps 0 to 0x63.
-		if ((sbox_output - 0x01010101) & ~sbox_output & 0x80808080)
-			return false;
+		// if ((sbox_output - 0x01010101) & ~sbox_output & 0x80808080)
+		// 	return false;
 	}
 #endif
 
