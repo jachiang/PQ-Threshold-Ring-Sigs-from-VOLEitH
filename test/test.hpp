@@ -343,7 +343,6 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     // }
     // printf("\n");
 
-    // TODO: check if returns true.
     // This call packs a specific pk into sk.
     #if (TAGGED_RING_PK_OWF_NUM == 2)
     if(!faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1)) { return false; }
@@ -399,4 +398,34 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     return true;
 }
 
+#if (TAGGED_RING_PK_OWF_NUM == 2)
+inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, uint32_t active_idx, unsigned char* owf_input0, unsigned char* owf_input1)
+#elif (TAGGED_RING_PK_OWF_NUM == 3)
+inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, uint32_t active_idx, unsigned char* owf_input0, unsigned char* owf_input1, unsigned char* owf_input2)
+#elif (TAGGED_RING_PK_OWF_NUM == 4)
+inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, uint32_t active_idx, unsigned char* owf_input0, unsigned char* owf_input1, unsigned char* owf_input2, unsigned char* owf_input3)
+#endif
+{
+    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
+        secret_key sk_tmp;
+        secret_key* sk_ptr;
+        if (i == active_idx) {
+            sk_ptr = sk;
+            sk_ptr->idx = active_idx;
+        } else {
+            sk_ptr = &sk_tmp;
+        }
+        sk_tmp.idx = active_idx;
+        #if (TAGGED_RING_PK_OWF_NUM == 2)
+        if(!test_gen_keypairs_fixed_owf_inputs(sk_ptr, &pk_ring->pubkeys[i], &pk_ring->pubkeys1[i], owf_input0, owf_input1))
+        { return false; }
+        #elif (TAGGED_RING_PK_OWF_NUM == 3)
+        if(!test_gen_keypairs_fixed_owf_inputs(sk_ptr, &pk_ring->pubkeys[i], &pk_ring->pubkeys1[i], &pk_ring->pubkeys2[i], owf_input0, owf_input1, owf_input2))
+        { return false; }
+        #elif (TAGGED_RING_PK_OWF_NUM == 4)
+        if(!test_gen_keypairs_fixed_owf_inputs(sk_ptr, &pk_ring->pubkeys[i], &pk_ring->pubkeys1[i], &pk_ring->pubkeys2[i], &pk_ring->pubkeys3[i], owf_input0, owf_input1, owf_input2, owf_input3)) { return false; }
+        #endif
+    }
+    return true;
+}
 #endif

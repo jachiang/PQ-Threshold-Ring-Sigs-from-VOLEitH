@@ -85,41 +85,32 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
 
 	// AES: owf_inputs are fixed, and owf_key is identical for all 2-4 owf.
 	// EM: owf_keys are fixed, and owf_inputs are identical for all 2-4 owf.
-    std::array<uint8_t, FAEST_IV_BYTES> fixed_owf_input0;
-    std::array<uint8_t, FAEST_IV_BYTES> fixed_owf_input1;
-    std::generate(fixed_owf_input0.data(), fixed_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    std::generate(fixed_owf_input1.data(), fixed_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
+    std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
     #if (TAGGED_RING_PK_OWF_NUM > 2)
-    std::array<uint8_t, FAEST_IV_BYTES> fixed_owf_input2;
-    std::generate(fixed_owf_input2.data(), fixed_owf_input2.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input2;
+    std::generate(owf_input2.data(), owf_input2.data() + FAEST_IV_BYTES, rand<uint8_t>);
     #endif
     #if (TAGGED_RING_PK_OWF_NUM > 3)
-    std::array<uint8_t, FAEST_IV_BYTES> fixed_owf_input3;
-    std::generate(fixed_owf_input3.data(), fixed_owf_input3.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input3;
+    std::generate(owf_input3.data(), owf_input3.data() + FAEST_IV_BYTES, rand<uint8_t>);
     #endif
 
-    printf("Fixed owf 0 input: ");
-    for (size_t i = 0; i < FAEST_IV_BYTES; i++) {
-        printf("%02x", fixed_owf_input0[i]);
-    }
-    printf("\n");
+    // printf("Fixed owf 0 input: ");
+    // for (size_t i = 0; i < FAEST_IV_BYTES; i++) {
+    //     printf("%02x", owf_input0[i]);
+    // }
+    // printf("\n");
 
-    for (uint32_t i = 0; i < FAEST_RING_SIZE; ++i) {
-        secret_key sk_tmp;
-        sk_tmp.idx = active_idx;
-        // JC: sk.idx must set to active branch.
-        #if (TAGGED_RING_PK_OWF_NUM == 2)
-        test_gen_keypairs_fixed_owf_inputs(&sk_tmp, &pk_ring.pubkeys[i], &pk_ring.pubkeys1[i], fixed_owf_input0.data(), fixed_owf_input1.data());
-        #elif (TAGGED_RING_PK_OWF_NUM == 3)
-        test_gen_keypairs_fixed_owf_inputs(&sk_tmp, &pk_ring.pubkeys[i], &pk_ring.pubkeys1[i], &pk_ring.pubkeys2[i], fixed_owf_input0.data(), fixed_owf_input1.data(), fixed_owf_input2.data());
-        #elif (TAGGED_RING_PK_OWF_NUM == 4)
-        test_gen_keypairs_fixed_owf_inputs(&sk_tmp, &pk_ring.pubkeys[i], &pk_ring.pubkeys1[i], &pk_ring.pubkeys2[i], &pk_ring.pubkeys3[i], fixed_owf_input0.data(), fixed_owf_input1.data(), fixed_owf_input2.data(), fixed_owf_input3.data());
-        #endif
-
-        if (i == active_idx) {
-            memcpy(&sk, &sk_tmp, sizeof(sk));
-        }
-    }
+    #if (TAGGED_RING_PK_OWF_NUM == 2)
+    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
+    #elif (TAGGED_RING_PK_OWF_NUM == 3)
+    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data());
+    #elif (TAGGED_RING_PK_OWF_NUM == 4)
+    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
+    #endif
 
     // uint8_t val[16];
     // for (uint32_t j = 0; j < RING_WITNESS_BLOCKS; ++j) {
