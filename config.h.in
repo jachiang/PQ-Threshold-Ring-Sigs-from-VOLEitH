@@ -35,7 +35,5 @@
 #define FAEST_RING_HOTVECTOR_BITS ((1 << (FAEST_RING_2_POW / FAEST_RING_HOTVECTOR_DIM))-1)
 #define FAEST_RING_HOTVECTOR_BYTES ((FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8)
 
-// JC: Tagged ring sig configuration (hard-coded).
-#define TAGGED_RING_TAG_OWF_NUM (0)
 
 #endif
