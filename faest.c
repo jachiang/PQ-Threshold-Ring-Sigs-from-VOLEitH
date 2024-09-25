@@ -45,7 +45,7 @@ bool faest_unpack_secret_key(secret_key* unpacked, const uint8_t* packed, bool r
 	mq_initialize(unpacked->sk, unpacked->pk.owf_input[0], unpacked->pk.mq_A_b, unpacked->pk.mq_y_gfsecpar, unpacked->pk.owf_output);
 #endif
 
-	if (!faest_compute_witness(unpacked, ring)) // TODO: handle tagged ring flag.
+	if (!faest_compute_witness(unpacked, ring, false))
 	{
 		faest_free_secret_key(unpacked);
 		return false;
@@ -90,8 +90,7 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #else
 #error "Unsupported OWF."
 #endif
-	// JC: ok, here sk->pk.owf_output is populated, but not for pk1, pk2, pk3.
-	if (!faest_compute_witness(unpacked_sk, true))
+	if (!faest_compute_witness(unpacked_sk, true, true))
 	{
 		return false;
 	}
@@ -129,14 +128,17 @@ void faest_pack_pk_ring(uint8_t* pk_ring_packed, const public_key_ring* pk_ring_
 }
 
 // done
-bool faest_compute_witness(secret_key* sk, bool ring)
+bool faest_compute_witness(secret_key* sk, bool ring, bool tag)
 {
 	uint8_t* w_ptr;
 	if (!ring) {
 		w_ptr = (uint8_t*) &sk->witness;
 	}
-	else if (ring) {
+	else if (ring && !tag) {
 		w_ptr = (uint8_t*) &sk->ring_witness;
+	}
+	else if (ring && tag) {
+		w_ptr = (uint8_t*) &sk->tagged_ring_witness;
 	}
 
 #if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
@@ -171,17 +173,47 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 	}
 #endif
 
+size_t pk_owf_num;
+if (ring && tag){
+	pk_owf_num = TAGGED_RING_PK_OWF_NUM;
+}
+else{
+	pk_owf_num = 1;
+}
+// JC: Compute witness for each pk OWF encryption schedule.
+for (size_t pk_owf = 0; pk_owf < pk_owf_num; ++pk_owf) {
+
 #if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
-		sk->pk.owf_output[i] =
-			owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+	{
+		if (pk_owf == 0) {
+			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+		}
+		// TODO: Support OWF 2-4.
+		else if(pk_owf == 1) {
+			sk->pk1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
+		}
+		else if(pk_owf == 2) {
+			sk->pk2.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk2.owf_input[i]);
+		}
+		else if(pk_owf == 3) {
+			sk->pk3.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk3.owf_input[i]);
+		}
+	}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");
-	sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+	if (pk_owf == 0) {
+		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+	}
+	else if (pk_owf == 1) {
+		sk->pk1.owf_output[0] = owf_block_xor(sk->pk1.fixed_key.keys[0], sk->sk);
+	}
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
+	// JC: Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #elif defined(OWF_RAIN_4)	// This should be similar to EM, except I will add the sk later in the round function call
+	// JC: Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #endif
@@ -198,16 +230,48 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 			owf_block after_sbox;
 #if defined(OWF_AES_CTR)
-			aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+			// TODO: Support OWF 2-4.
+			if (pk_owf == 0) {
+				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			// TODO: Support OWF 2-4.
+			else if (pk_owf == 1) {
+				aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
+			else if (pk_owf == 2) {
+				aes_round_function(&sk->round_keys, &sk->pk2.owf_output[i], &after_sbox, round);
+			}
+			else if (pk_owf == 3) {
+				aes_round_function(&sk->round_keys, &sk->pk3.owf_output[i], &after_sbox, round);
+			}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	#if SECURITY_PARAM == 128
-			aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			if (pk_owf == 0) {
+				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			// TODO: Support OWF 2-4.
+			else if (pk_owf == 1) {
+				aes_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
 	#elif SECURITY_PARAM == 192
-			rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			if (pk_owf == 0) {
+				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			// TODO: Support OWF 2-4.
+			else if (pk_owf == 1) {
+				rijndael192_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
 	#elif SECURITY_PARAM == 256
-			rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			if (pk_owf == 0) {
+				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			// TODO: Support OWF 2-4.
+			else if (pk_owf == 1) {
+				rijndael256_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
 	#endif
 #elif defined(OWF_RAIN_3)
+	// JC: Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 			if (round != OWF_ROUNDS) {
 				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -229,6 +293,7 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 	#endif
 #elif defined(OWF_RAIN_4)
+	// JC: Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 		if (round != OWF_ROUNDS) {
 			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -262,10 +327,19 @@ bool faest_compute_witness(secret_key* sk, bool ring)
 
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
-		sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+	{
+		if (pk_owf == 0) {
+			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+		}
+		// TODO: Support OWF 2.
+		else if (pk_owf == 1) {
+			sk->pk1.owf_output[i] = owf_block_xor(sk->pk1.owf_output[i], sk->sk);
+		}
+	}
 #endif
 
 #endif
+} // End of loop over OWF 1-4.
 
 	if(!ring) {
 		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);

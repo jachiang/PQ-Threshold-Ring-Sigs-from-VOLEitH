@@ -81,7 +81,7 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #endif
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
-bool faest_compute_witness(secret_key* sk, bool ring);
+bool faest_compute_witness(secret_key* sk, bool ring, bool tag);
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
 
 #endif // FAEST_DETAILS_H

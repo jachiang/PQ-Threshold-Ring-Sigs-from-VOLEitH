@@ -54,7 +54,7 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     test_gen_ring_keys(&pk_ring, &sk, 10);
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta, false);
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), RING_WITNESS_BITS, delta, false);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
@@ -123,12 +123,13 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     // }
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8, delta, false);
+    // JC: Init with TAGGED_RING_WITNESS_BITS - witness layout is KEY-SCHED | ENC_SCHED1 | ENC_SCHED2 | ...
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring, false);
-    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring, false);
+    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring, true);
+    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring, true);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
