@@ -401,6 +401,19 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     return true;
 }
 
+inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* pk_tag, unsigned char* owf_input_tag)
+{
+    if(!faest_unpack_secret_key_for_tag(sk, owf_input_tag)) { return false; }
+
+	memcpy(pk_tag->owf_input, sk->tag.owf_input, sizeof(pk_tag->owf_input));
+	memcpy(pk_tag->owf_output, sk->tag.owf_output, sizeof(pk_tag->owf_output));
+    #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    memcpy(&pk_tag->fixed_key, &sk->tag.fixed_key, sizeof(pk_tag->fixed_key));
+    #endif
+
+    return true;
+}
+
 #if (TAGGED_RING_PK_OWF_NUM == 2)
 inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, uint32_t active_idx, unsigned char* owf_input0, unsigned char* owf_input1)
 #elif (TAGGED_RING_PK_OWF_NUM == 3)

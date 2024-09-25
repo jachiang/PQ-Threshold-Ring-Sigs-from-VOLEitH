@@ -51,8 +51,7 @@ typedef struct
 	public_key pk2;  // 3rd owf
 	public_key pk3;  // 4th owf
 
-	public_key tag0;
-	public_key tag1;
+	public_key tag;
 
 	uint32_t idx;
 #if defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
@@ -79,6 +78,7 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #elif (TAGGED_RING_PK_OWF_NUM == 4)
 bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2, const uint8_t* owf_input3);
 #endif
+bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* owf_input_tag);
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring, bool tag);

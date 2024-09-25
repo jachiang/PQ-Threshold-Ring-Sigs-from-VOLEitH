@@ -138,6 +138,9 @@ typedef struct public_key_ring public_key_ring;
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
-void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tag);
-void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tag);
+void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk);
+void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk);
+void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag);
+void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag);
+
 #endif

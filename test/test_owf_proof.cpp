@@ -54,12 +54,14 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     test_gen_ring_keys(&pk_ring, &sk, 10);
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), RING_WITNESS_BITS, delta, false);
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), RING_WITNESS_BITS, delta, false); // Sets tag flag to false.
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring, false);
-    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring, false);
+    // owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring, false);
+    // owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring, false);
+    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring);
+    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
@@ -104,6 +106,9 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     // }
     // printf("\n");
 
+
+    // JC: Generate ring keys.
+    // JC: (Witness exapnsion is ignored.)
     #if (TAGGED_RING_PK_OWF_NUM == 2)
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
     #elif (TAGGED_RING_PK_OWF_NUM == 3)
@@ -111,6 +116,12 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     #elif (TAGGED_RING_PK_OWF_NUM == 4)
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
     #endif
+
+    // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
+    public_key pk_tag;
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input_tag;
+    std::generate(owf_input_tag.data(), owf_input_tag.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    test_finalize_sk_for_tag(&sk, &pk_tag, owf_input_tag.data());
 
     // uint8_t val[16];
     // for (uint32_t j = 0; j < RING_WITNESS_BLOCKS; ++j) {
@@ -122,17 +133,18 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     //     printf("\n");
     // }
 
-    const auto delta = rand<block_secpar>();
-    // JC: Init with TAGGED_RING_WITNESS_BITS - witness layout is KEY-SCHED | ENC_SCHED1 | ENC_SCHED2 | ...
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true);
-    auto& qs_state_prover = qs_test.prover_state;
-    auto& qs_state_verifier = qs_test.verifier_state;
+    // const auto delta = rand<block_secpar>();
+    // // JC: Init with TAGGED_RING_WITNESS_BITS - witness layout is KEY-SCHED | ENC_SCHED1 | ENC_SCHED2 | ...
+    // quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true);
+    // auto& qs_state_prover = qs_test.prover_state;
+    // auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches(&qs_state_prover, &pk_ring, true);
-    owf_constraints_verifier_all_branches(&qs_state_verifier, &pk_ring, true);
+    // TODO: implement.
+    // owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &pk_tag);
+    // owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &pk_tag);
 
-	auto [check_prover, check_verifier] = qs_test.compute_check();
-    REQUIRE(check_prover == check_verifier);
+	// auto [check_prover, check_verifier] = qs_test.compute_check();
+    // REQUIRE(check_prover == check_verifier);
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);

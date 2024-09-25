@@ -90,11 +90,31 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #else
 #error "Unsupported OWF."
 #endif
+	// TODO: modify to expand tag witness bits.
 	if (!faest_compute_witness(unpacked_sk, true, true))
 	{
 		return false;
 	}
 
+	return true;
+}
+
+// JC: Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
+bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* owf_input_tag)
+{
+	memcpy(&unpacked_sk->tag.owf_input, owf_input_tag, sizeof(unpacked_sk->tag.owf_input));
+#if defined(OWF_AES_CTR)
+	// aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(&unpacked_sk->tag.fixed_key, unpacked_sk->tag.owf_input[0]);
+#else
+#error "Unsupported OWF."
+#endif
+	// TODO: modify to expand tag witness bits.
+	if (!faest_compute_witness(unpacked_sk, true, true))
+	{
+		return false;
+	}
 	return true;
 }
 
@@ -817,7 +837,7 @@ static bool faest_ring_sign_attempt(
 	// owf_constraints_prover(&qs, &sk->pk);
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
 							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2, false);
-	owf_constraints_prover_all_branches(&qs, pk_ring, false);
+	owf_constraints_prover_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 
@@ -1082,7 +1102,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 
 	quicksilver_state qs;
 	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2, false);
-	owf_constraints_verifier_all_branches(&qs, pk_ring, false);
+	owf_constraints_verifier_all_branches(&qs, pk_ring);
 
 	// quicksilver_state qs;
 	// quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
