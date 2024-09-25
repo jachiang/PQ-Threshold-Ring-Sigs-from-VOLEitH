@@ -492,14 +492,19 @@ static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, size_t witness_bit_
 
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
-        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, bool tag) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
+    // TODO: Add an offset for the number of pk OWFs.
+    size_t pk_owf_witness_bits = 0;
+    if (tag) {
+        pk_owf_witness_bits =  (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
+    }
 #if defined(OWF_AES_CTR)
-    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + pk_owf_witness_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     assert(block_num == 0);
-    const size_t witness_bit_offset = SECURITY_PARAM;
+    const size_t witness_bit_offset = SECURITY_PARAM + pk_owf_witness_bits;
 #endif
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar inv_outputs[S_ENC];
@@ -610,7 +615,6 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
-    // JC: Witness bits for single encryption.
     const size_t enc_bits_offset = OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
 #if defined(OWF_AES_CTR)
     // const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
@@ -733,11 +737,11 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
 #if defined(OWF_AES_CTR)
     key_sched_constraints(state, round_key_bits, round_key_bytes, false);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i]);
+        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false);
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0]);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false);
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     enc_constraints(state, pk->owf_input[0], pk->owf_output[0]);
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
@@ -758,24 +762,22 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
 #if defined(OWF_AES_CTR)
     // JC: Packed witness - KEY_SCHEDULE | ENC_1 | ENC_2 | ...
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
-    if (tag){
-        // JC: TODO - add (non-branch) constraints for tag OWF.
+    // JC: TODO - add (non-branch) constraints for tag OWF.
+    for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+        // JC: TODO - witness offset.
+        enc_constraints(state, round_key_bits, round_key_bytes, i, tag->owf_input[i], tag->owf_output[i], true);
     }
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+            // TODO: Update witness offset to encorporate tag?
             enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i]);
-            if (tag){
-                // TODO - Forward witness offset.
-                enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i]);
-                #if (TAGGED_RING_PK_OWF_NUM > 2)
-                // TODO - Forward witness offset.
-                enc_constraints_to_branch(state, branch, 2, round_key_bits, round_key_bytes, i, pk->pubkeys2[branch].owf_input[i], pk->pubkeys2[branch].owf_output[i]);
-                #endif
-                // TODO - Forward witness offset.
-                #if (TAGGED_RING_PK_OWF_NUM > 3)
-                enc_constraints_to_branch(state, branch, 3, round_key_bits, round_key_bytes, i, pk->pubkeys3[branch].owf_input[i], pk->pubkeys3[branch].owf_output[i]);
-                #endif
-            }
+            enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i]);
+            #if (TAGGED_RING_PK_OWF_NUM > 2)
+            enc_constraints_to_branch(state, branch, 2, round_key_bits, round_key_bytes, i, pk->pubkeys2[branch].owf_input[i], pk->pubkeys2[branch].owf_output[i]);
+            #endif
+            #if (TAGGED_RING_PK_OWF_NUM > 3)
+            enc_constraints_to_branch(state, branch, 3, round_key_bits, round_key_bytes, i, pk->pubkeys3[branch].owf_input[i], pk->pubkeys3[branch].owf_output[i]);
+            #endif
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
