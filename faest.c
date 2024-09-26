@@ -75,8 +75,6 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 	#endif
 	memcpy(&unpacked_sk->sk, owf_key, sizeof(unpacked_sk->sk));
 #if defined(OWF_AES_CTR)
-	// JC: just required for block key.
-	// JC: this also populates OWF output
 	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked_sk->pk.fixed_key, unpacked_sk->pk.owf_input[0]);
@@ -104,13 +102,12 @@ bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* owf
 {
 	memcpy(&unpacked_sk->tag.owf_input, owf_input_tag, sizeof(unpacked_sk->tag.owf_input));
 #if defined(OWF_AES_CTR)
-	// aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
+	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked_sk->tag.fixed_key, unpacked_sk->tag.owf_input[0]);
 #else
 #error "Unsupported OWF."
 #endif
-	// TODO: modify to expand tag witness bits.
 	if (!faest_compute_witness(unpacked_sk, true, true))
 	{
 		return false;
@@ -194,7 +191,7 @@ bool faest_compute_witness(secret_key* sk, bool ring, bool tag)
 #endif
 
 size_t pk_owf_num;
-if (ring && tag){
+if (tag){
 	pk_owf_num = TAGGED_RING_PK_OWF_NUM;
 }
 else{
@@ -203,17 +200,22 @@ else{
 bool tag_itr = false;
 // JC: Witness expansion for each active-pk-OWF and tag-OWF.
 for (size_t pk_owf = 0; pk_owf < pk_owf_num + 1; ++pk_owf) {
+	// printf("OWF loop begin: %u\n", pk_owf);
 
+	// Skip final iteration if not tag ring sig.
 	if (pk_owf == pk_owf_num) {
-		// Skip final iteration if not tag ring sig.
-		if (!tag) {
-			break;
-		}
-		// Final iteration for tag owf related witness.
-		else {
+		if (tag) {
 			tag_itr = true;
 		}
+		else {
+			break;
+		}
 	}
+
+	// if (tag_itr) {
+	// 	size_t offset = (w_ptr - (uint8_t*) &sk->tagged_ring_witness);
+	// 	printf("Tag witness offset: %u\n", offset);
+	// }
 
 #if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
@@ -267,11 +269,9 @@ for (size_t pk_owf = 0; pk_owf < pk_owf_num + 1; ++pk_owf) {
 
 			owf_block after_sbox;
 #if defined(OWF_AES_CTR)
-			// TODO: Support OWF 2-4.
 			if (pk_owf == 0 && !tag_itr) {
 				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			// TODO: Support OWF 2-4.
 			else if (pk_owf == 1 && !tag_itr) {
 				aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
 			}
@@ -377,18 +377,22 @@ for (size_t pk_owf = 0; pk_owf < pk_owf_num + 1; ++pk_owf) {
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 	{
-		if (pk_owf == 0) {
+		if (pk_owf == 0 && !tag_itr) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 		}
 		// TODO: Support OWF 2.
-		else if (pk_owf == 1) {
+		else if (pk_owf == 1 && !tag_itr) {
 			sk->pk1.owf_output[i] = owf_block_xor(sk->pk1.owf_output[i], sk->sk);
+		}
+		else if (tag_itr) {
+			sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
 		}
 	}
 #endif
 
 #endif
-} // End of loop over OWF 1-4.
+	// printf("OWF loop end: %u\n", pk_owf);
+	} // End of loop over OWF 1-4.
 
 	if(!ring) {
 		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
