@@ -496,13 +496,29 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
     // TODO: Add an offset for the number of pk OWFs.
+
+    uint8_t val[16];
+    memcpy(&val, &in, sizeof(val));
+    printf("Input block (enc constr)): ");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", val[i]);
+    }
+    printf("\n");
+    memcpy(&val, &out, sizeof(val));
+    printf("Output block (enc constr)): ");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", val[i]);
+    }
+    printf("\n");
+
     size_t pk_owf_witness_bits = 0;
     if (tag) {
         pk_owf_witness_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
     }
 #if defined(OWF_AES_CTR)
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + pk_owf_witness_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
-    // printf("witness bit offset (in enc_constraints): %u\n", witness_bit_offset);
+    if(tag) { printf("witness bit offset for tag (in enc_constraints): %u\n", witness_bit_offset); }
+    if(!tag) { printf("witness bit offset for faest (in enc_constraints): %u\n", witness_bit_offset); }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     assert(block_num == 0);
     const size_t witness_bit_offset = SECURITY_PARAM + pk_owf_witness_bits;
@@ -521,9 +537,9 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
 
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
-        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j], false);
+        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j], tag);
 #else
-        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], false);
+        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], tag);
 #endif
     }
 }
@@ -763,6 +779,19 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // JC: TODO - add constraints for tag OWF.
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+        // printf("tag input block (owf constraints): ");
+        // uint8_t val[16];
+        // memcpy(&val,  &tag->owf_input[i], sizeof(val));
+        // for (int i = 0; i < 16; i++) {
+        //     printf("%02x", val[i]);
+        // }
+        // printf("\n");
+        // printf("tag output block (owf constraints): ");
+        // memcpy(&val,  &tag->owf_output[i], sizeof(val));
+        // for (int i = 0; i < 16; i++) {
+        //     printf("%02x", val[i]);
+        // }
+        // printf("\n");
         enc_constraints(state, round_key_bits, round_key_bytes, i, tag->owf_input[i], tag->owf_output[i], true);
     }
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {

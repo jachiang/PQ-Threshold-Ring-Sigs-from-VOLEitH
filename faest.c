@@ -199,7 +199,7 @@ else{
 }
 bool tag_itr = false;
 // JC: Witness expansion for each active-pk-OWF and tag-OWF.
-for (size_t pk_owf = 0; pk_owf < pk_owf_num + 1; ++pk_owf) {
+for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
 	// printf("OWF loop begin: %u\n", pk_owf);
 
 	// Skip final iteration if not tag ring sig.
@@ -868,8 +868,7 @@ static bool faest_ring_sign_attempt(
 	quicksilver_state qs;
 	// quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
 	// owf_constraints_prover(&qs, &sk->pk);
-	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs,
-							   OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, chal2, false);
+	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, false);
 	owf_constraints_prover_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -1134,7 +1133,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	// faest_unpack_public_key(&pk, pk_packed);
 
 	quicksilver_state qs;
-	quicksilver_init_or_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, OWF_KEY_SCHEDULE_CONSTRAINTS, delta_block, chal2, false);
+	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, false);
 	owf_constraints_verifier_all_branches(&qs, pk_ring);
 
 	// quicksilver_state qs;

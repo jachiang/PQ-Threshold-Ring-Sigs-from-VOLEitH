@@ -114,6 +114,14 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
     #endif
 
+    uint8_t val[16];
+    memcpy(&val, &sk.sk, sizeof(val));
+    printf("sk (before): ");
+    for (int i = 0; i < 16; i++) {
+        printf("%02x", val[i]);
+    }
+    printf("\n");
+
     // uint8_t val[16];
     // for (uint32_t j = 0; j < TAGGED_RING_WITNESS_BLOCKS; ++j) {
     //     memcpy(&val, &sk.tagged_ring_witness[j], sizeof(sk.tagged_ring_witness[j]));
@@ -129,28 +137,37 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     std::array<uint8_t, FAEST_IV_BYTES> owf_input_tag;
     std::generate(owf_input_tag.data(), owf_input_tag.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    uint8_t val[16];
-    memcpy(&val, owf_input_tag.data(), sizeof(val));
-    printf("tag input block: ");
+    // uint8_t val[16];
+    // memcpy(&val, owf_input_tag.data(), sizeof(val));
+    // printf("tag input block: ");
+    // for (int i = 0; i < 16; i++) {
+    //     printf("%02x", val[i]);
+    // }
+    // printf("\n");
+
+    test_finalize_sk_for_tag(&sk, &pk_tag, owf_input_tag.data()); // Maybe this is broken.
+
+
+    memcpy(&val, &sk.sk, sizeof(val));
+    printf("sk (after): ");
     for (int i = 0; i < 16; i++) {
         printf("%02x", val[i]);
     }
     printf("\n");
 
-    test_finalize_sk_for_tag(&sk, &pk_tag, owf_input_tag.data());
 
-    memcpy(&val, &pk_tag.owf_input, sizeof(val));
-    printf("tag input block: ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
-    memcpy(&val, &pk_tag.owf_output, sizeof(val));
-    printf("tag output block: ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
+    // memcpy(&val, &pk_tag.owf_input, sizeof(val));
+    // printf("tag input block: ");
+    // for (int i = 0; i < 16; i++) {
+    //     printf("%02x", val[i]);
+    // }
+    // printf("\n");
+    // memcpy(&val, &pk_tag.owf_output, sizeof(val));
+    // printf("tag output block: ");
+    // for (int i = 0; i < 16; i++) {
+    //     printf("%02x", val[i]);
+    // }
+    // printf("\n");
 
     // uint8_t val2[16];
     // for (uint32_t j = 0; j < TAGGED_RING_WITNESS_BLOCKS; ++j) {

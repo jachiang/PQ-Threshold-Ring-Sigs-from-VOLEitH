@@ -253,10 +253,8 @@ struct quicksilver_test_or_state
         std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
         std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
         // JC: setting "tag = true" inits hasher state for TAGGED_RING_PK_OWF_NUM of enc-sched constraints.
-        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(),
-                                   num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS,challenge.data(), tag);
-        quicksilver_init_or_verifier(&verifier_state, keys.data(),
-                                     num_owf_constraints, OWF_KEY_SCHEDULE_CONSTRAINTS, delta, challenge.data(), tag);
+        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(), challenge.data(), tag);
+        quicksilver_init_or_verifier(&verifier_state, keys.data(), delta, challenge.data(), tag);
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
@@ -355,24 +353,24 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     if(!faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1, owf_input2, owf_input3)) { return false; }
     #endif
 
-	memcpy(pk0->owf_input, sk->pk.owf_input, sizeof(pk0->owf_input));
-	memcpy(pk0->owf_output, sk->pk.owf_output, sizeof(pk0->owf_output));
-	memcpy(pk1->owf_input, sk->pk1.owf_input, sizeof(pk1->owf_input));
-	memcpy(pk1->owf_output, sk->pk1.owf_output, sizeof(pk1->owf_output));
+	memcpy(&pk0->owf_input, &sk->pk.owf_input, sizeof(pk0->owf_input));
+	memcpy(&pk0->owf_output[0], &sk->pk.owf_output[0], sizeof(pk0->owf_output));
+	memcpy(&pk1->owf_input, &sk->pk1.owf_input, sizeof(pk1->owf_input));
+	memcpy(&pk1->owf_output[0], &sk->pk1.owf_output[0], sizeof(pk1->owf_output));
     #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     memcpy(&pk0->fixed_key, &sk->pk.fixed_key, sizeof(pk0->fixed_key));
     memcpy(&pk1->fixed_key, &sk->pk1.fixed_key, sizeof(pk1->fixed_key));
     #endif
     #if (TAGGED_RING_PK_OWF_NUM > 2)
-    memcpy(pk2->owf_input, sk->pk2.owf_input, sizeof(pk2->owf_input));
-	memcpy(pk2->owf_output, sk->pk2.owf_output, sizeof(pk2->owf_output));
+    memcpy(&pk2->owf_input, &sk->pk2.owf_input, sizeof(pk2->owf_input));
+	memcpy(&pk2->owf_output[0], &sk->pk2.owf_output[0], sizeof(pk2->owf_output));
     #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     memcpy(&pk2->fixed_key, &sk->pk2.fixed_key, sizeof(pk2->fixed_key));
     #endif
     #endif
     #if (TAGGED_RING_PK_OWF_NUM > 3)
-    memcpy(pk3->owf_input, sk->pk3.owf_input, sizeof(pk3->owf_input));
-	memcpy(pk3->owf_output, sk->pk3.owf_output, sizeof(pk3->owf_output));
+    memcpy(&pk3->owf_input, &sk->pk3.owf_input, sizeof(pk3->owf_input));
+	memcpy(&pk3->owf_output[0], &sk->pk3.owf_output[0], sizeof(pk3->owf_output));
     #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     memcpy(&pk3->fixed_key, &sk->pk3.fixed_key, sizeof(pk3->fixed_key));
     #endif
@@ -405,8 +403,8 @@ inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* pk_tag, unsigne
 {
     if(!faest_unpack_secret_key_for_tag(sk, owf_input_tag)) { return false; }
 
-	memcpy(pk_tag->owf_input, sk->tag.owf_input, sizeof(pk_tag->owf_input));
-	memcpy(pk_tag->owf_output, sk->tag.owf_output, sizeof(pk_tag->owf_output));
+	memcpy(&pk_tag->owf_input[0], &sk->tag.owf_input[0], sizeof(pk_tag->owf_input));
+	memcpy(&pk_tag->owf_output[0], &sk->tag.owf_output[0], sizeof(pk_tag->owf_output));
     #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     memcpy(&pk_tag->fixed_key, &sk->tag.fixed_key, sizeof(pk_tag->fixed_key));
     #endif

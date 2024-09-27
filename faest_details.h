@@ -46,12 +46,11 @@ typedef struct
 	// Consistency across pk, pk1, pk2, pk3:
 	// AES: owf key (sk) is same for all 4 owf.
 	// EM: owf_input is same for all 4 owf.
-	public_key pk;   // 1st owf
-	public_key pk1;  // 2nd owf
-	public_key pk2;  // 3rd owf
-	public_key pk3;  // 4th owf
-
-	public_key tag;
+	public_key pk;   // 1st pk owf
+	public_key pk1;  // 2nd pk owf
+	public_key pk2;  // 3rd pk owf
+	public_key pk3;  // 4th pk owf
+	public_key tag;  // tag owf
 
 	uint32_t idx;
 #if defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
@@ -64,7 +63,7 @@ typedef struct
 #endif
 	vole_block witness[WITNESS_BLOCKS];
 	vole_block ring_witness[RING_WITNESS_BLOCKS];
-	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS];
+	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS]; // JC: Key-Sched-witness | OWF1-witness | OWF2-witness | ... | Tag-OWF-witness
 } secret_key;
 
 void faest_free_public_key(public_key* pk);
