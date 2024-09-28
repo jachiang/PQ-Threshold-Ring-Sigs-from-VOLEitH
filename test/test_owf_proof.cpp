@@ -101,14 +101,12 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     #endif
 
     // JC: Generate ring keys.
-    // JC: (Witness exapnsion is ignored.)
-    #if (TAGGED_RING_PK_OWF_NUM == 2)
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
     // #elif (TAGGED_RING_PK_OWF_NUM == 3)
     // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data());
     // #elif (TAGGED_RING_PK_OWF_NUM == 4)
     // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
-    #endif
+    // #endif
 
     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
     public_key tag_pk0;
@@ -122,7 +120,7 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     const auto delta = rand<block_secpar>();
-    // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | ... | TAG_ENC_SCHED
+    // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
     // Sets tag flag to true.
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true);
     auto& qs_state_prover = qs_test.prover_state;

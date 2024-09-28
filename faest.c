@@ -192,20 +192,21 @@ bool faest_compute_witness(secret_key* sk, bool ring, bool tag)
 	}
 #endif
 
-size_t pk_owf_num;
+size_t owf_num;
 if (tag){
-	pk_owf_num = TAGGED_RING_PK_OWF_NUM;
+	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
 }
 else{
-	pk_owf_num = 1;
+	owf_num = 1;
 }
 bool tag_itr = false;
 // JC: Witness expansion for each active-pk-OWF and tag-OWF.
-for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
-	// printf("OWF loop begin: %u\n", pk_owf);
+for (size_t owf = 0; owf < owf_num; ++owf) {
+	// printf("OWF loop begin: %u\n", owf);
 
 	// Skip final iteration if not tag ring sig.
-	if (pk_owf == pk_owf_num) {
+	// if (owf == owf_num) {
+	if (owf  > TAGGED_RING_PK_OWF_NUM - 1) {
 		if (tag) {
 			tag_itr = true;
 		}
@@ -222,32 +223,38 @@ for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
 #if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 	{
-		if (pk_owf == 0 && !tag_itr) {
+		if (owf == 0 && !tag_itr) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 		}
-		else if(pk_owf == 1 && !tag_itr) {
+		else if (owf == 1 && !tag_itr) {
 			sk->pk1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
 		}
-		else if(pk_owf == 2 && !tag_itr) {
-			sk->pk2.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk2.owf_input[i]);
-		}
-		else if(pk_owf == 3 && !tag_itr) {
-			sk->pk3.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk3.owf_input[i]);
-		}
-		else if (tag_itr) {
+		// else if(owf == 2 && !tag_itr) {
+		// 	sk->pk2.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk2.owf_input[i]);
+		// }
+		// else if(owf == 3 && !tag_itr) {
+		// 	sk->pk3.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk3.owf_input[i]);
+		// }
+		else if (owf == 2 && tag_itr) {
 			sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
+		}
+		else if (owf == 3 && tag_itr) {
+			sk->tag1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[i]);
 		}
 	}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");
-	if (pk_owf == 0 && !tag_itr) {
+	if (owf == 0 && !tag_itr) {
 		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 	}
-	else if (pk_owf == 1 && !tag_itr) {
+	else if (owf == 1 && !tag_itr) {
 		sk->pk1.owf_output[0] = owf_block_xor(sk->pk1.fixed_key.keys[0], sk->sk);
 	}
-	else if (tag_itr) {
+	else if (owf == 2 && tag_itr) {
 		sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
+	}
+	else if (owf == 3 && tag_itr) {
+		sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
 	}
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
 	// JC: Not supported for tagged ring sigs.
@@ -271,54 +278,63 @@ for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
 
 			owf_block after_sbox;
 #if defined(OWF_AES_CTR)
-			if (pk_owf == 0 && !tag_itr) {
+			if (owf == 0 && !tag_itr) {
 				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			else if (pk_owf == 1 && !tag_itr) {
+			else if (owf == 1 && !tag_itr) {
 				aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
 			}
-			else if (pk_owf == 2 && !tag_itr) {
-				aes_round_function(&sk->round_keys, &sk->pk2.owf_output[i], &after_sbox, round);
-			}
-			else if (pk_owf == 3 && !tag_itr) {
-				aes_round_function(&sk->round_keys, &sk->pk3.owf_output[i], &after_sbox, round);
-			}
-			else if (tag_itr) {
+			// else if (owf == 2 && !tag_itr) {
+			// 	aes_round_function(&sk->round_keys, &sk->pk2.owf_output[i], &after_sbox, round);
+			// }
+			// else if (owf == 3 && !tag_itr) {
+			// 	aes_round_function(&sk->round_keys, &sk->pk3.owf_output[i], &after_sbox, round);
+			// }
+			else if (owf == 2 && tag_itr) {
 				aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3 && tag_itr) {
+				aes_round_function(&sk->round_keys, &sk->tag1.owf_output[i], &after_sbox, round);
 			}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	#if SECURITY_PARAM == 128
-			if (pk_owf == 0 && !tag_itr) {
+			if (owf == 0 && !tag_itr) {
 				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			// TODO: Support OWF 2-4.
-			else if (pk_owf == 1 && !tag_itr) {
+			else if (owf == 1 && !tag_itr) {
 				aes_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
 			}
-			else if (tag_itr) {
+			else if (owf == 2 && tag_itr) {
 				aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
+			else if (owf == 3 && tag_itr) {
+				aes_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
 	#elif SECURITY_PARAM == 192
-			if (pk_owf == 0 && !tag_itr) {
+			if (owf == 0 && !tag_itr) {
 				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			// TODO: Support OWF 2-4.
-			else if (pk_owf == 1 && !tag_itr) {
+			else if (owf == 1 && !tag_itr) {
 				rijndael192_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
 			}
-			else if (tag_itr) {
+			else if (owf == 2 && tag_itr) {
 				rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
+			else if (owf == 3 && tag_itr) {
+				rijndael192_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
 	#elif SECURITY_PARAM == 256
-			if (pk_owf == 0 && !tag_itr) {
+			if (owf == 0 && !tag_itr) {
 				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			// TODO: Support OWF 2-4.
-			else if (pk_owf == 1 && !tag_itr) {
+			else if (owf == 1 && !tag_itr) {
 				rijndael256_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
 			}
-			else if (tag_itr) {
+			else if (owf == 2 && tag_itr) {
 				rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3 && tag_itr) {
+				rijndael256_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
 			}
 	#endif
 #elif defined(OWF_RAIN_3)
@@ -379,11 +395,11 @@ for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
 #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
 	{
-		if (pk_owf == 0 && !tag_itr) {
+		if (owf == 0 && !tag_itr) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 		}
 		// TODO: Support OWF 2.
-		else if (pk_owf == 1 && !tag_itr) {
+		else if (owf == 1 && !tag_itr) {
 			sk->pk1.owf_output[i] = owf_block_xor(sk->pk1.owf_output[i], sk->sk);
 		}
 		else if (tag_itr) {
@@ -393,7 +409,7 @@ for (size_t pk_owf = 0; pk_owf < (pk_owf_num + 1); ++pk_owf) {
 #endif
 
 #endif
-	// printf("OWF loop end: %u\n", pk_owf);
+	// printf("OWF loop end: %u\n", owf);
 	} // End of loop over OWF 1-4.
 
 	if(!ring) {

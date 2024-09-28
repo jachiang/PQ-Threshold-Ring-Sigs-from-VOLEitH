@@ -492,7 +492,7 @@ static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, size_t witness_bit_
 
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
-        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, bool tag) {
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, bool tag, size_t tag_owf_num) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
     // TODO: Add an offset for the number of pk OWFs.
@@ -513,7 +513,8 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
 
     size_t pk_owf_witness_bits = 0;
     if (tag) {
-        pk_owf_witness_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
+        pk_owf_witness_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
+                                + tag_owf_num * (OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
     }
 #if defined(OWF_AES_CTR)
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + pk_owf_witness_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
@@ -754,11 +755,11 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
 #if defined(OWF_AES_CTR)
     key_sched_constraints(state, round_key_bits, round_key_bytes, false);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false);
+        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false, 0);
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false, 0);
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     enc_constraints(state, pk->owf_input[0], pk->owf_output[0]);
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
@@ -768,7 +769,7 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
 #endif
 }
 
-static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk, const public_key* tag)
+static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk, const public_key* tag0)
 {
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -792,7 +793,8 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
         //     printf("%02x", val[i]);
         // }
         // printf("\n");
-        enc_constraints(state, round_key_bits, round_key_bytes, i, tag->owf_input[i], tag->owf_output[i], true);
+        enc_constraints(state, round_key_bits, round_key_bytes, i, tag0->owf_input[i], tag0->owf_output[i], true, 0);
+        // enc_constraints(state, round_key_bits, round_key_bytes, i, tag1->owf_input[i], tag1->owf_output[i], true, 1);
     }
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t i = 0; i < OWF_BLOCKS; ++i) {
@@ -808,8 +810,10 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag->fixed_key);
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag->owf_output[0], true);
+    load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag0->fixed_key);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag0->owf_output[0], true, 0);
+    // load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag1->fixed_key);
+    // enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag1->owf_output[0], true);
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
         enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0]);
