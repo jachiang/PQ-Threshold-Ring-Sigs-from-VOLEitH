@@ -69,24 +69,16 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 }
 
 TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
-    printf("TAGGED_RING_PK_OWF_NUM %u,\n",TAGGED_RING_PK_OWF_NUM);
-
     // For each ring element, there are 2-4 OWF over fixed inputs(AES)/keys(EM).
     public_key_ring pk_ring;
     pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
     pk_ring.pubkeys1 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-    #if (TAGGED_RING_PK_OWF_NUM > 2)
-    pk_ring.pubkeys2 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-    #endif
-    #if (TAGGED_RING_PK_OWF_NUM > 3)
-    pk_ring.pubkeys3 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-    #endif
 
     secret_key sk;
     uint32_t active_idx = 11;
 
-	// AES: owf_inputs are fixed, and owf_key is identical for all 2-4 owf.
-	// EM: owf_keys are fixed, and owf_inputs are identical for all 2-4 owf.
+	// AES: owf_inputs are fixed, and owf_key is identical for all 1-2 owf.
+	// EM: owf_keys are fixed, and owf_inputs are identical for all 1-2 owf.
     std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
     std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
@@ -102,11 +94,6 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
 
     // JC: Generate ring keys.
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
-    // #elif (TAGGED_RING_PK_OWF_NUM == 3)
-    // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data());
-    // #elif (TAGGED_RING_PK_OWF_NUM == 4)
-    // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
-    // #endif
 
     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
     public_key tag_pk0;
@@ -126,9 +113,8 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    // TODO: implement.
-    owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &tag_pk0);
-    owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &tag_pk0);
+    owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &tag_pk0, &tag_pk1);
+    owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &tag_pk0, &tag_pk1);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);

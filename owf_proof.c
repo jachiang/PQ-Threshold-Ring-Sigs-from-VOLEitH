@@ -495,22 +495,6 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
         const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, bool tag, size_t tag_owf_num) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
-    // TODO: Add an offset for the number of pk OWFs.
-
-    uint8_t val[16];
-    memcpy(&val, &in, sizeof(val));
-    printf("Input block (enc constr)): ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
-    memcpy(&val, &out, sizeof(val));
-    printf("Output block (enc constr)): ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
-
     size_t tag_pk_offset_bits = 0;
     if (tag) {
         tag_pk_offset_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
@@ -767,7 +751,8 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
 #endif
 }
 
-static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk, const public_key* tag0)
+
+static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk, const public_key* tag0, const public_key* tag1)
 {
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -777,27 +762,31 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
     // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+        // 1st Tag OWF.
         enc_constraints(state, round_key_bits, round_key_bytes, i, tag0->owf_input[i], tag0->owf_output[i], true, 0);
-        #if (TAGGED_RING_TAG_OWF_NUM == 2)
+        // 2nd Tag OWF.
         enc_constraints(state, round_key_bits, round_key_bytes, i, tag1->owf_input[i], tag1->owf_output[i], true, 1);
-        #endif
     }
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+            // 1st Pk OWF.
             enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i]);
+            // 2nd Pk OWF.
             enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i]);
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    // 1st Tag OWF.
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag0->fixed_key);
     enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag0->owf_output[0], true, 0);
-    #if (TAGGED_RING_TAG_OWF_NUM == 2)
+    // 2nd Tag OWF.
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag1->fixed_key);
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag1->owf_output[0], true);
-    #endif
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag1->owf_output[0], true, 1);
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
+        // 1st Pk OWF.
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
         enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0]);
+        // 2nd Pk OWF.
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys1[branch].fixed_key);
         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0]);
     }
@@ -881,20 +870,19 @@ void owf_constraints_verifier_all_branches(quicksilver_state* state, const publi
 	owf_constraints_all_branches(state, pk_ring);
 }
 
-void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag)
+void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1)
 {
     assert(!state->verifier);
     state->verifier = false;
-    owf_constraints_all_branches_and_tag(state, pk_ring, tag);
+    owf_constraints_all_branches_and_tag(state, pk_ring, tag0, tag1);
 }
 
-void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag)
+void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1)
 {
 	assert(state->verifier);
 	state->verifier = true;
-	owf_constraints_all_branches_and_tag(state, pk_ring, tag);
+	owf_constraints_all_branches_and_tag(state, pk_ring, tag0, tag1);
 }
-
 
 #if !(defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8))
 extern inline owf_block owf_block_xor(owf_block x, owf_block y);
