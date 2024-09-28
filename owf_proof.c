@@ -511,18 +511,16 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const quicks
     }
     printf("\n");
 
-    size_t pk_owf_witness_bits = 0;
+    size_t tag_pk_offset_bits = 0;
     if (tag) {
-        pk_owf_witness_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
-                                + tag_owf_num * (OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
+        tag_pk_offset_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
+                                + tag_owf_num * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
     }
 #if defined(OWF_AES_CTR)
-    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + pk_owf_witness_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
-    if(tag) { printf("witness bit offset for tag (in enc_constraints): %u\n", witness_bit_offset); }
-    if(!tag) { printf("witness bit offset for faest (in enc_constraints): %u\n", witness_bit_offset); }
+    const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + tag_pk_offset_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     assert(block_num == 0);
-    const size_t witness_bit_offset = SECURITY_PARAM + pk_owf_witness_bits;
+    const size_t witness_bit_offset = SECURITY_PARAM + tag_pk_offset_bits;
 #endif
     quicksilver_vec_gfsecpar inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar inv_outputs[S_ENC];
