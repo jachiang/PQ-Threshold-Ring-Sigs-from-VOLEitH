@@ -1,8 +1,9 @@
 #include <array>
+#include <random>
 
 #include "test.hpp"
 #include "test_witness.hpp"
-
+#include <random>
 extern "C" {
 
 #include "api.h"
@@ -50,8 +51,9 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
     if (pk_ring.pubkeys == NULL) {
         printf("Memory allocation failed!\n");
     }
+
     secret_key sk;
-    test_gen_ring_keys(&pk_ring, &sk, 10);
+    test_gen_ring_keys(&pk_ring, &sk, test_gen_rand_idx());
 
     const auto delta = rand<block_secpar>();
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.ring_witness), RING_WITNESS_BITS, delta, false); // Sets tag flag to false.
@@ -69,13 +71,13 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 }
 
 TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
-    // For each ring element, there are 2-4 OWF over fixed inputs(AES)/keys(EM).
+    // For each ring element, there are 2 OWF over fixed inputs(AES)/keys(EM).
     public_key_ring pk_ring;
     pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
     pk_ring.pubkeys1 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
 
     secret_key sk;
-    uint32_t active_idx = 11;
+    uint32_t active_idx = test_gen_rand_idx();
 
 	// AES: owf_inputs are fixed, and owf_key is identical for all 1-2 owf.
 	// EM: owf_keys are fixed, and owf_inputs are identical for all 1-2 owf.

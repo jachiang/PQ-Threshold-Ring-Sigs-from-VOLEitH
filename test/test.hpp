@@ -446,4 +446,13 @@ inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, 
     }
     return true;
 }
+
+inline uint32_t test_gen_rand_idx()
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(0, FAEST_RING_SIZE-1);
+    return distrib(gen);
+}
+
 #endif

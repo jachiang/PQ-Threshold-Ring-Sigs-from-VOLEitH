@@ -828,15 +828,31 @@ static bool faest_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	// printf("Prover chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // JC: check VOLE_RING_COMMIT_SIZE
+
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
+
+	printf("Prover chall 1:");
+    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal1[i]);
+	}
+	printf("\n");
+
+	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
+	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
+	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+	printf("Prover check proof:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", vole_check_proof_test[i]);
+	}
+	printf("\n");
+	printf("Prover check check:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", vole_check_check_test[i]);
+	}
+	printf("\n");
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (RING_WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -860,10 +876,11 @@ static bool faest_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	// printf("Prover chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
+	printf("Prover chall 2:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal2[i]);
+	}
+	printf("\n");
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
@@ -907,6 +924,12 @@ static bool faest_ring_sign_attempt(
 						 qs_proof, qs_check);
 	#endif
 
+	printf("QS check prover:");
+    for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
+        printf("%02x", qs_check[i]);
+	}
+	printf("\n");
+
 	free(macs);
 	free(u);
 
@@ -948,7 +971,7 @@ static bool faest_ring_sign_attempt(
 	// memcpy(hash_prefix + sizeof(chal2) + QUICKSILVER_PROOF_BYTES, qs_check, QUICKSILVER_CHECK_BYTES);
 
 	memcpy(hash_prefix + sizeof(chal2), qs_check, QUICKSILVER_CHECK_BYTES);
-	memcpy(hash_prefix + sizeof(chal2) + QUICKSILVER_PROOF_BYTES, qs_proof, QUICKSILVER_PROOF_BYTES);
+	memcpy(hash_prefix + sizeof(chal2) + QUICKSILVER_CHECK_BYTES, qs_proof, QUICKSILVER_PROOF_BYTES);
 	memcpy(hash_prefix + sizeof(chal2) + 2*QUICKSILVER_PROOF_BYTES, qs_proof_quad, QUICKSILVER_CHECK_BYTES);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	memcpy(hash_prefix + sizeof(chal2) + 3*QUICKSILVER_PROOF_BYTES, qs_proof_cubic, QUICKSILVER_CHECK_BYTES);
@@ -959,8 +982,14 @@ static bool faest_ring_sign_attempt(
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	memcpy(hash_prefix + sizeof(chal2) + 5*QUICKSILVER_PROOF_BYTES, qs_proof_quintic, QUICKSILVER_CHECK_BYTES);
 	#endif
-	bool open_success = force_vector_open(forest, hashed_leaves, delta, veccom_open_start, hash_prefix, sizeof(chal2) + 5*QUICKSILVER_PROOF_BYTES + QUICKSILVER_CHECK_BYTES, &counter);
+	bool open_success = force_vector_open(forest, hashed_leaves, delta, veccom_open_start, hash_prefix, sizeof(chal2) + FAEST_RING_PROOF_ELEMS*QUICKSILVER_PROOF_BYTES + QUICKSILVER_CHECK_BYTES, &counter);
 #endif
+
+	printf("Delta prover:");
+    for (size_t i = 0; i < sizeof(block_secpar); i++) {
+        printf("%02x", delta[i]);
+	}
+	printf("\n");
 
 	free(forest);
 	free(hashed_leaves);
@@ -1044,7 +1073,8 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	const uint8_t* qs_proof_quintic = qs_proof_quartic + QUICKSILVER_PROOF_BYTES;
 	#endif
-	const uint8_t* veccom_open_start = qs_proof_quintic + QUICKSILVER_PROOF_BYTES;
+	const uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES*FAEST_RING_PROOF_ELEMS;
+	// const uint8_t* veccom_open_start = qs_proof_quintic + QUICKSILVER_PROOF_BYTES;
 	const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
 	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
 
@@ -1088,14 +1118,29 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	// printf("Verifier chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+
+	printf("Verifier chall 1:");
+    for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal1[i]);
+	}
+	printf("\n");
+
+	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
+	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
+	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
+	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
+	printf("Verifier check proof:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", vole_check_proof_test[i]);
+	}
+	printf("\n");
+	printf("Verifier check check:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", vole_check_check_test[i]);
+	}
+	printf("\n");
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -1106,11 +1151,11 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	// printf("Verifier chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
+	printf("Verifier chall 2:");
+    for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
+        printf("%02x", chal2[i]);
+	}
+	printf("\n");
 
 	vole_block correction_blocks[RING_WITNESS_BLOCKS];
 	memcpy(&correction_blocks, correction, RING_WITNESS_BITS / 8);
@@ -1160,6 +1205,13 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	#endif
 	free(macs);
 
+	printf("QS check verifier:");
+    for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
+        printf("%02x", qs_check[i]);
+	}
+	printf("\n");
+
+
 	// uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	// quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);
 	// free(macs);
@@ -1192,6 +1244,14 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 #endif
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta_check, sizeof(delta_check));
+
+	printf("Delta verifier:");
+	uint8_t val[SECURITY_PARAM];
+	memcpy(&val, &delta_check, sizeof(block_secpar));
+    for (size_t i = 0; i < sizeof(block_secpar); i++) {
+        printf("%02x", val[i]);
+	}
+	printf("\n");
 
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }
