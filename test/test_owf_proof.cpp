@@ -69,6 +69,8 @@ TEST_CASE( "ring owf proof", "[ring owf proof]" ) {
 }
 
 TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
+    printf("TAGGED_RING_PK_OWF_NUM %u,\n",TAGGED_RING_PK_OWF_NUM);
+
     // For each ring element, there are 2-4 OWF over fixed inputs(AES)/keys(EM).
     public_key_ring pk_ring;
     pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
@@ -98,86 +100,26 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     std::generate(owf_input3.data(), owf_input3.data() + FAEST_IV_BYTES, rand<uint8_t>);
     #endif
 
-    // printf("Fixed owf 0 input: ");
-    // for (size_t i = 0; i < FAEST_IV_BYTES; i++) {
-    //     printf("%02x", owf_input0[i]);
-    // }
-    // printf("\n");
-
     // JC: Generate ring keys.
     // JC: (Witness exapnsion is ignored.)
     #if (TAGGED_RING_PK_OWF_NUM == 2)
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
-    #elif (TAGGED_RING_PK_OWF_NUM == 3)
-    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data());
-    #elif (TAGGED_RING_PK_OWF_NUM == 4)
-    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
+    // #elif (TAGGED_RING_PK_OWF_NUM == 3)
+    // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data());
+    // #elif (TAGGED_RING_PK_OWF_NUM == 4)
+    // test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data(), owf_input2.data(), owf_input3.data());
     #endif
 
-    uint8_t val[16];
-    memcpy(&val, &sk.sk, sizeof(val));
-    printf("sk (before): ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
-
-    // uint8_t val[16];
-    // for (uint32_t j = 0; j < TAGGED_RING_WITNESS_BLOCKS; ++j) {
-    //     memcpy(&val, &sk.tagged_ring_witness[j], sizeof(sk.tagged_ring_witness[j]));
-    //     printf("Witness block %u (before): ", j);
-    //     for (int i = 0; i < 16; i++) {
-    //         printf("%02x", val[i]);
-    //     }
-    //     printf("\n");
-    // }
-
     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
-    public_key pk_tag;
-    std::array<uint8_t, FAEST_IV_BYTES> owf_input_tag;
-    std::generate(owf_input_tag.data(), owf_input_tag.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    public_key tag_pk0;
+    public_key tag_pk1;
+    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
+    std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
+    std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    // uint8_t val[16];
-    // memcpy(&val, owf_input_tag.data(), sizeof(val));
-    // printf("tag input block: ");
-    // for (int i = 0; i < 16; i++) {
-    //     printf("%02x", val[i]);
-    // }
-    // printf("\n");
-
-    test_finalize_sk_for_tag(&sk, &pk_tag, owf_input_tag.data()); // Maybe this is broken.
-
-
-    memcpy(&val, &sk.sk, sizeof(val));
-    printf("sk (after): ");
-    for (int i = 0; i < 16; i++) {
-        printf("%02x", val[i]);
-    }
-    printf("\n");
-
-
-    // memcpy(&val, &pk_tag.owf_input, sizeof(val));
-    // printf("tag input block: ");
-    // for (int i = 0; i < 16; i++) {
-    //     printf("%02x", val[i]);
-    // }
-    // printf("\n");
-    // memcpy(&val, &pk_tag.owf_output, sizeof(val));
-    // printf("tag output block: ");
-    // for (int i = 0; i < 16; i++) {
-    //     printf("%02x", val[i]);
-    // }
-    // printf("\n");
-
-    // uint8_t val2[16];
-    // for (uint32_t j = 0; j < TAGGED_RING_WITNESS_BLOCKS; ++j) {
-    //     memcpy(&val2, &sk.tagged_ring_witness[j], sizeof(sk.tagged_ring_witness[j]));
-    //     printf("Witness block %u (after): ", j);
-    //     for (int i = 0; i < 16; i++) {
-    //         printf("%02x", val2[i]);
-    //     }
-    //     printf("\n");
-    // }
+    // TODO: add second tag owf input.
+    test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     const auto delta = rand<block_secpar>();
     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | ... | TAG_ENC_SCHED
@@ -187,8 +129,8 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     auto& qs_state_verifier = qs_test.verifier_state;
 
     // TODO: implement.
-    owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &pk_tag);
-    owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &pk_tag);
+    owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &tag_pk0);
+    owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &tag_pk0);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);

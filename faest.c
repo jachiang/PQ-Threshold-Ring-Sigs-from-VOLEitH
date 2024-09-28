@@ -98,13 +98,15 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 }
 
 // JC: Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
-bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* owf_input_tag)
+bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1)
 {
-	memcpy(&unpacked_sk->tag.owf_input, owf_input_tag, sizeof(unpacked_sk->tag.owf_input));
+	memcpy(&unpacked_sk->tag.owf_input, tag_owf_input0, sizeof(unpacked_sk->tag.owf_input));
+	memcpy(&unpacked_sk->tag1.owf_input, tag_owf_input1, sizeof(unpacked_sk->tag1.owf_input));
 #if defined(OWF_AES_CTR)
 	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	rijndael_keygen(&unpacked_sk->tag.fixed_key, unpacked_sk->tag.owf_input[0]);
+	rijndael_keygen(&unpacked_sk->tag1.fixed_key, unpacked_sk->tag1.owf_input[0]);
 #else
 #error "Unsupported OWF."
 #endif

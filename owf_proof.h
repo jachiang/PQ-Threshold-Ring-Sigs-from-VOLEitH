@@ -116,16 +116,18 @@
 #define WITNESS_BITS (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1) + OWF_KEY_WITNESS_BITS)
 #define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
-#if (SECURITY_PARAM == 128 && defined(OWF_AES_CTR))
+// JC: For simplicity, double the number of OWF for tagged ring sigs
 #define TAGGED_RING_PK_OWF_NUM (2)
-#elif  (SECURITY_PARAM == 192 && defined(OWF_AES_CTR))
-#define TAGGED_RING_PK_OWF_NUM (3)
-#elif  (SECURITY_PARAM == 256 && defined(OWF_AES_CTR))
-#define TAGGED_RING_PK_OWF_NUM (4)
-#else
-// TODO: Support MQ/RAIN OWF in tagged ring sig.
-#define TAGGED_RING_PK_OWF_NUM (2)
-#endif
+// #if (SECURITY_PARAM == 128 && defined(OWF_AES_CTR))
+// #define TAGGED_RING_PK_OWF_NUM (2)
+// #elif  (SECURITY_PARAM == 192 && defined(OWF_AES_CTR))
+// #define TAGGED_RING_PK_OWF_NUM (3)
+// #elif  (SECURITY_PARAM == 256 && defined(OWF_AES_CTR))
+// #define TAGGED_RING_PK_OWF_NUM (4)
+// #else
+// // TODO: Support MQ/RAIN OWF in tagged ring sig.
+// #define TAGGED_RING_PK_OWF_NUM (2)
+// #endif
 
 #define TAGGED_RING_TAG_OWF_NUM (1)
 

@@ -399,14 +399,18 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     return true;
 }
 
-inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* pk_tag, unsigned char* owf_input_tag)
+inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* tag_pk0, public_key* tag_pk1, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1)
 {
-    if(!faest_unpack_secret_key_for_tag(sk, owf_input_tag)) { return false; }
+    if(!faest_unpack_secret_key_for_tag(sk, tag_owf_input0, tag_owf_input1)) { return false; }
 
-	memcpy(&pk_tag->owf_input[0], &sk->tag.owf_input[0], sizeof(pk_tag->owf_input));
-	memcpy(&pk_tag->owf_output[0], &sk->tag.owf_output[0], sizeof(pk_tag->owf_output));
+	memcpy(&tag_pk0->owf_input[0], &sk->tag.owf_input[0], sizeof(tag_pk0->owf_input));
+	memcpy(&tag_pk0->owf_output[0], &sk->tag.owf_output[0], sizeof(tag_pk0->owf_output));
+	memcpy(&tag_pk1->owf_input[0], &sk->tag1.owf_input[0], sizeof(tag_pk1->owf_input));
+	memcpy(&tag_pk1->owf_output[0], &sk->tag1.owf_output[0], sizeof(tag_pk1->owf_output));
+
     #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    memcpy(&pk_tag->fixed_key, &sk->tag.fixed_key, sizeof(pk_tag->fixed_key));
+    memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
+    memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
     #endif
 
     return true;
