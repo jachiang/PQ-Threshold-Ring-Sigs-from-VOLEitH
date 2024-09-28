@@ -212,6 +212,9 @@ TEST_CASE( "test vector", "[faest tv]" ) {
 
 TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
 
+    printf("FAEST WITNESS: %u\n", WITNESS_BITS);
+    printf("RING WITNESS: %u\n", RING_WITNESS_BITS);
+
     std::array<uint8_t, FAEST_RING_SIGNATURE_BYTES> ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous ring signature.";
