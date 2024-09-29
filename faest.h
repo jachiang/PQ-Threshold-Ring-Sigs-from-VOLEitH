@@ -66,6 +66,15 @@
 	SECURITY_PARAM / 8 + \
 	16 + COUNTER_BYTES)
 
+#define FAEST_TAGGED_RING_SIGNATURE_BYTES ( \
+	VOLE_TAGGED_RING_COMMIT_SIZE + \
+	VOLE_CHECK_PROOF_BYTES + \
+	TAGGED_RING_WITNESS_BITS / 8 + \
+	QUICKSILVER_PROOF_BYTES * FAEST_RING_PROOF_ELEMS + \
+	VECTOR_COM_OPEN_SIZE + \
+	SECURITY_PARAM / 8 + \
+	16 + COUNTER_BYTES)
+
 // Find the public key corresponding to a given secret key. Returns true if sk_packed is a valid
 // secret key, and false otherwise. For key generation, this function is intended to be called
 // repeatedly on random values of sk_packed until a valid key is found. pk_packed must be
@@ -85,6 +94,10 @@ bool faest_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
 	const uint8_t* random_seed, size_t random_seed_len);
 
+bool faest_tagged_ring_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
+	const public_key* pk_tag0, const public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len);
+
 // Verify a signature (of length FAEST_SIGNATURE_BYTES) for a message msg (of length msg_len)
 // using a public key pk_packed (of length FAEST_PUBLIC_KEY_BYTES). Returns true for a valid
 // signature and false otherwise.
@@ -93,3 +106,6 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring);
+
+bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  	   const public_key_ring* pk_ring, const public_key* pk_tag0, const public_key* pk_tag1);
