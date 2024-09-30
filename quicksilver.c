@@ -302,7 +302,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 3)
 	qs_prover_poly_deg5 mask5;
-	quicksilver_prover_init_poly_deg4(state, &mask5);
+	quicksilver_prover_init_poly_deg5(state, &mask5);
 	mask5.c4 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 4*SECURITY_PARAM));
 	mask5.c5 = poly_secpar_load_dup(&state->witness[(witness_bits + 4*SECURITY_PARAM) / 8]);
 	qs_prover_poly_deg5 qs_mask12345 = qs_prover_poly_deg4_add_deg5(state, qs_mask1234, mask5);
@@ -325,8 +325,8 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	poly_2secpar_vec mask_c1 = poly_2secpar_from_secpar(qs_mask12345.c1);
 	poly_2secpar_vec mask_c2 = poly_2secpar_from_secpar(qs_mask12345.c2);
 	poly_2secpar_vec mask_c3 = poly_2secpar_from_secpar(qs_mask12345.c3);
-	poly_2secpar_vec mask_c4 = poly_2secpar_from_secpar(qs_mask12345.c3);
-	poly_2secpar_vec mask_c5 = poly_2secpar_from_secpar(qs_mask12345.c3);
+	poly_2secpar_vec mask_c4 = poly_2secpar_from_secpar(qs_mask12345.c4);
+	poly_2secpar_vec mask_c5 = poly_2secpar_from_secpar(qs_mask12345.c5);
 	#endif
 
 	qs_prover_poly_deg1* hotvec0;
@@ -869,9 +869,20 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	mask3.key = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 2*SECURITY_PARAM));
 	quicksilver_verifier_increase_key_deg(state, &mask3, 2);
 	qs_mask = quicksilver_verifier_key_add_key(state, qs_mask, mask3);
-	#elif (FAEST_RING_HOTVECTOR_DIM > 2)
-
-	#elif (FAEST_RING_HOTVECTOR_DIM > 3)
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_verifier_key mask4;
+	quicksilver_verifier_init_key_0(state, &mask4);
+	mask4.key = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 3*SECURITY_PARAM));
+	quicksilver_verifier_increase_key_deg(state, &mask4, 3);
+	qs_mask = quicksilver_verifier_key_add_key(state, qs_mask, mask4);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_verifier_key mask5;
+	quicksilver_verifier_init_key_0(state, &mask5);
+	mask5.key = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 4*SECURITY_PARAM));
+	quicksilver_verifier_increase_key_deg(state, &mask5, 4);
+	qs_mask = quicksilver_verifier_key_add_key(state, qs_mask, mask5);
 	#endif
 
 	// poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
