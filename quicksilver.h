@@ -870,6 +870,42 @@ inline qs_prover_poly_deg2 qs_prover_poly_deg1_add_deg2(const quicksilver_state*
 	return out;
 }
 
+inline qs_prover_poly_deg3 qs_prover_poly_deg2_add_deg3(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg3 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg3 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = poly_secpar_add(left.c2,right.c2);
+	out.c3 = right.c3;
+	return out;
+}
+
+inline qs_prover_poly_deg4 qs_prover_poly_deg3_add_deg4(const quicksilver_state* state, const qs_prover_poly_deg3 left, const qs_prover_poly_deg4 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg4 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = poly_secpar_add(left.c2,right.c2);
+	out.c3 = poly_secpar_add(left.c3,right.c3);
+	out.c4 = right.c4;
+	return out;
+}
+
+inline qs_prover_poly_deg5 qs_prover_poly_deg4_add_deg5(const quicksilver_state* state, const qs_prover_poly_deg4 left, const qs_prover_poly_deg5 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg5 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = poly_secpar_add(left.c2,right.c2);
+	out.c3 = poly_secpar_add(left.c3,right.c3);
+	out.c4 = poly_secpar_add(left.c4,right.c4);
+	out.c5 = right.c5;
+	return out;
+}
+
 inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right)
 {
 	assert(!state->verifier);
