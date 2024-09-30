@@ -96,7 +96,7 @@ bool faest_ring_sign(
 
 bool faest_tagged_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
-	const public_key* pk_tag0, const public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len);
+	public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len);
 
 // Verify a signature (of length FAEST_SIGNATURE_BYTES) for a message msg (of length msg_len)
 // using a public key pk_packed (of length FAEST_PUBLIC_KEY_BYTES). Returns true for a valid
@@ -108,4 +108,4 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
                   	   const public_key_ring* pk_ring);
 
 bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  	   const public_key_ring* pk_ring, const public_key* pk_tag0, const public_key* pk_tag1);
+                  	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1);
