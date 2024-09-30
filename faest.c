@@ -1352,7 +1352,7 @@ static bool faest_tagged_ring_sign_attempt(
 	free(macs);
 	free(u);
 
-	printf("QS check prover:");
+	printf("QS check prover: ");
     for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
         printf("%02x", qs_check[i]);
 	}
@@ -1620,6 +1620,7 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	hash_update(&hasher, qs_proof_cubic, QUICKSILVER_PROOF_BYTES);
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM > 2)
 	hash_update(&hasher, qs_proof_quartic, QUICKSILVER_PROOF_BYTES);
