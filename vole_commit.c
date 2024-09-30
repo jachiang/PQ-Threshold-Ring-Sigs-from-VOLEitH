@@ -80,10 +80,10 @@ void vole_commit(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_COL_BLOCKS);
 		else
 		{
-			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction);
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_COL_BLOCKS);
 			//  memcpy(commitment, correction, VOLE_RING_ROWS / 8);
 			// 	commitment += VOLE_RING_ROWS / 8;
 			memcpy(commitment, correction, VOLE_ROWS / 8);
@@ -140,14 +140,14 @@ bool vole_reconstruct(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes, VOLE_COL_BLOCKS);
 		else
 		{
 			// memcpy(correction, commitment, VOLE_RING_ROWS / 8);
 			// commitment += VOLE_RING_ROWS / 8;
 			memcpy(correction, commitment, VOLE_ROWS / 8);
 			commitment += VOLE_ROWS / 8;
-			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes, VOLE_COL_BLOCKS);
 		}
 
 		leaves_iter += (size_t) 1 << k;
@@ -194,10 +194,10 @@ void vole_commit_for_ring(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_RING_COL_BLOCKS);
 		else
 		{
-			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction);
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_RING_COL_BLOCKS);
 			memcpy(commitment, correction, VOLE_RING_ROWS / 8);
 			commitment += VOLE_RING_ROWS / 8;
 			// memcpy(commitment, correction, VOLE_ROWS / 8);
@@ -256,14 +256,14 @@ bool vole_reconstruct_for_ring(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes, VOLE_RING_COL_BLOCKS);
 		else
 		{
 			memcpy(correction, commitment, VOLE_RING_ROWS / 8);
 			commitment += VOLE_RING_ROWS / 8;
 			// memcpy(correction, commitment, VOLE_ROWS / 8);
 			// commitment += VOLE_ROWS / 8;
-			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes, VOLE_RING_COL_BLOCKS);
 		}
 
 		leaves_iter += (size_t) 1 << k;
@@ -311,10 +311,10 @@ void vole_commit_for_tagged_ring(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_TAGGED_RING_COL_BLOCKS);
 		else
 		{
-			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction);
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_TAGGED_RING_COL_BLOCKS);
 			memcpy(commitment, correction, VOLE_TAGGED_RING_ROWS / 8);
 			commitment += VOLE_TAGGED_RING_ROWS / 8;
 			// memcpy(commitment, correction, VOLE_ROWS / 8);
@@ -374,14 +374,14 @@ bool vole_reconstruct_for_tagged_ring(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
 		else
 		{
 			memcpy(correction, commitment, VOLE_TAGGED_RING_ROWS / 8);
 			commitment += VOLE_TAGGED_RING_ROWS / 8;
 			// memcpy(correction, commitment, VOLE_ROWS / 8);
 			// commitment += VOLE_ROWS / 8;
-			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
 		}
 
 		leaves_iter += (size_t) 1 << k;

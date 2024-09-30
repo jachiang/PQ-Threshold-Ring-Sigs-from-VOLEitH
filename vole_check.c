@@ -33,7 +33,7 @@ static vole_check_challenge load_challenge(const uint8_t* in)
 static void vole_check_both(
 	bool verifier, const vole_block* restrict u, const vole_block* restrict vq,
 	const uint8_t* restrict delta_bytes,
-	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check)
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check, size_t qs_rows, size_t col_len)
 {
 
 	vole_check_challenge chal = load_challenge(challenge);
@@ -47,12 +47,14 @@ static void vole_check_both(
 
 	for (int col = -!verifier; col < SECURITY_PARAM; ++col)
 	{
-		const uint8_t* to_hash = (const uint8_t*) (col == -1 ? u : vq + VOLE_COL_BLOCKS * col);
+		// const uint8_t* to_hash = (const uint8_t*) (col == -1 ? u : vq + VOLE_COL_BLOCKS * col);
+		const uint8_t* to_hash = (const uint8_t*) (col == -1 ? u : vq + col_len * col);
 
 		size_t hasher_chunk_size = POLY_VEC_LEN * SECURITY_PARAM;
+		// size_t padded_rows =
+		// 	((QUICKSILVER_ROWS + hasher_chunk_size - 1) / hasher_chunk_size) * hasher_chunk_size;
 		size_t padded_rows =
-			((QUICKSILVER_ROWS + hasher_chunk_size - 1) / hasher_chunk_size) * hasher_chunk_size;
-
+			((qs_rows + hasher_chunk_size - 1) / hasher_chunk_size) * hasher_chunk_size;
 		hasher_gfsecpar_state state_secpar;
 		hasher_gf64_state state_64;
 		hasher_gfsecpar_init_state(&state_secpar, padded_rows / hasher_chunk_size);
@@ -61,9 +63,11 @@ static void vole_check_both(
 		size_t i = 0;
 
 		// Apply inital padding.
-		if (padded_rows - QUICKSILVER_ROWS >= SECURITY_PARAM)
+		// if (padded_rows - QUICKSILVER_ROWS >= SECURITY_PARAM)
+		if (padded_rows - qs_rows >= SECURITY_PARAM)
 		{
-			size_t extra_blocks = (padded_rows - QUICKSILVER_ROWS) / SECURITY_PARAM;
+			// size_t extra_blocks = (padded_rows - QUICKSILVER_ROWS) / SECURITY_PARAM;
+			size_t extra_blocks = (padded_rows - qs_rows) / SECURITY_PARAM;
 			uint8_t first_chunk[POLY_VEC_LEN * sizeof(block_secpar)];
 			memset(first_chunk, 0, extra_blocks * sizeof(block_secpar));
 			memcpy(first_chunk + extra_blocks * sizeof(block_secpar), to_hash,
@@ -77,22 +81,28 @@ static void vole_check_both(
 		}
 
 		// TODO: Maybe better to chunk the loop by HASHER_GFSECPAR_KEY_POWS.
-		for (; i + hasher_chunk_size <= QUICKSILVER_ROWS; i += hasher_chunk_size)
+		// for (; i + hasher_chunk_size <= QUICKSILVER_ROWS; i += hasher_chunk_size)
+		for (; i + hasher_chunk_size <= qs_rows; i += hasher_chunk_size)
 		{
 			hasher_gfsecpar_update(&chal.hasher_key_secpar, &state_secpar, poly_secpar_load(to_hash + i / 8));
 			for (size_t j = 0; j < hasher_chunk_size; j += POLY_VEC_LEN * 64)
 				hasher_gf64_update(&chal.hasher_key_64, &state_64, poly64_load(to_hash + (i + j) / 8));
 		}
 
-		assert(i == QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM));
-		i = QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM); // Let the compiler know it's constant.
+		// assert(i == QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM));
+		// i = QUICKSILVER_ROWS - (QUICKSILVER_ROWS % SECURITY_PARAM); // Let the compiler know it's constant.
+		assert(i == qs_rows - (qs_rows % SECURITY_PARAM));
+		i = qs_rows - (qs_rows % SECURITY_PARAM); // Let the compiler know it's constant.
 
 		// Apply final padding.
-		if (QUICKSILVER_ROWS % SECURITY_PARAM)
+		// if (QUICKSILVER_ROWS % SECURITY_PARAM)
+		if (qs_rows % SECURITY_PARAM)
 		{
 			uint8_t last_chunk[POLY_VEC_LEN * sizeof(block_secpar)];
-			memcpy(last_chunk, to_hash + i / 8, (QUICKSILVER_ROWS - i) / 8);
-			memset(last_chunk + (QUICKSILVER_ROWS - i) / 8, 0, sizeof(last_chunk) - (QUICKSILVER_ROWS - i) / 8);
+			// memcpy(last_chunk, to_hash + i / 8, (QUICKSILVER_ROWS - i) / 8);
+			// memset(last_chunk + (QUICKSILVER_ROWS - i) / 8, 0, sizeof(last_chunk) - (QUICKSILVER_ROWS - i) / 8);
+			memcpy(last_chunk, to_hash + i / 8, (qs_rows - i) / 8);
+			memset(last_chunk + (qs_rows - i) / 8, 0, sizeof(last_chunk) - (qs_rows - i) / 8);
 
 			hasher_gfsecpar_update(&chal.hasher_key_secpar, &state_secpar, poly_secpar_load(last_chunk));
 			for (size_t j = 0; j < hasher_chunk_size; j += POLY_VEC_LEN * 64)
@@ -119,7 +129,8 @@ static void vole_check_both(
 
 		// Apply the mask so that this check will hide u.
 		block_secpar mask[2] = { block_secpar_set_zero(), block_secpar_set_zero() };
-		memcpy(mask, to_hash + QUICKSILVER_ROWS / 8, VOLE_CHECK_HASH_BYTES);
+		// memcpy(mask, to_hash + QUICKSILVER_ROWS / 8, VOLE_CHECK_HASH_BYTES);
+		memcpy(mask, to_hash + qs_rows / 8, VOLE_CHECK_HASH_BYTES);
 		for (size_t j = 0; j < 2; ++j)
 			hash_output[j] = block_secpar_xor(hash_output[j], mask[j]);
 
@@ -141,14 +152,14 @@ static void vole_check_both(
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,
-	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check)
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check, size_t qs_rows, size_t col_len)
 {
-	vole_check_both(false, u, v, NULL, challenge, proof, check);
+	vole_check_both(false, u, v, NULL, challenge, proof, check, qs_rows, col_len);
 }
 
 void vole_check_receiver(
 	const vole_block* restrict q, const uint8_t* restrict delta_bytes,
-	const uint8_t* restrict challenge, const uint8_t* restrict proof, uint8_t* restrict check)
+	const uint8_t* restrict challenge, const uint8_t* restrict proof, uint8_t* restrict check, size_t qs_rows, size_t col_len)
 {
-	vole_check_both(true, NULL, q, delta_bytes, challenge, (uint8_t*) proof, check);
+	vole_check_both(true, NULL, q, delta_bytes, challenge, (uint8_t*) proof, check, qs_rows, col_len);
 }

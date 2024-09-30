@@ -17,7 +17,7 @@
 void vole_sender(
 	unsigned int k, const block_secpar* restrict keys,
 	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
-	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c);
+	const vole_block* restrict u, vole_block* restrict v, vole_block* restrict c, size_t col_len);
 
 // Given 2**k PRG keys, the secret delta, and the correction string c, generate the VOLE correlation
 // q. c and q are stored similarly to c and v in vole_sender. A k-bit delta is represented as k
@@ -28,11 +28,11 @@ void vole_receiver(
 	unsigned int k, const block_secpar* restrict keys,
 	block128 iv, const prg_vole_fixed_key* restrict fixed_key,
 	const vole_block* restrict c, vole_block* restrict q,
-	const uint8_t* restrict delta);
+	const uint8_t* restrict delta, size_t col_len);
 
 void vole_receiver_apply_correction(
 	size_t row_blocks, size_t cols,
-	const vole_block* restrict c, vole_block* restrict q, const uint8_t* restrict delta);
+	const vole_block* restrict c, vole_block* restrict q, const uint8_t* restrict delta, size_t col_len);
 
 inline size_t vole_permute_key_index(size_t i)
 {

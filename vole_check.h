@@ -11,11 +11,11 @@
 
 void vole_check_sender(
 	const vole_block* restrict u, const vole_block* restrict v,
-	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check);
+	const uint8_t* restrict challenge, uint8_t* restrict proof, uint8_t* restrict check, size_t qs_rows, size_t col_len);
 
 void vole_check_receiver(
 	const vole_block* restrict q, const uint8_t* restrict delta_bytes,
-	const uint8_t* restrict challenge, const uint8_t* restrict proof, uint8_t* restrict check);
+	const uint8_t* restrict challenge, const uint8_t* restrict proof, uint8_t* restrict check, size_t qs_rows, size_t col_len);
 
 
 #endif

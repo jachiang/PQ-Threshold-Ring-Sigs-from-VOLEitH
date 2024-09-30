@@ -540,7 +540,7 @@ static bool faest_sign_attempt(
 
 	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_ROWS, VOLE_COL_BLOCKS);
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -705,7 +705,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_ROWS, VOLE_COL_BLOCKS);
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -720,7 +720,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 	memcpy(&correction_blocks, correction, WITNESS_BITS / 8);
 	memset(((uint8_t*) &correction_blocks) + WITNESS_BITS / 8, 0,
 	       sizeof(correction_blocks) - WITNESS_BITS / 8);
-	vole_receiver_apply_correction(WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes);
+	vole_receiver_apply_correction(WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, VOLE_COL_BLOCKS);
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
@@ -831,7 +831,7 @@ static bool faest_ring_sign_attempt(
 	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // JC: check VOLE_RING_COMMIT_SIZE
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_RING_ROWS, VOLE_RING_COL_BLOCKS);
 
 	// printf("Prover chall 1:");
     // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -1119,7 +1119,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_RING_ROWS, VOLE_RING_COL_BLOCKS);
 
 	// printf("Verifier chall 1:");
     // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -1161,7 +1161,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	memcpy(&correction_blocks, correction, RING_WITNESS_BITS / 8);
 	memset(((uint8_t*) &correction_blocks) + RING_WITNESS_BITS / 8, 0,
 	       sizeof(correction_blocks) - RING_WITNESS_BITS / 8);
-	vole_receiver_apply_correction(RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes);
+	vole_receiver_apply_correction(RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, VOLE_RING_COL_BLOCKS);
 
 	// vole_block correction_blocks[WITNESS_BLOCKS];
 	// memcpy(&correction_blocks, correction, WITNESS_BITS / 8);
@@ -1337,7 +1337,7 @@ static bool faest_tagged_ring_sign_attempt(
 	uint8_t* vole_check_proof = signature + VOLE_TAGGED_RING_COMMIT_SIZE;
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check);
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
 
 	printf("Prover chall 1:");
     for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -1639,7 +1639,7 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check);
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
 
 	printf("Verifier chall 1:");
     for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -1681,7 +1681,7 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	memcpy(&correction_blocks, correction, TAGGED_RING_WITNESS_BITS / 8);
 	memset(((uint8_t*) &correction_blocks) + TAGGED_RING_WITNESS_BITS / 8, 0,
 	       sizeof(correction_blocks) - TAGGED_RING_WITNESS_BITS / 8);
-	vole_receiver_apply_correction(TAGGED_RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes);
+	vole_receiver_apply_correction(TAGGED_RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
 
 	// vole_block correction_blocks[WITNESS_BLOCKS];
 	// memcpy(&correction_blocks, correction, WITNESS_BITS / 8);

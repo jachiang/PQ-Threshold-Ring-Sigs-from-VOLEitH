@@ -43,8 +43,8 @@ TEST_CASE( "small vole", "[small vole]" ) {
 
     block128 iv = rand<block128>();
 
-    vole_sender(k, sender_keys.data(), iv, &fixed_key, u.data(), v.data(), c.data());
-    vole_receiver(k, receiver_keys.data(), iv, &fixed_key, c.data(), q.data(), delta_bytes.data());
+    vole_sender(k, sender_keys.data(), iv, &fixed_key, u.data(), v.data(), c.data(), VOLE_COL_BLOCKS);
+    vole_receiver(k, receiver_keys.data(), iv, &fixed_key, c.data(), q.data(), delta_bytes.data(), VOLE_COL_BLOCKS);
 
     const auto u_vec = std::vector(reinterpret_cast<uint8_t*>(u.data()),
                                    reinterpret_cast<uint8_t*>(u.data() + VOLE_COL_BLOCKS));
