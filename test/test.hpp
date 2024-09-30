@@ -243,10 +243,15 @@ struct quicksilver_test_or_state
     quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag) :
         witness(witness_in, witness_in + witness_bits / 8), tag(tag)
     {
-        auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
+        // JC: TODO - Increase witness mask at the end.
+        // auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
+        // witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
+
+        auto witness_mask = random_vector<uint8_t>(FAEST_RING_PROOF_ELEMS * (SECURITY_PARAM / 8));
         witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
 
-        auto correlation = gen_vole_correlation(witness_bits + SECURITY_PARAM, witness.data(), delta);
+        // JC: TODO - Increase size of VOLE generation.
+        auto correlation = gen_vole_correlation(witness_bits + FAEST_RING_PROOF_ELEMS * SECURITY_PARAM, witness.data(), delta);
         keys = std::move(correlation.first);
         tags = std::move(correlation.second);
 
@@ -273,7 +278,8 @@ struct quicksilver_test_or_state
 
         std::array<uint8_t, QUICKSILVER_CHECK_BYTES> check_prover, check_verifier;
 
-        size_t witness_bits = 8 * witness.size() - SECURITY_PARAM;
+        // Update with multiple masks.
+        size_t witness_bits = 8 * witness.size() - FAEST_RING_PROOF_ELEMS * SECURITY_PARAM;
 
         #if (FAEST_RING_HOTVECTOR_DIM == 1)
         quicksilver_prove_or(&prover_state, witness_bits, proof_quad.data(),proof.data(), check_prover.data());

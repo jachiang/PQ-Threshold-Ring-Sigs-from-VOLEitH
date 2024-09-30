@@ -446,7 +446,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
 		}
 
-		// JC: Copy hotvector serialization to witness.
+		// JC: Copy 1-hotvector serialization to witness.
 		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 	}
 	return true;

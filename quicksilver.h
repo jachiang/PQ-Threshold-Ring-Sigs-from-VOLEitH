@@ -81,6 +81,15 @@ typedef struct
 	poly_secpar_vec c3;
 	poly_secpar_vec c4;
 	poly_secpar_vec c5;
+} qs_prover_poly_deg5;
+typedef struct
+{
+	poly_secpar_vec c0;
+	poly_secpar_vec c1;
+	poly_secpar_vec c2;
+	poly_secpar_vec c3;
+	poly_secpar_vec c4;
+	poly_secpar_vec c5;
 	poly_secpar_vec c6;
 } qs_prover_poly_deg6;
 
@@ -805,6 +814,36 @@ inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs
 	in->c2 = poly_secpar_set_zero();
 }
 
+inline void quicksilver_prover_init_poly_deg3(const quicksilver_state* state, qs_prover_poly_deg3* in)
+{
+	assert(!state->verifier);
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+	in->c2 = poly_secpar_set_zero();
+	in->c3 = poly_secpar_set_zero();
+}
+
+inline void quicksilver_prover_init_poly_deg4(const quicksilver_state* state, qs_prover_poly_deg4* in)
+{
+	assert(!state->verifier);
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+	in->c2 = poly_secpar_set_zero();
+	in->c3 = poly_secpar_set_zero();
+	in->c4 = poly_secpar_set_zero();
+}
+
+inline void quicksilver_prover_init_poly_deg5(const quicksilver_state* state, qs_prover_poly_deg5* in)
+{
+	assert(!state->verifier);
+	in->c0 = poly_secpar_set_zero();
+	in->c1 = poly_secpar_set_zero();
+	in->c2 = poly_secpar_set_zero();
+	in->c3 = poly_secpar_set_zero();
+	in->c4 = poly_secpar_set_zero();
+	in->c5 = poly_secpar_set_zero();
+}
+
 inline void quicksilver_verifier_init_key_0(const quicksilver_state* state, qs_verifier_key* in)
 {
 	assert(state->verifier);
@@ -818,6 +857,16 @@ inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const quicksilver_state*
 	qs_prover_poly_deg1 out;
 	out.c0 = poly_secpar_add(left.c0,right.c0);
 	out.c1 = poly_secpar_add(left.c1,right.c1);
+	return out;
+}
+
+inline qs_prover_poly_deg2 qs_prover_poly_deg1_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right)
+{
+	assert(!state->verifier);
+	qs_prover_poly_deg2 out;
+	out.c0 = poly_secpar_add(left.c0,right.c0);
+	out.c1 = poly_secpar_add(left.c1,right.c1);
+	out.c2 = right.c2;
 	return out;
 }
 

@@ -277,9 +277,46 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	assert(witness_bits % 8 == 0);
 
 	// JC: TODO: Implement higher degree masks.
-	poly_2secpar_vec zero_mask = poly_2secpar_set_zero();
-	poly_2secpar_vec value_mask = poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
-	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	qs_prover_poly_deg1 mask1;
+	qs_prover_poly_deg2 mask2;
+	quicksilver_prover_init_poly_deg1(state, &mask1);
+	quicksilver_prover_init_poly_deg2(state, &mask2);
+	mask1.c0 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits));
+	mask1.c1 = poly_secpar_load_dup(&state->witness[witness_bits / 8]);
+	mask2.c1 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + SECURITY_PARAM));
+	mask2.c2 = poly_secpar_load_dup(&state->witness[(witness_bits + SECURITY_PARAM) / 8]);
+	#if (FAEST_RING_HOTVECTOR_DIM > 1)
+	qs_prover_poly_deg3 mask3;
+	quicksilver_prover_init_poly_deg3(state, &mask3);
+	mask3.c2 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 2*SECURITY_PARAM));
+	mask3.c3 = poly_secpar_load_dup(&state->witness[(witness_bits + 2*SECURITY_PARAM) / 8]);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 2)
+	qs_prover_poly_deg4 mask4;
+	quicksilver_prover_init_poly_deg4(state, &mask4);
+	mask4.c3 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 3*SECURITY_PARAM));
+	mask4.c4 = poly_secpar_load_dup(&state->witness[(witness_bits + 3*SECURITY_PARAM) / 8]);
+	#endif
+	#if (FAEST_RING_HOTVECTOR_DIM > 3)
+	qs_prover_poly_deg5 mask5;
+	quicksilver_prover_init_poly_deg4(state, &mask5);
+	mask5.c4 = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + 4*SECURITY_PARAM));
+	mask5.c5 = poly_secpar_load_dup(&state->witness[(witness_bits + 4*SECURITY_PARAM) / 8]);
+	#endif
+
+	#if (FAEST_RING_HOTVECTOR_DIM == 1)
+	// poly_2secpar_vec zero_mask = poly_2secpar_set_zero();
+	// poly_2secpar_vec value_mask = poly_2secpar_from_secpar(poly_secpar_load_dup(&state->witness[witness_bits / 8]));
+	// poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	qs_prover_poly_deg2 qs_mask = qs_prover_poly_deg1_add_deg2(state, mask1, mask2);
+	poly_2secpar_vec mask_c0 = poly_2secpar_from_secpar(qs_mask.c0);
+	poly_2secpar_vec mask_c1 = poly_2secpar_from_secpar(qs_mask.c1);
+	poly_2secpar_vec mask_c2 = poly_2secpar_from_secpar(qs_mask.c2);
+	#elif (HOTVECTOR_DIM == 2)
+	// TODO.
+	#elif (HOTVECTOR_DIM == 4)
+	// TODO.
+	#endif
 
 	qs_prover_poly_deg1* hotvec0;
 	size_t vec_size = (FAEST_RING_HOTVECTOR_BITS+1) * sizeof(qs_prover_poly_deg1);
@@ -573,9 +610,12 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	#endif
 
 	// JC: Final ZKHash.
-	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
-	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
-	quicksilver_final(state, &state->state_secpar_quad, &state->state_64_quad, zero_mask, proof_quad);
+	// quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
+	// quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
+	// quicksilver_final(state, &state->state_secpar_quad, &state->state_64_quad, zero_mask, proof_quad);
+	quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mask_c0, check);
+	quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, mask_c1, proof_lin);
+	quicksilver_final(state, &state->state_secpar_quad, &state->state_64_quad, mask_c2, proof_quad);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	quicksilver_final(state, &state->state_secpar_cubic, &state->state_64_cubic, zero_mask, proof_cubic);
 	#endif
@@ -804,10 +844,20 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 	poly_secpar_vec quintic_term = poly_secpar_load_dup(proof_quintic);
 	#endif
 
-	poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
+	qs_verifier_key mask1;
+	qs_verifier_key mask2;
+	quicksilver_verifier_init_key_0(state, &mask1);
+	quicksilver_verifier_init_key_0(state, &mask2);
+	mask1.key = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits));
+	mask2.key = poly_2secpar_reduce_secpar(combine_mask_macs(state, witness_bits + SECURITY_PARAM));
+	quicksilver_verifier_increase_key_deg(state, &mask2, 1);
+	qs_verifier_key qs_mask = quicksilver_verifier_key_add_key(state, mask1, mask2);
+	// poly_2secpar_vec mac_mask = combine_mask_macs(state, witness_bits);
 
+	poly_2secpar_vec mac_mask = poly_2secpar_from_secpar(qs_mask.key);
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(linear_term, state->delta));
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(quad_term, state->deltaSq));
+
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	poly_secpar_vec delta_cubic = poly_2secpar_reduce_secpar(poly_secpar_mul(state->delta, state->deltaSq));
 	mac_mask = poly_2secpar_add(mac_mask, poly_secpar_mul(cubic_term,delta_cubic));
@@ -861,8 +911,12 @@ extern inline void quicksilver_inverse_constraint_to_branch(quicksilver_state* s
 extern inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq);
 extern inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in);
 extern inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs_prover_poly_deg2* in);
+extern inline void quicksilver_prover_init_poly_deg3(const quicksilver_state* state, qs_prover_poly_deg3* in);
+extern inline void quicksilver_prover_init_poly_deg4(const quicksilver_state* state, qs_prover_poly_deg4* in);
+extern inline void quicksilver_prover_init_poly_deg5(const quicksilver_state* state, qs_prover_poly_deg5* in);
 extern inline void quicksilver_verifier_init_key_0(const quicksilver_state* state, qs_verifier_key* in);
 extern inline qs_prover_poly_deg1 qs_prover_poly_deg1_add_deg1(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg1 right);
+extern inline qs_prover_poly_deg2 qs_prover_poly_deg1_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg1 left, const qs_prover_poly_deg2 right);
 extern inline qs_prover_poly_deg1 qs_prover_poly_const_add_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right);
 extern inline qs_prover_poly_deg2 qs_prover_poly_deg2_add_deg2(const quicksilver_state* state, const qs_prover_poly_deg2 left, const qs_prover_poly_deg2 right);
 extern inline qs_prover_poly_deg1 qs_prover_poly_const_mul_deg1(const quicksilver_state* state, const poly_secpar_vec left, const qs_prover_poly_deg1 right);
