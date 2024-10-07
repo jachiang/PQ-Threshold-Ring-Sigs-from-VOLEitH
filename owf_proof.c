@@ -7,6 +7,8 @@
 #include "owf_proof.h"
 #include "quicksilver.h"
 
+#include <stdalign.h>
+
 #define NUM_COLS (OWF_BLOCK_SIZE / 4)
 #define N_WD (SECURITY_PARAM / 32)
 // NEW
@@ -610,9 +612,11 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const public
 
 #endif
 
+// TODO: Cache sbox inputs (all but first and last rounds).
+// TODO: Cache constraints (all but first and last).
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, size_t pk_owf_num, const quicksilver_vec_gf2* round_key_bits,
-        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out) {
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, constraints_cache* cache, bool use_cache) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
     const size_t enc_bits_offset = OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1);
@@ -628,6 +632,7 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
 #if defined(ALLOW_ZERO_SBOX)
     quicksilver_vec_gfsecpar sq_inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar sq_inv_outputs[S_ENC];
+    // TODO: Cache sbox inputs (all but first and last rounds).
     enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs, sq_inv_inputs);
     enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs, sq_inv_outputs);
 #else
@@ -635,6 +640,7 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
     enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
 #endif
 
+    // TODO: Cache constraints (all but first and last).
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
         quicksilver_pseudoinverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j]);
@@ -767,12 +773,13 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
         // 2nd Tag OWF.
         enc_constraints(state, round_key_bits, round_key_bytes, i, tag1->owf_input[i], tag1->owf_output[i], true, 1);
     }
+    constraints_cache cache;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         for (size_t i = 0; i < OWF_BLOCKS; ++i) {
             // 1st Pk OWF.
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i]);
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false);
             // 2nd Pk OWF.
-            enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i]);
+            enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i], &cache, false);
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
@@ -782,13 +789,14 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
     // 2nd Tag OWF.
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag1->fixed_key);
     enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag1->owf_output[0], true, 1);
+    constraints_cache cache;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         // 1st Pk OWF.
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
-        enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0]);
+        enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
         // 2nd Pk OWF.
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys1[branch].fixed_key);
-        enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0]);
+        enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     // JC: TODO - OWF not supported.
@@ -807,7 +815,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
 
 // JC: TODO - add tagged flag.
 // static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tagged)
-static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk)
+static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk) // TODO: Active branch
 {
 
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
@@ -817,15 +825,40 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
 #if defined(OWF_AES_CTR)
     // JC: Packed witness - KEY_SCHEDULE | ENC_1 | ENC_2 | ...
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
+    // Cache for sbox inputs and outputs/constraints.
+    constraints_cache cache;
+    cache.inv_inputs0 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    cache.inv_outputs0 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    #if (OWF_BLOCKS == 2)
+    cache.inv_inputs1 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    cache.inv_outputs1 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    #endif
+    #if defined(ALLOW_ZERO_SBOX)
+    cache.sq_inv_inputs0 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    cache.sq_inv_outputs0 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    #if (OWF_BLOCKS == 2)
+    cache.sq_inv_inputs1 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    cache.sq_inv_outputs1 = (quicksilver_vec_gfsecpar*)aligned_alloc(alignof(quicksilver_vec_gfsecpar), S_ENC * sizeof(quicksilver_vec_gfsecpar));
+    #endif
+    #endif
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
-        for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i]);
+        if (branch == 0) {
+            for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false); // Cache input, first = true.
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, true); // Cache input, first = false.
+            }
         }
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    constraints_cache cache;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
-        enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0]);
+        enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     // JC: TODO - OWF not supported.
