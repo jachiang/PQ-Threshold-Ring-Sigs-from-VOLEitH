@@ -140,20 +140,14 @@ void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, con
 
 typedef struct
 {
-    quicksilver_vec_gfsecpar* inv_inputs0;     // enc_fwd, OWF0
-    quicksilver_vec_gfsecpar* inv_outputs0;    // enc_fwd, OWF0
-    #if (OWF_BLOCKS == 2)
-    quicksilver_vec_gfsecpar* inv_inputs1;     // enc_fwd, OWF1
-    quicksilver_vec_gfsecpar* inv_outputs1;    // enc_fwd, OWF1
-    #endif
+    quicksilver_vec_gfsecpar inv_inputs[OWF_BLOCK_SIZE * OWF_ROUNDS];
+    quicksilver_vec_gfsecpar inv_outputs[OWF_BLOCK_SIZE * OWF_ROUNDS];
     #if defined(ALLOW_ZERO_SBOX)
-    quicksilver_vec_gfsecpar* sq_inv_inputs0;  // enc_bkwd, OWF0
-    quicksilver_vec_gfsecpar* sq_inv_outputs0; // enc_bkwd, OWF0
-    #if (OWF_BLOCKS == 2)
-    quicksilver_vec_gfsecpar* sq_inv_inputs1;  // enc_bkwd, OWF1
-    quicksilver_vec_gfsecpar* sq_inv_outputs1; // enc_bkwd, OWF1
+    quicksilver_vec_gfsecpar sq_inv_inputs[OWF_BLOCK_SIZE * OWF_ROUNDS];
+    quicksilver_vec_gfsecpar sq_inv_outputs[OWF_BLOCK_SIZE * OWF_ROUNDS];
     #endif
-    #endif
-} constraints_cache;
+	quicksilver_vec_deg2 constraints1[OWF_BLOCK_SIZE * OWF_ROUNDS];
+	quicksilver_vec_deg2 constraints2[OWF_BLOCK_SIZE * OWF_ROUNDS];
+} constraints_cached;
 
 #endif
