@@ -798,6 +798,18 @@ inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* st
 	quicksilver_constraint_to_branch(state, branch, constraint2);
 }
 
+inline void quicksilver_pseudoinverse_constraint_to_branch_and_cache(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq, quicksilver_vec_deg2* constraint1_cached, quicksilver_vec_deg2* constraint2_cached)
+{
+	quicksilver_vec_deg2 mul1 = quicksilver_mul(state, x_sq, y);
+	quicksilver_vec_deg2 mul2 = quicksilver_mul(state, x, y_sq);
+	quicksilver_vec_deg2 constraint1 = quicksilver_add_deg2_deg1(state, mul1, x);
+	quicksilver_vec_deg2 constraint2 = quicksilver_add_deg2_deg1(state, mul2, y);
+	memcpy(constraint1_cached, &constraint1, sizeof(quicksilver_vec_deg2));
+	memcpy(constraint2_cached, &constraint2, sizeof(quicksilver_vec_deg2));
+	quicksilver_constraint_to_branch(state, branch, constraint1);
+	quicksilver_constraint_to_branch(state, branch, constraint2);
+}
+
 // JC: Various operations over polynomials represented as coefficients.
 inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in)
 {

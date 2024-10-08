@@ -942,6 +942,7 @@ extern inline void quicksilver_pseudoinverse_constraint(quicksilver_state* state
 extern inline void quicksilver_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_deg2 x);
 extern inline void quicksilver_inverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y);
 extern inline void quicksilver_pseudoinverse_constraint_to_branch(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq);
+extern inline void quicksilver_pseudoinverse_constraint_to_branch_and_cache(quicksilver_state* state, uint32_t branch, quicksilver_vec_gfsecpar x, quicksilver_vec_gfsecpar y, quicksilver_vec_gfsecpar x_sq, quicksilver_vec_gfsecpar y_sq, quicksilver_vec_deg2* constraint1_cached, quicksilver_vec_deg2* constraint2_cached);
 extern inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in);
 extern inline void quicksilver_prover_init_poly_deg2(const quicksilver_state* state, qs_prover_poly_deg2* in);
 extern inline void quicksilver_prover_init_poly_deg3(const quicksilver_state* state, qs_prover_poly_deg3* in);

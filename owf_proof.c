@@ -235,7 +235,14 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
 
     size_t round_key_byte_offset = OWF_BLOCK_SIZE;
     size_t output_byte_offset = OWF_BLOCK_SIZE;
+
+    // Remaining rounds are not computed if use_cache is true.
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
+
+        if (use_cache) {
+            if (round_i < OWF_ROUNDS - 1) { continue; }
+        }
+
         for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             quicksilver_vec_gfsecpar col_wit_bytes[4];
             quicksilver_vec_gf2 col_wit_bits[4*8];
@@ -274,14 +281,14 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
                             quicksilver_mul_const(state, col_wit_bytes[(row_k + 1) % 4], c_three),
                             quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 2) % 4],
                                 quicksilver_add_gfsecpar(state, col_wit_bytes[(row_k + 3) % 4],
-                                                         round_key_bytes[round_key_byte_offset + row_k]))));
+                                                        round_key_bytes[round_key_byte_offset + row_k]))));
 #endif
             }
             witness_bit_offset += 32;
             round_key_byte_offset += 4;
             output_byte_offset += 4;
         }
-   }
+    }
 }
 #endif
 
@@ -295,6 +302,10 @@ static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_v
     const size_t last_round_key_bit_offset = 8 * OWF_ROUNDS * OWF_BLOCK_SIZE;
 
     for (size_t round_i = 0; round_i < OWF_ROUNDS; ++round_i, witness_bit_offset += OWF_BLOCK_SIZE * 8) {
+        // If use_cache is true, we only compute the last round.
+        if (use_cache && (round_i < OWF_ROUNDS - 1)) {
+            continue;
+        }
         for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             for (size_t row_k = 0; row_k < 4; ++row_k) {
                 quicksilver_vec_gf2 witness_bits[8];
@@ -634,7 +645,6 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
 #if defined(ALLOW_ZERO_SBOX)
     // quicksilver_vec_gfsecpar sq_inv_inputs[S_ENC];
     // quicksilver_vec_gfsecpar sq_inv_outputs[S_ENC];
-    // TODO: Cache sbox inputs (all but first and last rounds).
     enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, cache->inv_inputs, cache->sq_inv_inputs, use_cache); // TODO: Support use_cache flag.
     enc_bkwd(state, round_key_bits, witness_bit_offset, out, cache->inv_outputs, cache->sq_inv_outputs, use_cache);              // TODO: Support use_cache flag.
 #else
@@ -646,12 +656,17 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
     // TODO: Cache constraints (all but first and last).
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
-    if (!use_cache) {
         quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
-    } else {
-        quicksilver_constraint(state, cache->constraints1[sbox_j], true); // ring = true.
-	    quicksilver_constraint(state, cache->constraints2[sbox_j], true);
-    }
+        // if (!use_cache) {
+        //     quicksilver_pseudoinverse_constraint_to_branch_and_cache(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j], &cache->constraints1[sbox_j], &cache->constraints2[sbox_j]);
+        // } else {
+        //     if ((sbox_j < OWF_BLOCK_SIZE) || (sbox_j >= S_ENC - OWF_BLOCK_SIZE)) {
+        //         quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
+        //     } else {
+        //         quicksilver_constraint(state, cache->constraints1[sbox_j], true); // ring = true.
+        //         quicksilver_constraint(state, cache->constraints2[sbox_j], true);
+        //     }
+        // }
 #else
         quicksilver_inverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j]);
 #endif
@@ -834,17 +849,20 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
     // JC: Packed witness - KEY_SCHEDULE | ENC_1 | ENC_2 | ...
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // Cache for sbox inputs and outputs/constraints.
-    constraints_cached cache;
+    constraints_cached cache_owf1;
+    constraints_cached cache_owf2;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         if (branch == 0) {
-            for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false); // Cache input, first = true.
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0], &cache_owf1, false);
+            if (OWF_BLOCK_SIZE == 2){
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 1, pk->pubkeys[branch].owf_input[1], pk->pubkeys[branch].owf_output[1], &cache_owf2, false);
             }
         }
         else
         {
-            for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false); // TODO: set to true.
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0], &cache_owf1, true);
+            if (OWF_BLOCK_SIZE == 2){
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 1, pk->pubkeys[branch].owf_input[1], pk->pubkeys[branch].owf_output[1], &cache_owf2, true);
             }
         }
     }
@@ -856,7 +874,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
             enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
         } else {
             load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false); // TODO: set to true.
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, true); // TODO: set to true.
         }
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
