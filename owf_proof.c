@@ -870,13 +870,8 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     constraints_cached cache;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
-        if (branch == 0) {
-            load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
-        } else {
-            load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, true); // TODO: set to true.
-        }
+        load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->pubkeys[branch].fixed_key);
+        enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     // JC: TODO - OWF not supported.
