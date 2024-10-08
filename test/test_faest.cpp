@@ -1,4 +1,5 @@
 #include <array>
+#include <chrono>
 
 #include "test.hpp"
 #include "test_faest_tvs.hpp"
@@ -148,8 +149,18 @@ TEST_CASE( "keygen/sign/verify", "[faest]" ) {
 
     const std::string message = "This document describes and specifies the FAEST digital signature algorithm.";
 
+    auto signer_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), NULL, 0) );
+    auto signer_end = std::chrono::high_resolution_clock::now();
+    auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
+    std::cout << "Faest Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+
+    auto verifier_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk.data()) );
+    auto verifier_end = std::chrono::high_resolution_clock::now();
+    auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
+    std::cout << "Faest Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
+
 }
 
 #if USE_IMPROVED_VECTOR_COMMITMENTS == 0 && ZERO_BITS_IN_CHALLENGE_3 == 0 && \
@@ -202,10 +213,19 @@ TEST_CASE( "test vector", "[faest tv]" ) {
     faest_pubkey(packed_pk.data(), tv::packed_sk.data());
     CHECK( packed_pk == tv::packed_pk );
 
+    auto signer_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_sk.data(), tv::randomness.data(), tv::randomness.size()) );
+    auto signer_end = std::chrono::high_resolution_clock::now();
+    auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
+    std::cout << "Faest Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+
     CHECK( signature == tv::signature );
 
+    auto verifier_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_pk.data()) );
+    auto verifier_end = std::chrono::high_resolution_clock::now();
+    auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
+    std::cout << "Faest Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
 }
 
 #endif
@@ -214,6 +234,7 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
 
     printf("FAEST WITNESS BITS: %u\n", WITNESS_BITS);
     printf("RING WITNESS BITS: %u\n", RING_WITNESS_BITS);
+    printf("RING SIGNATURE SIZE: %u\n", FAEST_RING_SIGNATURE_BYTES);
 
     std::array<uint8_t, FAEST_RING_SIGNATURE_BYTES> ring_signature;
 
@@ -227,8 +248,17 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
     secret_key sk;
     test_gen_ring_keys(&pk_ring, &sk, test_gen_rand_idx());
 
+    auto signer_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, NULL, 0) );
+    auto signer_end = std::chrono::high_resolution_clock::now();
+    auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
+    std::cout << "Ring Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+
+    auto verifier_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
+    auto verifier_end = std::chrono::high_resolution_clock::now();
+    auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
+    std::cout << "Ring Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
 
     free(pk_ring.pubkeys);
 }

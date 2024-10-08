@@ -237,13 +237,8 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
     size_t output_byte_offset = OWF_BLOCK_SIZE;
 
     // Remaining rounds are not computed if use_cache is true.
+    if (!use_cache){
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
-
-        if (use_cache) {
-            // if (round_i < OWF_ROUNDS-2) { continue; }
-            continue;
-        }
-
         for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
             quicksilver_vec_gfsecpar col_wit_bytes[4];
             quicksilver_vec_gf2 col_wit_bits[4*8];
@@ -289,6 +284,7 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
             round_key_byte_offset += 4;
             output_byte_offset += 4;
         }
+    }
     }
 }
 #endif
