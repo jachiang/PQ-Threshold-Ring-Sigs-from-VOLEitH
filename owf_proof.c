@@ -240,7 +240,8 @@ static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_ve
     for (size_t round_i = 1; round_i < OWF_ROUNDS; ++round_i) {
 
         if (use_cache) {
-            if (round_i < OWF_ROUNDS - 1) { continue; }
+            // if (round_i < OWF_ROUNDS-2) { continue; }
+            continue;
         }
 
         for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
@@ -656,17 +657,17 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
     // TODO: Cache constraints (all but first and last).
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
-        quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
-        // if (!use_cache) {
-        //     quicksilver_pseudoinverse_constraint_to_branch_and_cache(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j], &cache->constraints1[sbox_j], &cache->constraints2[sbox_j]);
-        // } else {
-        //     if ((sbox_j < OWF_BLOCK_SIZE) || (sbox_j >= S_ENC - OWF_BLOCK_SIZE)) {
-        //         quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
-        //     } else {
-        //         quicksilver_constraint(state, cache->constraints1[sbox_j], true); // ring = true.
-        //         quicksilver_constraint(state, cache->constraints2[sbox_j], true);
-        //     }
-        // }
+        // quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
+        if (!use_cache) {
+            quicksilver_pseudoinverse_constraint_to_branch_and_cache(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j], &cache->constraints1[sbox_j], &cache->constraints2[sbox_j]);
+        } else {
+            if ((sbox_j < OWF_BLOCK_SIZE) || (sbox_j >= S_ENC - OWF_BLOCK_SIZE)) {
+                quicksilver_pseudoinverse_constraint_to_branch(state, branch, cache->inv_inputs[sbox_j], cache->inv_outputs[sbox_j], cache->sq_inv_inputs[sbox_j], cache->sq_inv_outputs[sbox_j]);
+            } else {
+                quicksilver_constraint(state, cache->constraints1[sbox_j], true); // ring = true.
+                quicksilver_constraint(state, cache->constraints2[sbox_j], true);
+            }
+        }
 #else
         quicksilver_inverse_constraint_to_branch(state, branch, inv_inputs[sbox_j], inv_outputs[sbox_j]);
 #endif
