@@ -79,11 +79,12 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     secret_key sk;
     uint32_t active_idx = test_gen_rand_idx();
 
-	// owf_inputs are fixed, and owf_key is identical for all 1-2 owf.
+	// owf_inputs are fixed, and owf_key is identical for all owfs.
     std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
     std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    // TODO: owf inputs unused.
     #if (TAGGED_RING_PK_OWF_NUM > 2)
     std::array<uint8_t, FAEST_IV_BYTES> owf_input2;
     std::generate(owf_input2.data(), owf_input2.data() + FAEST_IV_BYTES, rand<uint8_t>);

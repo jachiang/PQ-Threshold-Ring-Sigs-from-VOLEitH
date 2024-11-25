@@ -33,6 +33,22 @@ typedef struct public_key
 
 } public_key;
 
+typedef struct cbc_tag
+{
+#if defined(OWF_AES_CTR)
+	owf_block owf_input[TAGGED_RING_TAG_OWF_NUM];
+	owf_block owf_output[1];
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	owf_block owf_input[1];
+	owf_block owf_output[1];
+	rijndael_round_keys fixed_key[TAGGED_RING_TAG_OWF_NUM];
+#elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
+#error "Unsupported one-way function."
+#elif defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
+#error "Unsupported one-way function."
+#endif
+} cbc_tag;
+
 typedef struct public_key_ring
 {
 	public_key* pubkeys;  // 1st owf
@@ -52,6 +68,9 @@ typedef struct
 	public_key pk3;  // 4th pk owf (TODO: Deprecate)
 	public_key tag;  // 1st tag owf
 	public_key tag1;  // 2nd tag owf
+
+	cbc_tag tag_cbc; // Tagged ring sigs only
+
 	uint32_t idx;
 #if defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
 	uint8_t sk[MQ_N_BYTES];
