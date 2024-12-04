@@ -478,7 +478,7 @@ inline bool test_finalize_sk_for_cbc_tag2(secret_key* sk, cbc_tag* tag, unsigned
 
 inline bool test_finalize_sk_for_tag3(secret_key* sk, public_key* tag_pk0, public_key* tag_pk1, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1)
 {
-    if(!faest_unpack_secret_key_for_tag(sk, tag_owf_input0, tag_owf_input1)) { return false; }
+    if(!faest_unpack_secret_key_for_tag3(sk, tag_owf_input0, tag_owf_input1)) { return false; }
 
 	memcpy(&tag_pk0->owf_input[0], &sk->tag.owf_input[0], sizeof(tag_pk0->owf_input));
 	memcpy(&tag_pk0->owf_output[0], &sk->tag.owf_output[0], sizeof(tag_pk0->owf_output));

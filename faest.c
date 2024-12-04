@@ -540,7 +540,7 @@ bool faest_compute_witness3(secret_key* sk, bool ring, bool tag)
 		w_ptr = (uint8_t*) &sk->ring_witness;
 	}
 	else if (ring && tag) {
-		w_ptr = (uint8_t*) &sk->tagged_ring_witness;
+		w_ptr = (uint8_t*) &sk->tagged_ring_witness3;
 	}
 
 #if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)

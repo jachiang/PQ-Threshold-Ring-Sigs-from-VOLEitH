@@ -122,16 +122,15 @@
 // JC: Double the number of OWF for tagged ring sigs
 #define TAGGED_RING_PK_OWF_NUM (2)
 #define TAGGED_RING_TAG_OWF_NUM (2)
+#define TAGGED_RING_TAG_OWF_NUM3 (2)
+
 #if defined(OWF_AES_CTR)
 	#if SECURITY_PARAM == 128
 		#define TAGGED_RING_CBC_OWF_NUM (2)
-		#define TAGGED_RING_TAG_OWF_NUM3 (2)
 	#elif SECURITY_PARAM == 192
 		#define TAGGED_RING_CBC_OWF_NUM (3)
-		#define TAGGED_RING_TAG_OWF_NUM3 (2)
 	#elif SECURITY_PARAM == 256
 		#define TAGGED_RING_CBC_OWF_NUM (4)
-		#define TAGGED_RING_TAG_OWF_NUM3 (2)
 	#endif
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	// TODO: Remote EM mode for CBC.
