@@ -779,11 +779,11 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		if (owf > TAGGED_RING_PK_OWF_NUM - 1){
 			aes_round_function(&sk->round_keys, &sk->tag_cbc.owf_outputs[owf-TAGGED_RING_PK_OWF_NUM], &after_sbox, round);
 			// Copy state except last round and last tag owf.
-			if (round < OWF_ROUNDS)
-				memcpy(w_ptr, &after_sbox, sizeof(owf_block));
-			// if (!(round == OWF_ROUNDS && owf == owf_num-1)) {
+			// if (round < OWF_ROUNDS)
 			// 	memcpy(w_ptr, &after_sbox, sizeof(owf_block));
-			// }
+			if (!(round == OWF_ROUNDS && owf == owf_num-1)) {
+				memcpy(w_ptr, &after_sbox, sizeof(owf_block));
+			}
 		}
 		// if (owf == 2) {
 		// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[0], &after_sbox, round);
@@ -796,8 +796,18 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		// 		memcpy(w_ptr, &after_sbox, sizeof(owf_block));
 		// }
 
-		if (round < OWF_ROUNDS)
-			w_ptr += sizeof(owf_block);
+		// PK: Witness pointer offset for all but last round.
+		if (owf < TAGGED_RING_PK_OWF_NUM) {
+			if (round < OWF_ROUNDS)
+				w_ptr += sizeof(owf_block);
+		}
+		// Tag: Witness pointer offset for all but last round in last owf.
+		else {
+			if (!(round == OWF_ROUNDS && owf == owf_num-1)) {
+				w_ptr += sizeof(owf_block);
+			}
+		}
+
 	}
 	// At end of pk owf, offset pointer to account for multiple owf blocks.
 	if (owf < TAGGED_RING_PK_OWF_NUM) {
