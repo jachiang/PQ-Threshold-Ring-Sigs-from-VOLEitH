@@ -33,21 +33,15 @@ typedef struct public_key
 
 } public_key;
 
+#if defined(OWF_AES_CTR)
 typedef struct cbc_tag
 {
-#if defined(OWF_AES_CTR)
-	owf_block owf_input[TAGGED_RING_TAG_OWF_NUM];
+	// Note: First bit of each tag input block is ignored.
+	owf_block owf_inputs[TAGGED_RING_CBC_OWF_NUM];
 	owf_block owf_output[1];
-#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	owf_block owf_input[1];
-	owf_block owf_output[1];
-	rijndael_round_keys fixed_key[TAGGED_RING_TAG_OWF_NUM];
-#elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-#error "Unsupported one-way function."
-#elif defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
-#error "Unsupported one-way function."
-#endif
+	owf_block owf_outputs[TAGGED_RING_CBC_OWF_NUM]; // for testing purpose.
 } cbc_tag;
+#endif
 
 typedef struct public_key_ring
 {
@@ -66,11 +60,11 @@ typedef struct
 	public_key pk1;  // 2nd pk owf
 	public_key pk2;  // 3rd pk owf (TODO: Deprecate)
 	public_key pk3;  // 4th pk owf (TODO: Deprecate)
-	public_key tag;  // 1st tag owf
-	public_key tag1;  // 2nd tag owf
-
-	cbc_tag tag_cbc; // Tagged ring sigs only
-
+	public_key tag;  // 1st tag owf (TODO: Deprecate)
+	public_key tag1;  // 2nd tag owf (TODO: Deprecate)
+#if defined(OWF_AES_CTR)
+	cbc_tag tag_cbc; // Tagged ring sigs.
+#endif
 	uint32_t idx;
 #if defined(OWF_MQ_2_8) || defined(OWF_MQ_2_1)
 	uint8_t sk[MQ_N_BYTES];
@@ -81,8 +75,10 @@ typedef struct
 	aes_round_keys round_keys;
 #endif
 	vole_block witness[WITNESS_BLOCKS];
+	// TODO: tagged_witness.
 	vole_block ring_witness[RING_WITNESS_BLOCKS];
 	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS]; // JC: Key-Sched-witness | OWF1-witness | OWF2-witness | ... | Tag-OWF-witness
+	vole_block tagged_ring_cbc_witness[TAGGED_RING_CBC_WITNESS_BLOCKS]; // JC: TODO: deprecate tagged_ring_witness.
 } secret_key;
 
 void faest_free_public_key(public_key* pk);
@@ -100,6 +96,13 @@ bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring, bool tag);
+#if defined(OWF_AES_CTR)
+bool faest_compute_witness_cbc(secret_key* sk);
+bool faest_compute_witness_cbc2(secret_key* sk);
+bool faest_unpack_secret_key_for_cbc_tag(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
+bool faest_unpack_secret_key_for_cbc_tag2(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
+
+#endif
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
 
 #endif // FAEST_DETAILS_H

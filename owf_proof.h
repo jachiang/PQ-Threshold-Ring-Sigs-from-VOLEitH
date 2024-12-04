@@ -42,7 +42,9 @@
 	typedef block128 owf_block;
 	inline owf_block owf_block_xor(owf_block x, owf_block y) { return block128_xor(x, y); }
 	inline owf_block owf_block_set_low32(uint32_t x) { return block128_set_low32(x); }
+	// TODO: owf_block_set_msb(bool x) { return block128_set_msb(x); }
 	inline bool owf_block_any_zeros(owf_block x) { return block128_any_zeros(x); }
+	inline owf_block owf_block_activate_msb(owf_block x) { return block128_activate_msb(x); }
 
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 
@@ -68,6 +70,7 @@
 	inline owf_block owf_block_xor(owf_block x, owf_block y) { return block_secpar_xor(x, y); }
 	inline owf_block owf_block_set_low32(uint32_t x) { return block_secpar_set_low32(x); }
 	inline bool owf_block_any_zeros(owf_block x) { return block_secpar_any_zeros(x); }
+	inline owf_block owf_block_activate_msb(owf_block x) { return block_secpar_activate_msb(x); }
 
 #elif defined(OWF_RAIN_3)
 
@@ -121,17 +124,22 @@
 #define TAGGED_RING_TAG_OWF_NUM (2)
 #if defined(OWF_AES_CTR)
 	#if SECURITY_PARAM == 128
-		#define TAGGED_RING_TAG_OWF_NUM2 (2)
+		#define TAGGED_RING_CBC_OWF_NUM (2)
 	#elif SECURITY_PARAM == 192
-		#define TAGGED_RING_TAG_OWF_NUM2 (3)
+		#define TAGGED_RING_CBC_OWF_NUM (3)
 	#elif SECURITY_PARAM == 256
-		#define TAGGED_RING_TAG_OWF_NUM2 (4)
+		#define TAGGED_RING_CBC_OWF_NUM (4)
 	#endif
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	#define TAGGED_RING_TAG_OWF_NUM2 (2)
+	// TODO: Remote EM mode for CBC.
+	#define TAGGED_RING_CBC_OWF_NUM (2)
 #endif
 
 #define TAGGED_RING_WITNESS_BITS ((TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM) * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
+
+#define TAGGED_RING_CBC_WITNESS_BITS ((TAGGED_RING_PK_OWF_NUM + 1) * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + (TAGGED_RING_CBC_OWF_NUM - 1) * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * OWF_ROUNDS) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
+
+#define TAGGED_RING_CBC_WITNESS_BITS2 ((TAGGED_RING_PK_OWF_NUM + TAGGED_RING_CBC_OWF_NUM) * (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1)) + OWF_KEY_WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
 #include "aes.h"
 #include "rain.h"
@@ -141,6 +149,7 @@
 struct public_key;
 typedef struct public_key public_key;
 typedef struct public_key_ring public_key_ring;
+typedef struct cbc_tag cbc_tag;
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
@@ -148,6 +157,12 @@ void owf_constraints_prover_all_branches(quicksilver_state* state, const public_
 void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk);
 void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1);
 void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1);
+#if defined(OWF_AES_CTR)
+void owf_constraints_prover_all_branches_and_tag_cbc(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+void owf_constraints_verifier_all_branches_and_tag_cbc(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+void owf_constraints_prover_all_branches_and_tag_cbc2(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+void owf_constraints_verifier_all_branches_and_tag_cbc2(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+#endif
 
 typedef struct
 {

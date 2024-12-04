@@ -45,3 +45,4 @@ extern inline block_2secpar block_2secpar_set_all_8(uint8_t x);
 extern inline block_2secpar block_2secpar_set_low32(uint32_t x);
 extern inline block_2secpar block_2secpar_set_low64(uint64_t x);
 extern inline block_2secpar block_2secpar_set_zero();
+extern inline block_secpar block_secpar_activate_msb(block_secpar x);

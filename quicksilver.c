@@ -52,8 +52,9 @@ void quicksilver_init_verifier(
 	state->macs = macs;
 }
 
+// TODO: bool cbc.
 void quicksilver_init_or_prover(
-	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs, const uint8_t* challenge, bool tag)
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs, const uint8_t* challenge, bool tag, bool cbc)
 {
 	state->verifier = false;
 	state->ring = true;
@@ -97,7 +98,13 @@ void quicksilver_init_or_prover(
 	if (!tag) {
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
-	else{
+	else if (cbc){
+		// TODO: this assumes CBC mode.
+		printf("active cbc mode in quicksilver_init_or_prover");
+		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_CBC_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
+	else {
+		// TODO: Deprecate non-cbc tag implementation.
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);
@@ -123,8 +130,9 @@ void quicksilver_init_or_prover(
 	state->macs = macs;
 }
 
+// TODO: bool cbc.
 void quicksilver_init_or_verifier(
-	quicksilver_state* state, const block_secpar* macs, block_secpar delta, const uint8_t* challenge, bool tag)
+	quicksilver_state* state, const block_secpar* macs, block_secpar delta, const uint8_t* challenge, bool tag, bool cbc)
 {
 	state->verifier = true;
 	state->ring = true;
@@ -157,7 +165,11 @@ void quicksilver_init_or_verifier(
 	if (!tag) {
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
+	else if (cbc){
+		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_CBC_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+	}
 	else{
+		// TODO: Deprecate non-cbc tag implementation.
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);

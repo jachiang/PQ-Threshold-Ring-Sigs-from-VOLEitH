@@ -239,9 +239,10 @@ struct quicksilver_test_or_state
     std::vector<block_secpar> keys;
 
     bool tag;
+    bool cbc;
 
-    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag) :
-        witness(witness_in, witness_in + witness_bits / 8), tag(tag)
+    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag, bool cbc) :
+        witness(witness_in, witness_in + witness_bits / 8), tag(tag), cbc(cbc)
     {
         // JC: TODO - Increase witness mask at the end.
         // auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
@@ -258,8 +259,8 @@ struct quicksilver_test_or_state
         std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
         std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
         // JC: setting "tag = true" inits hasher state for TAGGED_RING_PK_OWF_NUM of enc-sched constraints.
-        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(), challenge.data(), tag);
-        quicksilver_init_or_verifier(&verifier_state, keys.data(), delta, challenge.data(), tag);
+        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(), challenge.data(), tag, cbc);
+        quicksilver_init_or_verifier(&verifier_state, keys.data(), delta, challenge.data(), tag, cbc);
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
@@ -340,6 +341,7 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
 inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, public_key* pk1, public_key* pk2, public_key* pk3, unsigned char* owf_input0, unsigned char* owf_input1, unsigned char* owf_input2, unsigned char* owf_input3)
 #endif
 {
+    // Generate private key sk.
     std::array<uint8_t, SECURITY_PARAM / 8> owf_key;
 
     std::generate(owf_key.data(), owf_key.data() + SECURITY_PARAM / 8, rand<uint8_t>);
@@ -359,6 +361,7 @@ inline bool test_gen_keypairs_fixed_owf_inputs(secret_key* sk, public_key* pk0, 
     if(!faest_unpack_secret_key_fixed_owf_inputs(sk, owf_key.data(), owf_input0, owf_input1, owf_input2, owf_input3)) { return false; }
     #endif
 
+    // Copy pk input/output stored in sk (to pk0 and pk1).
 	memcpy(&pk0->owf_input, &sk->pk.owf_input, sizeof(pk0->owf_input));
 	memcpy(&pk0->owf_output[0], &sk->pk.owf_output[0], sizeof(pk0->owf_output));
 	memcpy(&pk1->owf_input, &sk->pk1.owf_input, sizeof(pk1->owf_input));
@@ -422,6 +425,58 @@ inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* tag_pk0, public
     return true;
 }
 
+#if defined(OWF_AES_CTR)
+// inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, public_key* tag_pk0, public_key* tag_pk1, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1)
+inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, cbc_tag* tag, unsigned char* tag_in0, unsigned char* tag_in1, unsigned char* tag_in2, unsigned char* tag_in3)
+{
+    if(!faest_unpack_secret_key_for_cbc_tag(sk, tag_in0, tag_in1, tag_in2, tag_in3)) { return false; }
+
+    // TODO:
+	memcpy(&tag->owf_inputs[0], &sk->tag_cbc.owf_inputs[0], sizeof(tag->owf_inputs[0]));
+	memcpy(&tag->owf_inputs[1], &sk->tag_cbc.owf_inputs[1], sizeof(tag->owf_inputs[1]));
+    #if (TAGGED_RING_CBC_OWF_NUM > 2)
+	memcpy(&tag->owf_inputs[2], &sk->tag_cbc.owf_inputs[2], sizeof(tag->owf_inputs[2]));
+    #endif
+    #if (TAGGED_RING_CBC_OWF_NUM > 3)
+	memcpy(&tag->owf_inputs[3], &sk->tag_cbc.owf_inputs[3], sizeof(tag->owf_inputs[3]));
+    #endif
+	memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_output[0], sizeof(tag->owf_output[0]));
+
+    // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
+    // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
+    // #endif
+    return true;
+}
+
+inline bool test_finalize_sk_for_cbc_tag2(secret_key* sk, cbc_tag* tag, unsigned char* tag_in0, unsigned char* tag_in1, unsigned char* tag_in2, unsigned char* tag_in3)
+{
+    if(!faest_unpack_secret_key_for_cbc_tag2(sk, tag_in0, tag_in1, tag_in2, tag_in3)) { return false; }
+
+    // TEST: independent owf tags.
+	memcpy(&tag->owf_inputs[0], &sk->tag_cbc.owf_inputs[0], sizeof(tag->owf_inputs[0]));
+	memcpy(&tag->owf_outputs[0], &sk->tag_cbc.owf_outputs[0], sizeof(tag->owf_outputs[0]));
+    memcpy(&tag->owf_inputs[1], &sk->tag_cbc.owf_inputs[1], sizeof(tag->owf_inputs[1]));
+	memcpy(&tag->owf_outputs[1], &sk->tag_cbc.owf_outputs[1], sizeof(tag->owf_outputs[1]));
+    #if (TAGGED_RING_CBC_OWF_NUM > 2)
+	memcpy(&tag->owf_inputs[2], &sk->tag_cbc.owf_inputs[2], sizeof(tag->owf_inputs[2]));
+	memcpy(&tag->owf_outputs[2], &sk->tag_cbc.owf_outputs[2], sizeof(tag->owf_outputs[2]));
+    #endif
+    #if (TAGGED_RING_CBC_OWF_NUM > 3)
+	memcpy(&tag->owf_inputs[3], &sk->tag_cbc.owf_inputs[3], sizeof(tag->owf_inputs[3]));
+    memcpy(&tag->owf_outputs[3], &sk->tag_cbc.owf_outputs[3], sizeof(tag->owf_outputs[3]));
+    #endif
+
+	// memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_output[0], sizeof(tag->owf_output[0]));
+
+    // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+    // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
+    // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
+    // #endif
+    return true;
+}
+#endif
+
 #if (TAGGED_RING_PK_OWF_NUM == 2)
 inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, uint32_t active_idx, unsigned char* owf_input0, unsigned char* owf_input1)
 #elif (TAGGED_RING_PK_OWF_NUM == 3)
@@ -440,6 +495,7 @@ inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, 
             sk_ptr = &sk_tmp;
         }
         sk_tmp.idx = active_idx;
+        // JC: Loads pk input/output to each pk in ring; if active element, loads pk input/output to sk.
         #if (TAGGED_RING_PK_OWF_NUM == 2)
         if(!test_gen_keypairs_fixed_owf_inputs(sk_ptr, &pk_ring->pubkeys[i], &pk_ring->pubkeys1[i], owf_input0, owf_input1))
         { return false; }

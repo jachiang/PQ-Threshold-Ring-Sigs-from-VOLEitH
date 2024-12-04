@@ -160,7 +160,7 @@ void quicksilver_init_prover(
 	size_t num_constraints, const uint8_t* challenge);
 
 void quicksilver_init_or_prover(
-	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs, const uint8_t* challenge, bool tag);
+	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs, const uint8_t* challenge, bool tag, bool cbc);
 
 // Initialize a verifier's quicksilver_state. challenge must have length
 // QUICKSILVER_CHALLENGE_BYTES.
@@ -169,7 +169,7 @@ void quicksilver_init_verifier(
 	block_secpar delta, const uint8_t* challenge);
 
 void quicksilver_init_or_verifier(
-	quicksilver_state* state, const block_secpar* macs, block_secpar delta, const uint8_t* challenge, bool tag);
+	quicksilver_state* state, const block_secpar* macs, block_secpar delta, const uint8_t* challenge, bool tag, bool cbc);
 
 inline quicksilver_vec_gf2 quicksilver_get_witness_vec(const quicksilver_state* state, size_t index)
 {

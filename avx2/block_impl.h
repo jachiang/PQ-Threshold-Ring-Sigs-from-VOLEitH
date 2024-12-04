@@ -475,6 +475,33 @@ inline block128 block128_set_low64(uint64_t x) { return _mm_set_epi64x(0, x); }
 inline block256 block256_set_low64(uint64_t x) { return _mm256_setr_epi64x(x, 0, 0, 0); }
 inline block256 block256_set_128(block128 x0, block128 x1) { return _mm256_setr_m128i(x0, x1); }
 
+inline block128 block128_activate_msb(block128 x)
+{
+    __m128i active_msb_mask = _mm_set_epi8(
+        0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    );
+  return _mm_or_si128(x, active_msb_mask);
+}
+
+inline block192 block192_activate_msb(block192 x)
+{
+    uint64_t active_msb_mask = 1ULL << 63;
+    x.data[0] =  x.data[0] | active_msb_mask;
+    return x;
+}
+
+inline block256 block256_activate_msb(block256 x)
+{
+    __m256i active_msb_mask = _mm256_set_epi8(
+        0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    );
+  return _mm256_or_si256(x, active_msb_mask);
+}
+
 inline block256 block256_set_low128(block128 x)
 {
 	return _mm256_inserti128_si256(_mm256_setzero_si256(), x, 0);
