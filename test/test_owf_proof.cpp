@@ -144,6 +144,7 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
     // JC: Generate ring keys.
+    // TODO: runs compute_witness procedure on tagged_ring_witness.
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
@@ -156,11 +157,15 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
 
     // TODO: add second tag owf input.
     // test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+    // TODO: runs compute_witness procedure3 on tagged_ring_witness3.
     test_finalize_sk_for_tag3(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     const auto delta = rand<block_secpar>();
     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
     // Sets tag flag to true.
+
+    // Note: constraints are initialized in or_prover/or_verifier to accomodate one OWF block per tag (with TAGGED_RING_TAG_OWF_NUM3 tags).
+    // May not work with other cbc tests.
     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness3), TAGGED_RING_WITNESS_BITS3, delta, true, false); // tag true, cbc false.
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
