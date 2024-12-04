@@ -37,9 +37,9 @@ typedef struct public_key
 typedef struct cbc_tag
 {
 	// Note: First bit of each tag input block is ignored.
-	owf_block owf_inputs[TAGGED_RING_CBC_OWF_NUM];
+	owf_block owf_inputs[TAGGED_RING_TAG_OWF_NUM3];
 	owf_block owf_output[1];
-	owf_block owf_outputs[TAGGED_RING_CBC_OWF_NUM]; // for testing purpose.
+	owf_block owf_outputs[TAGGED_RING_TAG_OWF_NUM3]; // for testing purpose.
 } cbc_tag;
 #endif
 
@@ -103,7 +103,7 @@ bool faest_compute_witness_cbc2(secret_key* sk);
 bool faest_compute_witness3(secret_key* sk, bool ring, bool tag);
 bool faest_unpack_secret_key_for_cbc_tag(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
 bool faest_unpack_secret_key_for_cbc_tag2(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
-bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1);
+bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3);
 #endif
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
 

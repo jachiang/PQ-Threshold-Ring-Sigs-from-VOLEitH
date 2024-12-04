@@ -148,17 +148,28 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
-    public_key tag_pk0;
-    public_key tag_pk1;
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
-    std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
-    std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    // public_key tag_pk0;
+    // public_key tag_pk1;
+    // std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
+    // std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    // std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
+    // std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+
+    cbc_tag tag;
+    std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in0; // Fix to 16 bytes for AES.
+    std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in1;
+    std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in2;
+    std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in3;
+    std::generate(tag_owf_in0.data(), tag_owf_in0.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    std::generate(tag_owf_in1.data(), tag_owf_in1.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    std::generate(tag_owf_in2.data(), tag_owf_in2.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    std::generate(tag_owf_in3.data(), tag_owf_in3.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
 
     // TODO: add second tag owf input.
     // test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
     // TODO: runs compute_witness procedure3 on tagged_ring_witness3.
-    test_finalize_sk_for_tag3(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+    test_finalize_sk_for_tag3(&sk, &tag, tag_owf_in0.data(), tag_owf_in1.data(),
+                                         tag_owf_in2.data(), tag_owf_in3.data());
 
     const auto delta = rand<block_secpar>();
     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
@@ -170,8 +181,8 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches_and_tag3(&qs_state_prover, &pk_ring, &tag_pk0, &tag_pk1);
-    owf_constraints_verifier_all_branches_and_tag3(&qs_state_verifier, &pk_ring, &tag_pk0, &tag_pk1);
+    owf_constraints_prover_all_branches_and_tag3(&qs_state_prover, &pk_ring, &tag);
+    owf_constraints_verifier_all_branches_and_tag3(&qs_state_verifier, &pk_ring, &tag);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);

@@ -121,10 +121,16 @@ bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag
 }
 
 #if defined(OWF_AES_CTR)
-bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1)
+bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3)
 {
-	memcpy(&unpacked_sk->tag.owf_input, tag_owf_input0, sizeof(unpacked_sk->tag.owf_input));
-	memcpy(&unpacked_sk->tag1.owf_input, tag_owf_input1, sizeof(unpacked_sk->tag1.owf_input));
+	memcpy(&unpacked_sk->tag_cbc.owf_inputs[0], tag_owf_input0, sizeof(unpacked_sk->tag_cbc.owf_inputs[0]));
+	memcpy(&unpacked_sk->tag_cbc.owf_inputs[1], tag_owf_input1, sizeof(unpacked_sk->tag_cbc.owf_inputs[1]));
+	if (TAGGED_RING_TAG_OWF_NUM3 > 2) {
+		memcpy(&unpacked_sk->tag_cbc.owf_inputs[2], tag_owf_input2, sizeof(unpacked_sk->tag_cbc.owf_inputs[2]));
+	}
+	if (TAGGED_RING_TAG_OWF_NUM3 > 3) {
+		memcpy(&unpacked_sk->tag_cbc.owf_inputs[3], tag_owf_input3, sizeof(unpacked_sk->tag_cbc.owf_inputs[3]));
+	}
 #if defined(OWF_AES_CTR)
 	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
@@ -613,12 +619,16 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->pk1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
 		}
 	}
-	if (owf == 2) {
-		sk->tag.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[0]);
+	if (owf > TAGGED_RING_PK_OWF_NUM - 1) {
+		size_t tag_owf = owf - TAGGED_RING_PK_OWF_NUM;
+		sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
 	}
-	else if (owf == 3) {
-		sk->tag1.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[0]);
-	}
+	// if (owf == 2) {
+	// 	sk->tag.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[0]);
+	// }
+	// else if (owf == 3) {
+	// 	sk->tag1.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[0]);
+	// }
 
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");
@@ -753,16 +763,21 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		} // End of owf_block loop.
 
 		// Move tag round function outside owf_block loop.
-		if (owf == 2) {
-			aes_round_function(&sk->round_keys, &sk->tag.owf_output[0], &after_sbox, round);
+		if (owf > TAGGED_RING_PK_OWF_NUM - 1){
+			aes_round_function(&sk->round_keys, &sk->tag_cbc.owf_outputs[owf-TAGGED_RING_PK_OWF_NUM], &after_sbox, round);
 			if (round < OWF_ROUNDS)
 				memcpy(w_ptr, &after_sbox, sizeof(owf_block));
 		}
-		else if (owf == 3) {
-			aes_round_function(&sk->round_keys, &sk->tag1.owf_output[0], &after_sbox, round);
-			if (round < OWF_ROUNDS)
-				memcpy(w_ptr, &after_sbox, sizeof(owf_block));
-		}
+		// if (owf == 2) {
+		// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[0], &after_sbox, round);
+		// 	if (round < OWF_ROUNDS)
+		// 		memcpy(w_ptr, &after_sbox, sizeof(owf_block));
+		// }
+		// else if (owf == 3) {
+		// 	aes_round_function(&sk->round_keys, &sk->tag1.owf_output[0], &after_sbox, round);
+		// 	if (round < OWF_ROUNDS)
+		// 		memcpy(w_ptr, &after_sbox, sizeof(owf_block));
+		// }
 
 		if (round < OWF_ROUNDS)
 			w_ptr += sizeof(owf_block);

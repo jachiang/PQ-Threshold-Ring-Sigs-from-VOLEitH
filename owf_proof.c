@@ -1312,7 +1312,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
 // AES support only for CBC mode.
 #if defined(OWF_AES_CTR)
 
-static ALWAYS_INLINE void owf_constraints_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk, const public_key* tag0, const public_key* tag1)
+static ALWAYS_INLINE void owf_constraints_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk, const cbc_tag* tag)
 {
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -1322,11 +1322,12 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag3(quicksilver_stat
     // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-        // 1st Tag OWF.
-        size_t i = 0;
-        enc_constraints3(state, round_key_bits, round_key_bytes, i, tag0->owf_input[i], tag0->owf_output[i], true, 0);
-        // 2nd Tag OWF.
-        enc_constraints3(state, round_key_bits, round_key_bytes, i, tag1->owf_input[i], tag1->owf_output[i], true, 1);
+    // 1st Tag OWF.
+    for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
+        enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], true, i);
+    }
+    // 2nd Tag OWF.
+    // enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag1->owf_input[i], tag1->owf_output[i], true, 1);
     // }
     constraints_cached cache; // Cache is not used.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
@@ -1594,18 +1595,18 @@ void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, con
 }
 
 #if defined(OWF_AES_CTR)
-void owf_constraints_prover_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1)
+void owf_constraints_prover_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag)
 {
     assert(!state->verifier);
     state->verifier = false;
-    owf_constraints_all_branches_and_tag3(state, pk_ring, tag0, tag1);
+    owf_constraints_all_branches_and_tag3(state, pk_ring, tag);
 }
 
-void owf_constraints_verifier_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1)
+void owf_constraints_verifier_all_branches_and_tag3(quicksilver_state* state, const public_key_ring* pk_ring,const cbc_tag* tag)
 {
 	assert(state->verifier);
 	state->verifier = true;
-	owf_constraints_all_branches_and_tag3(state, pk_ring, tag0, tag1);
+	owf_constraints_all_branches_and_tag3(state, pk_ring, tag);
 }
 
 void owf_constraints_prover_all_branches_and_tag_cbc(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag)
