@@ -99,9 +99,11 @@ void quicksilver_init_or_prover(
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	else if (cbc){
-		// TODO: this assumes CBC mode.
+		// TODO: this assumes AES mode.
 		// final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_CBC_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
-		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_TAG_OWF_NUM3 + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		#if defined(OWF_AES_CTR)
+			final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_TAG_OWF_NUM3 + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		#endif
 	}
 	else {
 		// TODO: Deprecate non-cbc tag implementation.
@@ -166,8 +168,11 @@ void quicksilver_init_or_verifier(
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	else if (cbc){
+		// TODO: this assumes AES mode.
 		// final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_CBC_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		#if defined(OWF_AES_CTR)
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + (OWF_CONSTRAINTS_PER_ROUND * OWF_ROUNDS) * TAGGED_RING_TAG_OWF_NUM3 + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		#endif
 	}
 	else{
 		// TODO: Deprecate non-cbc tag implementation.
