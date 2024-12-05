@@ -1512,7 +1512,8 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag3(quicksilver_stat
     quicksilver_vec_gfsecpar cbc_state_bytes[OWF_BLOCK_SIZE];
 
     for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
-        enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], cbc_state_bits, cbc_state_bytes, i); // Reads and updates cbc state.
+        // TODO: Set tag->owf_outputs[0] input param.
+        enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_output[0], cbc_state_bits, cbc_state_bytes, i); // Reads and updates cbc state.
     }
     // 2nd Tag OWF.
     // enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag1->owf_input[i], tag1->owf_output[i], true, 1);

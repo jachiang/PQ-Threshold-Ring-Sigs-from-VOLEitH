@@ -38,8 +38,8 @@ typedef struct cbc_tag
 {
 	// Note: First bit of each tag input block is ignored.
 	owf_block owf_inputs[TAGGED_RING_TAG_OWF_NUM3];
+	owf_block owf_outputs[TAGGED_RING_TAG_OWF_NUM3]; // for intermediate cbc outputs.
 	owf_block owf_output[1];
-	owf_block owf_outputs[TAGGED_RING_TAG_OWF_NUM3]; // for testing purpose.
 } cbc_tag;
 #endif
 

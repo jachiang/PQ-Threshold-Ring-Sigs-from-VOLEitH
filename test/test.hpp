@@ -482,8 +482,9 @@ inline bool test_finalize_sk_for_tag3(secret_key* sk, cbc_tag* tag, unsigned cha
 
     for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
         memcpy(&tag->owf_inputs[i], &sk->tag_cbc.owf_inputs[i], sizeof(tag->owf_inputs[i]));
-        memcpy(&tag->owf_outputs[i], &sk->tag_cbc.owf_outputs[i], sizeof(tag->owf_outputs[i]));
+        // memcpy(&tag->owf_outputs[i], &sk->tag_cbc.owf_outputs[i], sizeof(tag->owf_outputs[i]));
     }
+    memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_outputs[TAGGED_RING_TAG_OWF_NUM3-1], sizeof(tag->owf_output[0]));
     // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
     // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
