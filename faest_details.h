@@ -75,6 +75,7 @@ typedef struct
 	aes_round_keys round_keys;
 #endif
 	vole_block witness[WITNESS_BLOCKS];
+	vole_block tagged_witness[WITNESS_BLOCKS4];
 	// TODO: tagged_witness.
 	vole_block ring_witness[RING_WITNESS_BLOCKS];
 	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS]; // JC: Key-Sched-witness | OWF1-witness | OWF2-witness | ... | Tag-OWF-witness
