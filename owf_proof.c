@@ -538,7 +538,7 @@ static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, size_t witness_bit_
 #if defined(OWF_AES_CTR)
 
 #if defined(ALLOW_ZERO_SBOX)
-static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output, size_t tag_owf) {
+static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block in, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output, quicksilver_vec_gfsecpar* prev_output, size_t tag_owf) {
 #else
 // static ALWAYS_INLINE void enc_fwd(quicksilver_state* state, const quicksilver_vec_gfsecpar* round_key_bytes, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block in,
 //     quicksilver_vec_gfsecpar* output) {
@@ -618,7 +618,7 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
 }
 
 #if defined(ALLOW_ZERO_SBOX)
-static ALWAYS_INLINE void enc_bkwd3(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output, size_t tag_owf) {
+static ALWAYS_INLINE void enc_bkwd3(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output, quicksilver_vec_gfsecpar* prev_output, size_t tag_owf) {
 #else
 // static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
 #endif
@@ -1023,17 +1023,16 @@ static ALWAYS_INLINE void enc_constraints(quicksilver_state* state, const public
 
 #if defined(OWF_AES_CTR)
 static ALWAYS_INLINE void enc_constraints3(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits,
-        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, bool tag, size_t tag_owf_num) {
+        const quicksilver_vec_gfsecpar* round_key_bytes, size_t block_num, owf_block in, owf_block out, quicksilver_vec_gfsecpar* prev_output, size_t tag_owf_num) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
     size_t tag_pk_offset_bits = 0;
-    if (tag) {
         tag_pk_offset_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
                                 // + tag_owf_num * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
                                 // + tag_owf_num * (OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1));
                                 + tag_owf_num * (OWF_BLOCK_SIZE * 8 * OWF_ROUNDS);
 
-    }
+
 // #if defined(OWF_AES_CTR)
     const size_t witness_bit_offset = OWF_KEY_WITNESS_BITS + tag_pk_offset_bits + block_num * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1); // TODO: Deprecate block_num.
 // #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
@@ -1045,8 +1044,8 @@ static ALWAYS_INLINE void enc_constraints3(quicksilver_state* state, const quick
 #if defined(ALLOW_ZERO_SBOX)
     quicksilver_vec_gfsecpar sq_inv_inputs[S_ENC];
     quicksilver_vec_gfsecpar sq_inv_outputs[S_ENC];
-    enc_fwd3(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs, sq_inv_inputs, tag_owf_num);
-    enc_bkwd3(state, round_key_bits, witness_bit_offset, out, inv_outputs, sq_inv_outputs, tag_owf_num);
+    enc_fwd3(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs, sq_inv_inputs, prev_output, tag_owf_num); // Reads in from previous output.
+    enc_bkwd3(state, round_key_bits, witness_bit_offset, out, inv_outputs, sq_inv_outputs, prev_output, tag_owf_num);              // Updates to current output.
 #else
     // enc_fwd(state, round_key_bytes, round_key_bits, witness_bit_offset, in, inv_inputs);
     // enc_bkwd(state, round_key_bits, witness_bit_offset, out, inv_outputs);
@@ -1055,10 +1054,10 @@ static ALWAYS_INLINE void enc_constraints3(quicksilver_state* state, const quick
     for (size_t sbox_j = 0; sbox_j < S_ENC; ++sbox_j) {
 #if defined(ALLOW_ZERO_SBOX)
         // TODO: open up constraint, so can add constraint without recomputing.
-        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j], tag);
+        quicksilver_pseudoinverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], sq_inv_inputs[sbox_j], sq_inv_outputs[sbox_j], true);
 #else
         // TODO: unsupported.
-        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], tag);
+        quicksilver_inverse_constraint(state, inv_inputs[sbox_j], inv_outputs[sbox_j], true);
 #endif
     }
 }
@@ -1474,8 +1473,9 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag3(quicksilver_stat
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // for (size_t i = 0; i < OWF_BLOCKS; ++i) {
     // 1st Tag OWF.
+    quicksilver_vec_gfsecpar cbc_state[OWF_BLOCK_SIZE];
     for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
-        enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], true, i);
+        enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], cbc_state, i); // Reads and updates cbc state.
     }
     // 2nd Tag OWF.
     // enc_constraints3(state, round_key_bits, round_key_bytes, 0, tag1->owf_input[i], tag1->owf_output[i], true, 1);
