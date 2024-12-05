@@ -120,6 +120,27 @@ bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag
 	return true;
 }
 
+// JC: Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
+bool faest_unpack_secret_key_for_tag4(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1)
+{
+	memcpy(&unpacked_sk->tag.owf_input, tag_owf_input0, sizeof(unpacked_sk->tag.owf_input));
+	memcpy(&unpacked_sk->tag1.owf_input, tag_owf_input1, sizeof(unpacked_sk->tag1.owf_input));
+#if defined(OWF_AES_CTR)
+	aes_keygen(&unpacked_sk->round_keys, unpacked_sk->sk);
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	rijndael_keygen(&unpacked_sk->tag.fixed_key, unpacked_sk->tag.owf_input[0]);
+	rijndael_keygen(&unpacked_sk->tag1.fixed_key, unpacked_sk->tag1.owf_input[0]);
+#else
+#error "Unsupported OWF."
+#endif
+	if (!faest_compute_witness(unpacked_sk, true, true))
+	{
+		return false;
+	}
+	return true;
+}
+
+
 #if defined(OWF_AES_CTR)
 bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3)
 {
@@ -531,6 +552,313 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 	}
 	return true;
 }
+
+
+bool faest_compute_witness4(secret_key* sk, bool ring, bool tag)
+{
+	uint8_t* w_ptr;
+	if (!ring) {
+		w_ptr = (uint8_t*) &sk->witness;
+	}
+	else if (ring && !tag) {
+		w_ptr = (uint8_t*) &sk->ring_witness;
+	}
+	else if (ring && tag) {
+		w_ptr = (uint8_t*) &sk->tagged_ring_witness;
+	}
+
+#if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
+
+	// Setting key
+	memcpy(w_ptr, sk->sk, MQ_N_BYTES);
+	w_ptr += (MQ_M*MQ_GF_BITS)/8;
+
+	return true;
+#else
+	memcpy(w_ptr, &sk->sk, sizeof(sk->sk));
+	w_ptr += sizeof(sk->sk);
+
+#if defined(OWF_AES_CTR)
+	// Extract witness for key schedule.
+	for (size_t i = SECURITY_PARAM / 8; i < OWF_BLOCK_SIZE * (OWF_ROUNDS + 1);
+	     i += OWF_KEY_SCHEDULE_PERIOD, w_ptr += 4)
+	{
+		uint32_t prev_word, word;
+		memcpy(&prev_word, ((uint8_t*) &sk->round_keys.keys[0]) + i - SECURITY_PARAM / 8, 4);
+		memcpy(&word, ((uint8_t*) &sk->round_keys.keys[0]) + i, 4);
+		memcpy(w_ptr, &word, 4);
+
+		uint32_t sbox_output = word ^ prev_word;
+		if (SECURITY_PARAM != 256 || i % (SECURITY_PARAM / 8) == 0)
+			sbox_output ^= aes_round_constants[i / (SECURITY_PARAM / 8) - 1];
+
+		// https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
+		sbox_output ^= 0x63636363; // AES SBox maps 0 to 0x63.
+		// if ((sbox_output - 0x01010101) & ~sbox_output & 0x80808080)
+		// 	return false;
+	}
+#endif
+
+size_t owf_num;
+if (tag){
+	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
+}
+else{
+	owf_num = 1;
+}
+bool tag_itr = false;
+// JC: Witness expansion for each active-pk-OWF and tag-OWF.
+for (size_t owf = 0; owf < owf_num; ++owf) {
+	// printf("OWF loop begin: %u\n", owf);
+
+	// Skip final iteration if not tag ring sig.
+	// if (owf == owf_num) {
+	// if (owf  > TAGGED_RING_PK_OWF_NUM - 1) {
+	// 	if (tag) {
+	// 		tag_itr = true;
+	// 	}
+	// 	else {
+	// 		break;
+	// 	}
+	// }
+
+	// if (tag_itr) {
+	// 	size_t offset = (w_ptr - (uint8_t*) &sk->tagged_ring_witness);
+	// 	printf("Tag witness offset: %u\n", offset);
+	// }
+
+#if defined(OWF_AES_CTR)
+	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+	{
+		if (owf == 0) {
+			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+		}
+		else if (owf == 1) {
+			sk->pk1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
+		}
+		else if (owf == 2) {
+			sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
+		}
+		else if (owf == 3) {
+			sk->tag1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[i]);
+		}
+	}
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	static_assert(OWF_BLOCKS == 1, "");
+	if (owf == 0) {
+		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+	}
+	else if (owf == 1) {
+		sk->pk1.owf_output[0] = owf_block_xor(sk->pk1.fixed_key.keys[0], sk->sk);
+	}
+	else if (owf == 2) {
+		sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
+	}
+	else if (owf == 3) {
+		sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
+	}
+#elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
+	// JC: Not supported for tagged ring sigs.
+	static_assert(OWF_BLOCKS == 1, "");
+	sk->pk.owf_output[0] = sk->pk.owf_input[0];
+#elif defined(OWF_RAIN_4)	// This should be similar to EM, except I will add the sk later in the round function call
+	// JC: Not supported for tagged ring sigs.
+	static_assert(OWF_BLOCKS == 1, "");
+	sk->pk.owf_output[0] = sk->pk.owf_input[0];
+#endif
+
+	for (unsigned int round = 1; round <= OWF_ROUNDS; ++round)
+	{
+		for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+		{
+			#if !defined(ALLOW_ZERO_SBOX) && (defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR))
+			// The block is about to go into the SBox, so check for zeros.
+			if (owf_block_any_zeros(sk->pk.owf_output[i]))
+				return false;
+			#endif
+
+			owf_block after_sbox;
+#if defined(OWF_AES_CTR)
+			if (owf == 0) {
+				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 1) {
+				aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 2) {
+				aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3) {
+				aes_round_function(&sk->round_keys, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
+#elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	#if SECURITY_PARAM == 128
+			if (owf == 0) {
+				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 1) {
+				aes_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 2) {
+				aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3) {
+				aes_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
+	#elif SECURITY_PARAM == 192
+			if (owf == 0) {
+				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 1) {
+				rijndael192_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 2) {
+				rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3) {
+				rijndael192_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
+	#elif SECURITY_PARAM == 256
+			if (owf == 0) {
+				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 1) {
+				rijndael256_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 2) {
+				rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			}
+			else if (owf == 3) {
+				rijndael256_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			}
+	#endif
+#elif defined(OWF_RAIN_3)
+	// JC: Not supported for tagged ring sigs.
+	#if SECURITY_PARAM == 128
+			if (round != OWF_ROUNDS) {
+				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
+			} else {
+				rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1]);
+			}
+	#elif SECURITY_PARAM == 192
+			if (round != OWF_ROUNDS) {
+				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_192[round-1],rain_mat_192[(round-1)*192],(uint64_t*)&after_sbox);
+			} else {
+				rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_192[round-1]);
+			}
+	#elif SECURITY_PARAM == 256
+			if (round != OWF_ROUNDS) {
+				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_256[round-1],rain_mat_256[(round-1)*256],(uint64_t*)&after_sbox);
+			} else {
+				rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_256[round-1]);
+			}
+
+	#endif
+#elif defined(OWF_RAIN_4)
+	// JC: Not supported for tagged ring sigs.
+	#if SECURITY_PARAM == 128
+		if (round != OWF_ROUNDS) {
+			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
+		} else {
+			rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1]);
+		}
+	#elif SECURITY_PARAM == 192
+		if (round != OWF_ROUNDS) {
+			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_192[round-1],rain_mat_192[(round-1)*192],(uint64_t*)&after_sbox);
+		} else {
+			rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_192[round-1]);
+		}
+	#elif SECURITY_PARAM == 256
+		if (round != OWF_ROUNDS) {
+			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_256[round-1],rain_mat_256[(round-1)*256],(uint64_t*)&after_sbox);
+		} else {
+			rain_last_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_256[round-1]);
+		}
+	#endif
+#endif
+
+			if (round < OWF_ROUNDS)
+				memcpy(w_ptr + i * sizeof(owf_block) * (OWF_ROUNDS - 1), &after_sbox, sizeof(owf_block));
+		}
+
+		if (round < OWF_ROUNDS)
+			w_ptr += sizeof(owf_block);
+	}
+
+	w_ptr += (OWF_BLOCKS - 1) * sizeof(owf_block) * (OWF_ROUNDS - 1);
+
+#if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
+	{
+		if (owf == 0) {
+			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+		}
+		else if (owf == 1) {
+			sk->pk1.owf_output[i] = owf_block_xor(sk->pk1.owf_output[i], sk->sk);
+		}
+		else if (owf == 2) {
+			sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
+		}
+		else if (owf == 3) {
+			sk->tag1.owf_output[i] = owf_block_xor(sk->tag1.owf_output[i], sk->sk);
+		}
+	}
+#endif
+
+#endif
+	// printf("OWF loop end: %u\n", owf);
+	} // End of loop over OWF 1-4.
+
+	if(!ring) {
+		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
+		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+	}
+	else {
+		// JC: Decompose active branch index (according to hotvector size/dim).
+		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
+		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
+		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
+
+		// JC: Serialization of hotvectors as bytes.
+		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
+
+		// JC: Init indices and vars.
+		int curr_byte_idx = 0;
+		int curr_bit_idx = 0;
+
+		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
+			// JC: Remaining free bits in current byte.
+			int remaining_bits = 8 - curr_bit_idx;
+			if ((decomp[i] != base - 1)) {
+				// JC: Hotvector has exactly one active bit.
+				uint32_t hotvector_idx = decomp[i];
+				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
+				int active_byte_idx = curr_byte_idx;
+				if (hotvector_idx + 1 > remaining_bits) {
+					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
+				}
+				// printf("Active byte idx: %u \n", active_byte_idx);
+				// printf("Active bit idx: %u \n", active_bit_idx);
+
+				// JC: Activate bit in hotvectors byte array.
+				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
+			}
+			// else{
+			// 	if (decomp[i] == base - 1) {
+			// 		printf("Last active bit omitted in hotvector %u\n", i);
+			// 	}
+			// }
+			// // JC: Update indices vars.
+			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
+			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
+		}
+
+		// JC: Copy 1-hotvector serialization to witness.
+		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
+	}
+	return true;
+}
+
 
 // TODO: support CBC only in AES mode.
 #if defined(OWF_AES_CTR)
