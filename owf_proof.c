@@ -574,7 +574,8 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
             output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]); // Add round key (bytewise)
         }
         else if (tag_owf > 0) {
-            output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]); // Add round key (bytewise)
+            // output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]); // Add round key (bytewise)
+            output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, prev_output_bytes[byte_i]); // Add round key (bytewise)
             output[byte_i] = quicksilver_add_gfsecpar(state, output[byte_i], round_key_bytes[byte_i]); // Add round key (bytewise)
         }
 #if defined(ALLOW_ZERO_SBOX)
@@ -585,7 +586,8 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
                 tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
             }
             else if (tag_owf > 0) {
-                tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
+                // tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
+                tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, prev_output_bits[8*byte_i + bit_j]); // Add round key (bitwise)
                 tmp_bits[bit_j] = quicksilver_add_gf2(state, tmp_bits[bit_j], round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
             }
         }
@@ -716,22 +718,22 @@ static ALWAYS_INLINE void enc_bkwd3(quicksilver_state* state, const quicksilver_
             }
         }
 
-        // // Final round: Compute intermediary cbc state in owf chain.
-        // if (round_i == OWF_ROUNDS - 1) {
-        //     // xor with last round key bits.
-        //     for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
-        //         for (size_t row_k = 0; row_k < 4; ++row_k) {
-        //             quicksilver_vec_gf2 witness_bits[8];
-        //             for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
-        //                 witness_bits[bit_i] = quicksilver_get_witness_vec(state, witness_bit_offset + (col_j + NUM_COLS * row_k) * 8 + bit_i);
-        //                 witness_bits[bit_i] = quicksilver_add_gf2(state, witness_bits[bit_i],
-        //                                                                  round_key_bits[last_round_key_bit_offset + (col_j + NUM_COLS * row_k) * 8 + bit_i]);
-        //             }
-        //             prev_output[col_j + NUM_COLS * row_k] = quicksilver_combine_8_bits(state, witness_bits);
-        //         }
-        //     }
-        // }
-    }
+        // Final round: Compute intermediary cbc state in owf chain.
+        if (round_i == OWF_ROUNDS - 1) {
+            // XOR with last round key bits.
+            for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
+                    quicksilver_vec_gf2 witness_bits[8];
+                    for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
+                        witness_bits[bit_j] = quicksilver_get_witness_vec(state, witness_bit_offset + byte_i * 8 + bit_j);
+                        witness_bits[bit_j] = quicksilver_add_gf2(state, witness_bits[bit_j],
+                                                                         round_key_bits[last_round_key_bit_offset + byte_i * 8 + bit_j]);
+                        prev_output_bits[byte_i*8 + bit_j] = witness_bits[bit_j];
+                    }
+                    prev_output_bytes[byte_i] = quicksilver_combine_8_bits(state, witness_bits);
+            }
+        }
+
+    } // End of owf rounds.
 }
 
 

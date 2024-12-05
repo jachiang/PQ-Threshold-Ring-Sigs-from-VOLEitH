@@ -630,7 +630,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		{
 			// JC: Set msb bit of block to 1 after XOR with cbc state.
 			// owf_block cbc_state = block128_activate_msb(owf_block_xor(sk->tag_cbc.owf_output[0], sk->tag_cbc.owf_inputs[tag_owf]));
-			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
+			// sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
+			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->tag_cbc.owf_outputs[tag_owf-1], sk->tag_cbc.owf_inputs[tag_owf]);
 			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_outputs[tag_owf]);
 		}
 	}
