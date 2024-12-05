@@ -623,20 +623,12 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 	// Tag: Initial XOR with keys.
 	if (owf > TAGGED_RING_PK_OWF_NUM - 1) {
 		size_t tag_owf = owf - TAGGED_RING_PK_OWF_NUM;
-		// sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
-		if (tag_owf == 0)
-		{
-			// JC: Set msb bit of input block to 1 before input into OWF.
-			// sk->tag_cbc.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], block128_activate_msb(sk->tag_cbc.owf_inputs[0]));
-			sk->tag_cbc.owf_outputs[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[0]);
-		}
-		else if (tag_owf > 0)
+		sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
+		if (tag_owf > 0)
 		{
 			// JC: Set msb bit of block to 1 after XOR with cbc state.
 			// owf_block cbc_state = block128_activate_msb(owf_block_xor(sk->tag_cbc.owf_output[0], sk->tag_cbc.owf_inputs[tag_owf]));
-			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_inputs[tag_owf]);
-			// owf_block cbc_state = owf_block_xor(sk->tag_cbc.owf_outputs[tag_owf-1], sk->tag_cbc.owf_inputs[tag_owf]);
-			// sk->tag_cbc.owf_outputs[0] = owf_block_xor(sk->round_keys.keys[0], cbc_state);
+			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_outputs[tag_owf]);
 		}
 	}
 	// if (owf == 2) {

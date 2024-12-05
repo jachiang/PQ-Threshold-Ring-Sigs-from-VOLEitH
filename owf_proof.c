@@ -545,15 +545,43 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
 #endif
     const uint8_t* in_bytes = (uint8_t*)&in;
 
+    // Quicksilver state of owf block.
+    quicksilver_vec_gfsecpar in_block[OWF_BLOCK_SIZE];
+
+    // XOR with intermediate cbc state (if available).
+    // for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
+    //      in_block[byte_i] = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
+        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
+        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
+        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
+
+        // quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
+        // if (tag_owf == 0) {
+        //     // in_block[byte_i] = input_byte;
+        //     in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
+        // }
+        // else if (tag_owf > 0) {
+        //     // XOR with zero ...
+        //     // in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, prev_output[byte_i]);
+        //     in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
+        // }
+    // }
+
     // first round: only add the round key
     for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
-        quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
-        output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
+        quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]); // Load input (bytewise)
+        output[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]); // Add round key (bytewise)
+        if (tag_owf > 0) {
+            output[byte_i] = quicksilver_add_gfsecpar(state, output[byte_i], round_key_bytes[byte_i]); // Add round key (bytewise)
+        }
 #if defined(ALLOW_ZERO_SBOX)
         quicksilver_vec_gf2 tmp_bits[8];
         for (size_t bit_j = 0; bit_j < 8; ++bit_j) {
-            quicksilver_vec_gf2 input_bit = quicksilver_const_gf2(state, poly1_load(in_bytes[byte_i], bit_j));
-            tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]);
+            quicksilver_vec_gf2 input_bit = quicksilver_const_gf2(state, poly1_load(in_bytes[byte_i], bit_j)); // Load input (bitwise)
+            tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
+            if (tag_owf > 0) {
+                tmp_bits[bit_j] = quicksilver_add_gf2(state, tmp_bits[bit_j], round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
+            }
         }
         sq_output[byte_i] = quicksilver_sq_bits(state, tmp_bits);
 #endif
@@ -681,6 +709,22 @@ static ALWAYS_INLINE void enc_bkwd3(quicksilver_state* state, const quicksilver_
 #endif
             }
         }
+
+        // // Final round: Compute intermediary cbc state in owf chain.
+        // if (round_i == OWF_ROUNDS - 1) {
+        //     // xor with last round key bits.
+        //     for (size_t col_j = 0; col_j < NUM_COLS; ++col_j) {
+        //         for (size_t row_k = 0; row_k < 4; ++row_k) {
+        //             quicksilver_vec_gf2 witness_bits[8];
+        //             for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
+        //                 witness_bits[bit_i] = quicksilver_get_witness_vec(state, witness_bit_offset + (col_j + NUM_COLS * row_k) * 8 + bit_i);
+        //                 witness_bits[bit_i] = quicksilver_add_gf2(state, witness_bits[bit_i],
+        //                                                                  round_key_bits[last_round_key_bit_offset + (col_j + NUM_COLS * row_k) * 8 + bit_i]);
+        //             }
+        //             prev_output[col_j + NUM_COLS * row_k] = quicksilver_combine_8_bits(state, witness_bits);
+        //         }
+        //     }
+        // }
     }
 }
 
