@@ -635,12 +635,6 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->tag_cbc.owf_outputs[tag_owf] = owf_block_xor(sk->round_keys.keys[0], sk->tag_cbc.owf_outputs[tag_owf]);
 		}
 	}
-	// if (owf == 2) {
-	// 	sk->tag.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[0]);
-	// }
-	// else if (owf == 3) {
-	// 	sk->tag1.owf_output[0] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[0]);
-	// }
 
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");

@@ -548,25 +548,6 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
     // Quicksilver state of owf block.
     quicksilver_vec_gfsecpar in_block[OWF_BLOCK_SIZE];
 
-    // XOR with intermediate cbc state (if available).
-    // for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
-    //      in_block[byte_i] = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
-        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
-        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
-        //  in_block[byte_i] = quicksilver_add_gfsecpar(state, in_block[byte_i], round_key_bytes[byte_i]);
-
-        // quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]);
-        // if (tag_owf == 0) {
-        //     // in_block[byte_i] = input_byte;
-        //     in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
-        // }
-        // else if (tag_owf > 0) {
-        //     // XOR with zero ...
-        //     // in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, prev_output[byte_i]);
-        //     in_block[byte_i] = quicksilver_add_gfsecpar(state, input_byte, round_key_bytes[byte_i]);
-        // }
-    // }
-
     // first round: only add the round key
     for (size_t byte_i = 0; byte_i < OWF_BLOCK_SIZE; ++byte_i) {
         quicksilver_vec_gfsecpar input_byte = quicksilver_const_8_bits(state, &in_bytes[byte_i]); // Load input (bytewise)
