@@ -164,10 +164,6 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
     std::generate(tag_owf_in1.data(), tag_owf_in1.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
     std::generate(tag_owf_in2.data(), tag_owf_in2.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
     std::generate(tag_owf_in3.data(), tag_owf_in3.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
-
-    // TODO: add second tag owf input.
-    // test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
-    // TODO: runs compute_witness procedure3 on tagged_ring_witness3.
     test_finalize_sk_for_tag3(&sk, &tag, tag_owf_in0.data(), tag_owf_in1.data(),
                                          tag_owf_in2.data(), tag_owf_in3.data());
 
