@@ -70,7 +70,7 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
 
     const auto delta = rand<block_secpar>();
     // TODO: migrate to tagged_witness in sk.
-    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), WITNESS_BITS, delta);
+    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), WITNESS_BITS4, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
