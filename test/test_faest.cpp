@@ -266,9 +266,10 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
 
 TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
-    printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_CBC_WITNESS_BITS);
+    printf("TAGGED RING WITNESS BITS: %u\n", CBC_TAGGED_RING_WITNESS_BITS);
 
-    printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
+    // printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
+    // printf("VOLE_TAGGED_RING_COL_BLOCKS: %u\n", VOLE_CBC_TAGGED_RING_COL_BLOCKS);
 
     std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
 
