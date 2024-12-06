@@ -95,20 +95,15 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 #elif (TAGGED_RING_PK_OWF_NUM == 4)
 bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uint8_t* owf_key, const uint8_t* owf_input0, const uint8_t* owf_input1, const uint8_t* owf_input2, const uint8_t* owf_input3);
 #endif
-bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1);
 bool faest_unpack_secret_key_for_tag4(secret_key* unpacked_sk, const uint8_t* tag_owf_input0);
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring, bool tag);
 bool faest_compute_witness4(secret_key* sk, bool ring, bool tag);
+bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1); // TODO: deprecate non-cbc tag.
 #if defined(OWF_AES_CTR)
 bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3);
 bool faest_compute_witness3(secret_key* sk, bool ring, bool tag);
-// TODO: Deprecate below.
-bool faest_compute_witness_cbc(secret_key* sk);
-bool faest_compute_witness_cbc2(secret_key* sk);
-// bool faest_unpack_secret_key_for_cbc_tag(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
-// bool faest_unpack_secret_key_for_cbc_tag2(secret_key* unpacked_sk, const uint8_t* tag_in0, const uint8_t* tag_in1, const uint8_t* tag_in2, const uint8_t* tag_in3);
 #endif
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk);
 
