@@ -2358,7 +2358,7 @@ static bool faest_ring_sign_attempt(
 	quicksilver_state qs;
 	// quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
 	// owf_constraints_prover(&qs, &sk->pk);
-	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, false, false); // tag false, cbc false
+	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, false); // tag false.
 	owf_constraints_prover_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -2605,7 +2605,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
 	quicksilver_state qs;
-	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, false, false); // tag false, cbc false.
+	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, false); // tag false.
 	owf_constraints_verifier_all_branches(&qs, pk_ring);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -2785,7 +2785,7 @@ static bool faest_tagged_ring_sign_attempt(
 	free(v);
 
 	quicksilver_state qs;
-	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, true, false); // tag flag true, cbc flag false.
+	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, true); // tag flag true.
 	owf_constraints_prover_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -3060,7 +3060,7 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
 	quicksilver_state qs;
-	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, true, false); // tag true, cbc false.
+	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, true); // tag true.
 	owf_constraints_verifier_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];

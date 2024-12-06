@@ -241,8 +241,8 @@ struct quicksilver_test_or_state
     bool tag;
     bool cbc;
 
-    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag, bool cbc) :
-        witness(witness_in, witness_in + witness_bits / 8), tag(tag), cbc(cbc)
+    quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag) :
+        witness(witness_in, witness_in + witness_bits / 8), tag(tag)
     {
         auto witness_mask = random_vector<uint8_t>(FAEST_RING_PROOF_ELEMS * (SECURITY_PARAM / 8));
         witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
@@ -254,9 +254,9 @@ struct quicksilver_test_or_state
 
         std::array<uint8_t, QUICKSILVER_CHALLENGE_BYTES> challenge;
         std::generate(challenge.begin(), challenge.end(), rand<uint8_t>);
-        // JC: setting "tag = true" inits hasher state for TAGGED_RING_PK_OWF_NUM of enc-sched constraints.
-        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(), challenge.data(), tag, cbc);
-        quicksilver_init_or_verifier(&verifier_state, keys.data(), delta, challenge.data(), tag, cbc);
+        // Setting "tag = true" inits hasher state for TAGGED_RING_PK_OWF_NUM of enc-sched constraints.
+        quicksilver_init_or_prover(&prover_state, witness.data(), tags.data(), challenge.data(), tag);
+        quicksilver_init_or_verifier(&verifier_state, keys.data(), delta, challenge.data(), tag);
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
