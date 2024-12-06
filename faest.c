@@ -175,6 +175,16 @@ void faest_pack_public_key(uint8_t* packed, const public_key* unpacked)
 	memcpy(packed + sizeof(unpacked->owf_input), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
 }
 
+#if defined(OWF_AES_CTR)
+void faest_pack_cbc_tag(uint8_t* packed, const cbc_tag* unpacked, size_t owf_num)
+{
+	for (size_t i = 0; i < owf_num; ++i)
+	{
+		memcpy(packed + i * sizeof(unpacked->owf_inputs[0]), &unpacked->owf_inputs[i], sizeof(unpacked->owf_inputs[0]));
+	}
+	memcpy(packed + owf_num * sizeof(unpacked->owf_inputs[0]), &unpacked->owf_output[0], sizeof(unpacked->owf_output));
+}
+#endif
 
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed)
 {
@@ -1907,7 +1917,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 #if defined(OWF_AES_CTR)
 static bool faest_cbc_tagged_ring_sign_attempt(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const secret_key* sk,
-	const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1,
+	const public_key_ring* pk_ring, const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1,
 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
 // static bool faest_ring_sign_attempt(
@@ -1917,10 +1927,14 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 // {
     uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
+
 	uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
 	uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
+
+	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	faest_pack_cbc_tag(cbc_tag_packed, tag, TAGGED_RING_TAG_OWF_NUM3);
 
 	block_2secpar mu;
 	hash_state hasher;
@@ -2450,12 +2464,12 @@ static bool faest_tagged_ring_sign_attempt(
 #if defined(OWF_AES_CTR)
 bool faest_cbc_tagged_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
- 	public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len)
+	const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len)
 {
 	uint64_t attempt_num = 0;
 	do
 	{
-		if (faest_cbc_tagged_ring_sign_attempt(signature, msg, msg_len, sk, pk_ring, pk_tag0, pk_tag1, random_seed, random_seed_len, attempt_num))
+		if (faest_cbc_tagged_ring_sign_attempt(signature, msg, msg_len, sk, pk_ring, tag, pk_tag0, pk_tag1, random_seed, random_seed_len, attempt_num))
 		{
 			faest_free_secret_key(sk);
 			return true;
