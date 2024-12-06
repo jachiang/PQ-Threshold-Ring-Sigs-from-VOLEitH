@@ -266,7 +266,7 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
 
 TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
-    printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_WITNESS_BITS);
+    printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_CBC_WITNESS_BITS);
 
     printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
 
@@ -280,9 +280,9 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     secret_key sk;
     uint32_t active_idx = test_gen_rand_idx();
-    for (size_t i; i < TAGGED_RING_WITNESS_BLOCKS; i++) {
-        sk.tagged_ring_witness[i] = block128_set_zero();
-    }
+    // for (size_t i; i < TAGGED_RING_WITNESS_BLOCKS; i++) {
+    //     sk.tagged_ring_witness[i] = block128_set_zero();
+    // }
 
     std::array<uint8_t, FAEST_IV_BYTES> owf_input0; // TODO: fixed
     std::array<uint8_t, FAEST_IV_BYTES> owf_input1; // TODO: fixed
@@ -309,7 +309,7 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     free(pk_ring.pubkeys1);
 }
 
-
+// TODO: Deprecate non-cbc version.
 TEST_CASE( "keygen/sign/verify", "[faest tagged ring]" ) {
 
     printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_WITNESS_BITS);
