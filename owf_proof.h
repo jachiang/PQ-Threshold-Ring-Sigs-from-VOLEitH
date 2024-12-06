@@ -138,7 +138,7 @@
 		#define CBC_TAGGED_RING_TAG_OWF_NUM (4)
 	#endif
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	// TODO: Remote EM mode for CBC.
+	// TODO: EM mode for CBC.
 	#define ALT_TAGGED_RING_OWF_NUM (2)
 #endif
 
