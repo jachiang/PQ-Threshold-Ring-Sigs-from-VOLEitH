@@ -1449,13 +1449,13 @@ static ALWAYS_INLINE void owf_constraints4(quicksilver_state* state, const publi
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false, 0);
         // TODO: Different pk in/out.
-        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false, 0);
+        enc_constraints(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], false, 1);
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
     enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false, 0);
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key); // TODO: different fixed key.
-    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false, 0);
+    enc_constraints(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], false, 1);
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
     enc_constraints(state, pk->owf_input[0], pk->owf_output[0]);
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
