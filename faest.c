@@ -602,13 +602,13 @@ bool faest_compute_witness4(secret_key* sk, bool ring, bool tag) // tagged sig.
 	}
 #endif
 
-size_t owf_num;
-if (tag){
-	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
-}
-else{
-	owf_num = 1;
-}
+size_t owf_num = 2;
+// if (tag){
+// 	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
+// }
+// else{
+// 	owf_num = 1;
+// }
 bool tag_itr = false;
 // JC: Witness expansion for each active-pk-OWF and tag-OWF.
 for (size_t owf = 0; owf < owf_num; ++owf) {
@@ -637,14 +637,15 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 		}
 		else if (owf == 1) {
-			sk->pk1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk1.owf_input[i]);
+			// TODO: Migrate to tag pk.
+			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 		}
-		else if (owf == 2) {
-			sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
-		}
-		else if (owf == 3) {
-			sk->tag1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[i]);
-		}
+		// else if (owf == 2) {
+		// 	sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
+		// }
+		// else if (owf == 3) {
+		// 	sk->tag1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[i]);
+		// }
 	}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");
@@ -652,14 +653,15 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 	}
 	else if (owf == 1) {
-		sk->pk1.owf_output[0] = owf_block_xor(sk->pk1.fixed_key.keys[0], sk->sk);
+		// TODO: Migrate to tag pk.
+		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 	}
-	else if (owf == 2) {
-		sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
-	}
-	else if (owf == 3) {
-		sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
-	}
+	// else if (owf == 2) {
+	// 	sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
+	// }
+	// else if (owf == 3) {
+	// 	sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
+	// }
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
 	// JC: Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
@@ -686,54 +688,54 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				aes_round_function(&sk->round_keys, &sk->pk1.owf_output[i], &after_sbox, round);
+				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			else if (owf == 2) {
-				aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
-			}
-			else if (owf == 3) {
-				aes_round_function(&sk->round_keys, &sk->tag1.owf_output[i], &after_sbox, round);
-			}
+			// else if (owf == 2) {
+			// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
+			// }
+			// else if (owf == 3) {
+			// 	aes_round_function(&sk->round_keys, &sk->tag1.owf_output[i], &after_sbox, round);
+			// }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	#if SECURITY_PARAM == 128
 			if (owf == 0) {
 				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				aes_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			else if (owf == 2) {
-				aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			}
-			else if (owf == 3) {
-				aes_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			}
+			// else if (owf == 2) {
+			// 	aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			// }
+			// else if (owf == 3) {
+			// 	aes_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			// }
 	#elif SECURITY_PARAM == 192
 			if (owf == 0) {
 				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				rijndael192_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			else if (owf == 2) {
-				rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			}
-			else if (owf == 3) {
-				rijndael192_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			}
+			// else if (owf == 2) {
+			// 	rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			// }
+			// else if (owf == 3) {
+			// 	rijndael192_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			// }
 	#elif SECURITY_PARAM == 256
 			if (owf == 0) {
 				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				rijndael256_round_function(&sk->pk1.fixed_key, &sk->pk1.owf_output[i], &after_sbox, round);
+				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
-			else if (owf == 2) {
-				rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			}
-			else if (owf == 3) {
-				rijndael256_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			}
+			// else if (owf == 2) {
+			// 	rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
+			// }
+			// else if (owf == 3) {
+			// 	rijndael256_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
+			// }
 	#endif
 #elif defined(OWF_RAIN_3)
 	// JC: Not supported for tagged ring sigs.
@@ -797,14 +799,15 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 		}
 		else if (owf == 1) {
-			sk->pk1.owf_output[i] = owf_block_xor(sk->pk1.owf_output[i], sk->sk);
+			// TODO: Migrate to tag pk.
+			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 		}
-		else if (owf == 2) {
-			sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
-		}
-		else if (owf == 3) {
-			sk->tag1.owf_output[i] = owf_block_xor(sk->tag1.owf_output[i], sk->sk);
-		}
+		// else if (owf == 2) {
+		// 	sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
+		// }
+		// else if (owf == 3) {
+		// 	sk->tag1.owf_output[i] = owf_block_xor(sk->tag1.owf_output[i], sk->sk);
+		// }
 	}
 #endif
 
@@ -812,53 +815,53 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 	// printf("OWF loop end: %u\n", owf);
 	} // End of loop over OWF 1-4.
 
-	if(!ring) {
-		assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
-		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
-	}
-	else {
-		// JC: Decompose active branch index (according to hotvector size/dim).
-		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
-		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
-		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
+	// if(false) {
+	// 	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
+	// 	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
+	// }
+	// else {
+	// 	// JC: Decompose active branch index (according to hotvector size/dim).
+	// 	uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
+	// 	uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
+	// 	base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
 
-		// JC: Serialization of hotvectors as bytes.
-		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
+	// 	// JC: Serialization of hotvectors as bytes.
+	// 	uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
 
-		// JC: Init indices and vars.
-		int curr_byte_idx = 0;
-		int curr_bit_idx = 0;
+	// 	// JC: Init indices and vars.
+	// 	int curr_byte_idx = 0;
+	// 	int curr_bit_idx = 0;
 
-		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-			// JC: Remaining free bits in current byte.
-			int remaining_bits = 8 - curr_bit_idx;
-			if ((decomp[i] != base - 1)) {
-				// JC: Hotvector has exactly one active bit.
-				uint32_t hotvector_idx = decomp[i];
-				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
-				int active_byte_idx = curr_byte_idx;
-				if (hotvector_idx + 1 > remaining_bits) {
-					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
-				}
-				// printf("Active byte idx: %u \n", active_byte_idx);
-				// printf("Active bit idx: %u \n", active_bit_idx);
+	// 	for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
+	// 		// JC: Remaining free bits in current byte.
+	// 		int remaining_bits = 8 - curr_bit_idx;
+	// 		if ((decomp[i] != base - 1)) {
+	// 			// JC: Hotvector has exactly one active bit.
+	// 			uint32_t hotvector_idx = decomp[i];
+	// 			int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
+	// 			int active_byte_idx = curr_byte_idx;
+	// 			if (hotvector_idx + 1 > remaining_bits) {
+	// 				active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
+	// 			}
+	// 			// printf("Active byte idx: %u \n", active_byte_idx);
+	// 			// printf("Active bit idx: %u \n", active_bit_idx);
 
-				// JC: Activate bit in hotvectors byte array.
-				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
-			}
-			// else{
-			// 	if (decomp[i] == base - 1) {
-			// 		printf("Last active bit omitted in hotvector %u\n", i);
-			// 	}
-			// }
-			// // JC: Update indices vars.
-			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
-			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
-		}
+	// 			// JC: Activate bit in hotvectors byte array.
+	// 			hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
+	// 		}
+	// 		// else{
+	// 		// 	if (decomp[i] == base - 1) {
+	// 		// 		printf("Last active bit omitted in hotvector %u\n", i);
+	// 		// 	}
+	// 		// }
+	// 		// // JC: Update indices vars.
+	// 		curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
+	// 		curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
+	// 	}
 
-		// JC: Copy 1-hotvector serialization to witness.
-		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
-	}
+	// 	// JC: Copy 1-hotvector serialization to witness.
+	// 	memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
+	// }
 	return true;
 }
 
