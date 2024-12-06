@@ -164,8 +164,8 @@ typedef struct cbc_tag cbc_tag;
 
 void owf_constraints_prover(quicksilver_state* state, const public_key* pk);
 void owf_constraints_verifier(quicksilver_state* state, const public_key* pk);
-void owf_constraints_prover4(quicksilver_state* state, const public_key* pk, const public_key* tag);
-void owf_constraints_verifier4(quicksilver_state* state, const public_key* pk, const public_key* tag);
+void owf_constraints_prover_tag(quicksilver_state* state, const public_key* pk, const public_key* tag);
+void owf_constraints_verifier_tag(quicksilver_state* state, const public_key* pk, const public_key* tag);
 void owf_constraints_prover_all_branches(quicksilver_state* state, const public_key_ring* pk);
 void owf_constraints_verifier_all_branches(quicksilver_state* state, const public_key_ring* pk);
 void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1);
