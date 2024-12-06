@@ -59,14 +59,14 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     public_key pk;
     faest_unpack_public_key(&pk, packed_pk.data());
 
-    public_key tag_pk0;
-    public_key tag_pk1;
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
-    std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
-    std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    public_key tag_pk;
+    // public_key tag_pk1;
+    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input;
+    std::generate(tag_owf_input.data(), tag_owf_input.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    // std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
+    // std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
     // TODO: migrate to tagged_witness in sk.
-    test_finalize_sk_for_tag4(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+    test_finalize_sk_for_tag4(&sk, &tag_pk, tag_owf_input.data());
 
     const auto delta = rand<block_secpar>();
     // TODO: migrate to tagged_witness in sk.
