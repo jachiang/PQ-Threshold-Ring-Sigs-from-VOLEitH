@@ -101,6 +101,7 @@ bool faest_unpack_secret_key_for_tag4(secret_key* unpacked_sk, const uint8_t* ta
 void faest_pack_public_key(uint8_t* packed, const public_key* unpacked);
 void faest_unpack_public_key(public_key* unpacked, const uint8_t* packed);
 bool faest_compute_witness(secret_key* sk, bool ring, bool tag);
+bool faest_compute_witness4(secret_key* sk, bool ring, bool tag);
 #if defined(OWF_AES_CTR)
 bool faest_compute_witness_cbc(secret_key* sk);
 bool faest_compute_witness_cbc2(secret_key* sk);

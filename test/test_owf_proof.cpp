@@ -65,10 +65,12 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    // TODO: migrate to tagged_witness in sk.
     test_finalize_sk_for_tag4(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.witness), WITNESS_BITS, delta);
+    // TODO: migrate to tagged_witness in sk.
+    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 

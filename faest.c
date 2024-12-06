@@ -133,7 +133,7 @@ bool faest_unpack_secret_key_for_tag4(secret_key* unpacked_sk, const uint8_t* ta
 #else
 #error "Unsupported OWF."
 #endif
-	if (!faest_compute_witness(unpacked_sk, true, true))
+	if (!faest_compute_witness4(unpacked_sk, true, true))
 	{
 		return false;
 	}
@@ -554,18 +554,21 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 }
 
 
-bool faest_compute_witness4(secret_key* sk, bool ring, bool tag)
+bool faest_compute_witness4(secret_key* sk, bool ring, bool tag) // tagged sig.
 {
-	uint8_t* w_ptr;
-	if (!ring) {
-		w_ptr = (uint8_t*) &sk->witness;
-	}
-	else if (ring && !tag) {
-		w_ptr = (uint8_t*) &sk->ring_witness;
-	}
-	else if (ring && tag) {
-		w_ptr = (uint8_t*) &sk->tagged_ring_witness;
-	}
+	// TODO: Placeholder. Dedicate this function to tagged sigs.
+	tag = true; ring = false;
+
+	uint8_t* w_ptr = (uint8_t*) &sk->tagged_witness;
+	// if (!ring) {
+	// 	w_ptr = (uint8_t*) &sk->witness;
+	// }
+	// else if (ring && !tag) {
+	// 	w_ptr = (uint8_t*) &sk->ring_witness;
+	// }
+	// else if (ring && tag) {
+	// 	w_ptr = (uint8_t*) &sk->tagged_ring_witness;
+	// }
 
 #if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
 
