@@ -1561,7 +1561,7 @@ static ALWAYS_INLINE void owf_constraints(quicksilver_state* state, const public
 #endif
 }
 
-static ALWAYS_INLINE void owf_constraints4(quicksilver_state* state, const public_key* pk)
+static ALWAYS_INLINE void owf_constraints4(quicksilver_state* state, const public_key* pk, const public_key* tag)
 {
 #if defined(OWF_AES_CTR) || defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     quicksilver_vec_gf2 round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
@@ -1571,13 +1571,13 @@ static ALWAYS_INLINE void owf_constraints4(quicksilver_state* state, const publi
     key_sched_constraints(state, round_key_bits, round_key_bytes, false);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         enc_constraints4(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], 0);
-        enc_constraints4(state, round_key_bits, round_key_bytes, i, pk->owf_input[i], pk->owf_output[i], 1);
+        enc_constraints4(state, round_key_bits, round_key_bytes, i, tag->owf_input[i], tag->owf_output[i], 1);
     }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key);
     enc_constraints4(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], 0);
-    load_fixed_round_key(state, round_key_bits, round_key_bytes, &pk->fixed_key); // TODO: different fixed key.
-    enc_constraints4(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->owf_output[0], 1);
+    load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag->fixed_key); // TODO: different fixed key.
+    enc_constraints4(state, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), tag->owf_output[0], 1);
 
     // // 1st Tag OWF.
     // load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag0->fixed_key);
@@ -1911,18 +1911,18 @@ void owf_constraints_verifier(quicksilver_state* state, const public_key* pk)
 	owf_constraints(state, pk);
 }
 
-void owf_constraints_prover4(quicksilver_state* state, const public_key* pk)
+void owf_constraints_prover4(quicksilver_state* state, const public_key* pk, const public_key* tag)
 {
 	assert(!state->verifier);
 	state->verifier = false; // Let the compiler know that it is constant.
-	owf_constraints4(state, pk);
+	owf_constraints4(state, pk, tag);
 }
 
-void owf_constraints_verifier4(quicksilver_state* state, const public_key* pk)
+void owf_constraints_verifier4(quicksilver_state* state, const public_key* pk, const public_key* tag)
 {
 	assert(state->verifier);
 	state->verifier = true; // Let the compiler know that it is constant.
-	owf_constraints4(state, pk);
+	owf_constraints4(state, pk, tag);
 }
 
 

@@ -637,8 +637,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 		}
 		else if (owf == 1) {
-			// TODO: Migrate to tag pk.
-			sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+			// sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
+			sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
 		}
 		// else if (owf == 2) {
 		// 	sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
@@ -654,7 +654,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 	}
 	else if (owf == 1) {
 		// TODO: Migrate to tag pk.
-		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+		// sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
+		sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
 	}
 	// else if (owf == 2) {
 	// 	sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
@@ -688,7 +689,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+				// aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
+				aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
 			}
 			// else if (owf == 2) {
 			// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
@@ -702,7 +704,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				// aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
 			// else if (owf == 2) {
 			// 	aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
@@ -715,7 +718,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				// rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
 			// else if (owf == 2) {
 			// 	rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
@@ -728,7 +732,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				// rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
+				rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
 			// else if (owf == 2) {
 			// 	rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
@@ -800,8 +805,8 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 		}
 		else if (owf == 1) {
-			// TODO: Migrate to tag pk.
-			sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+			// sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
+			sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
 		}
 		// else if (owf == 2) {
 		// 	sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);

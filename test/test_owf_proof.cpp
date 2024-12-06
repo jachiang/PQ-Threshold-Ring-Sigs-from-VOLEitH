@@ -74,8 +74,8 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover4(&qs_state_prover, &pk);     // TODO: forward tag.
-    owf_constraints_verifier4(&qs_state_verifier, &pk); // TODO: forward tag.
+    owf_constraints_prover4(&qs_state_prover, &pk, &tag_pk);     // TODO: forward tag.
+    owf_constraints_verifier4(&qs_state_verifier, &pk, &tag_pk);  // TODO: forward tag.
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
