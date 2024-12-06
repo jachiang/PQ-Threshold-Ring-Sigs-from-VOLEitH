@@ -436,56 +436,6 @@ inline bool test_finalize_sk_for_tag4(secret_key* sk, public_key* tag_pk0, unsig
 }
 
 #if defined(OWF_AES_CTR)
-// inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, public_key* tag_pk0, public_key* tag_pk1, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1)
-inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, cbc_tag* tag, unsigned char* tag_in0, unsigned char* tag_in1, unsigned char* tag_in2, unsigned char* tag_in3)
-{
-    if(!faest_unpack_secret_key_for_cbc_tag(sk, tag_in0, tag_in1, tag_in2, tag_in3)) { return false; }
-
-    // TODO:
-	memcpy(&tag->owf_inputs[0], &sk->tag_cbc.owf_inputs[0], sizeof(tag->owf_inputs[0]));
-	memcpy(&tag->owf_inputs[1], &sk->tag_cbc.owf_inputs[1], sizeof(tag->owf_inputs[1]));
-    #if (TAGGED_RING_CBC_OWF_NUM > 2)
-	memcpy(&tag->owf_inputs[2], &sk->tag_cbc.owf_inputs[2], sizeof(tag->owf_inputs[2]));
-    #endif
-    #if (TAGGED_RING_CBC_OWF_NUM > 3)
-	memcpy(&tag->owf_inputs[3], &sk->tag_cbc.owf_inputs[3], sizeof(tag->owf_inputs[3]));
-    #endif
-	memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_output[0], sizeof(tag->owf_output[0]));
-
-    // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
-    // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
-    // #endif
-    return true;
-}
-
-inline bool test_finalize_sk_for_cbc_tag2(secret_key* sk, cbc_tag* tag, unsigned char* tag_in0, unsigned char* tag_in1, unsigned char* tag_in2, unsigned char* tag_in3)
-{
-    if(!faest_unpack_secret_key_for_cbc_tag2(sk, tag_in0, tag_in1, tag_in2, tag_in3)) { return false; }
-
-    // TEST: independent owf tags.
-	memcpy(&tag->owf_inputs[0], &sk->tag_cbc.owf_inputs[0], sizeof(tag->owf_inputs[0]));
-	memcpy(&tag->owf_outputs[0], &sk->tag_cbc.owf_outputs[0], sizeof(tag->owf_outputs[0]));
-    memcpy(&tag->owf_inputs[1], &sk->tag_cbc.owf_inputs[1], sizeof(tag->owf_inputs[1]));
-	memcpy(&tag->owf_outputs[1], &sk->tag_cbc.owf_outputs[1], sizeof(tag->owf_outputs[1]));
-    #if (TAGGED_RING_CBC_OWF_NUM > 2)
-	memcpy(&tag->owf_inputs[2], &sk->tag_cbc.owf_inputs[2], sizeof(tag->owf_inputs[2]));
-	memcpy(&tag->owf_outputs[2], &sk->tag_cbc.owf_outputs[2], sizeof(tag->owf_outputs[2]));
-    #endif
-    #if (TAGGED_RING_CBC_OWF_NUM > 3)
-	memcpy(&tag->owf_inputs[3], &sk->tag_cbc.owf_inputs[3], sizeof(tag->owf_inputs[3]));
-    memcpy(&tag->owf_outputs[3], &sk->tag_cbc.owf_outputs[3], sizeof(tag->owf_outputs[3]));
-    #endif
-
-	// memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_output[0], sizeof(tag->owf_output[0]));
-
-    // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-    // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
-    // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));
-    // #endif
-    return true;
-}
-
 inline bool test_finalize_sk_for_tag3(secret_key* sk, cbc_tag* tag, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1, unsigned char* tag_owf_input2, unsigned char* tag_owf_input3)
 {
     if(!faest_unpack_secret_key_for_tag3(sk, tag_owf_input0, tag_owf_input1, tag_owf_input2, tag_owf_input3)) { return false; }

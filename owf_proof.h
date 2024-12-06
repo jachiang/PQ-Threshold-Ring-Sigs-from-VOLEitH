@@ -171,12 +171,13 @@ void owf_constraints_verifier_all_branches(quicksilver_state* state, const publi
 void owf_constraints_prover_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1);
 void owf_constraints_verifier_all_branches_and_tag(quicksilver_state* state, const public_key_ring* pk_ring, const public_key* tag0, const public_key* tag1);
 #if defined(OWF_AES_CTR)
+void owf_constraints_prover_all_branches_and_cbc_tag(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+void owf_constraints_verifier_all_branches_and_cbc_tag(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
+// Deprecate below.
 void owf_constraints_prover_all_branches_and_tag_cbc(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
 void owf_constraints_verifier_all_branches_and_tag_cbc(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
 void owf_constraints_prover_all_branches_and_tag_cbc2(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
 void owf_constraints_verifier_all_branches_and_tag_cbc2(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
-void owf_constraints_prover_all_branches_and_cbc_tag(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
-void owf_constraints_verifier_all_branches_and_cbc_tag(quicksilver_state* state, const public_key_ring* pk_ring, const cbc_tag* tag);
 #endif
 
 typedef struct
