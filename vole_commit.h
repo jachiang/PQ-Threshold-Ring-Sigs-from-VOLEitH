@@ -68,4 +68,15 @@ bool vole_reconstruct_for_tagged_ring(
 	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
 	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check);
 
+#if defined(OWF_AES_CTR)
+void vole_commit_for_cbc_tagged_ring(
+	block_secpar seed, block128 iv, block_secpar* restrict forest, block_2secpar* hashed_leaves,
+	vole_block* restrict u, vole_block* restrict v,
+	uint8_t* restrict commitment, uint8_t* restrict check);
+
+bool vole_reconstruct_for_cbc_tagged_ring(
+	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
+	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check);
+#endif
+
 #endif

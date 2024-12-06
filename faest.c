@@ -1987,7 +1987,7 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit_for_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -2565,7 +2565,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	bool reconstruct_success =  vole_reconstruct_for_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	if (reconstruct_success == 0){
 		free(q);
 		printf("Reconstruction failed\n");
