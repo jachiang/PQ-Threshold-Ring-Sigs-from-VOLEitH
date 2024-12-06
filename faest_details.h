@@ -60,7 +60,7 @@ typedef struct
 	public_key pk1;  // 2nd pk owf
 	public_key pk2;  // 3rd pk owf (TODO: Deprecate)
 	public_key pk3;  // 4th pk owf (TODO: Deprecate)
-	public_key tag;  // 1st tag owf (TODO: Deprecate)
+	public_key tag;  // tag owf.
 	public_key tag1;  // 2nd tag owf (TODO: Deprecate)
 #if defined(OWF_AES_CTR)
 	cbc_tag tag_cbc; // Tagged ring sigs.

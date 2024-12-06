@@ -244,10 +244,6 @@ struct quicksilver_test_or_state
     quicksilver_test_or_state(size_t num_owf_constraints, const uint8_t* witness_in, size_t witness_bits, block_secpar delta, bool tag, bool cbc) :
         witness(witness_in, witness_in + witness_bits / 8), tag(tag), cbc(cbc)
     {
-        // JC: TODO - Increase witness mask at the end.
-        // auto witness_mask = random_vector<uint8_t>(SECURITY_PARAM / 8);
-        // witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
-
         auto witness_mask = random_vector<uint8_t>(FAEST_RING_PROOF_ELEMS * (SECURITY_PARAM / 8));
         witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
 
