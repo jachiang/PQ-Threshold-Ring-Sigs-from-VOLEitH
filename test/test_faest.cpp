@@ -300,7 +300,7 @@ TEST_CASE( "keygen/sign/verify", "[faest tagged ring]" ) {
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1; // TODO: hash of nonce and msg
     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+    test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     REQUIRE( faest_tagged_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag_pk0, &tag_pk1, NULL, 0) );
     REQUIRE( faest_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag_pk0, &tag_pk1) );

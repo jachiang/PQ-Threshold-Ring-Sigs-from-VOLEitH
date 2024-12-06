@@ -128,7 +128,7 @@ TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+    test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
     const auto delta = rand<block_secpar>();
     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
@@ -227,7 +227,7 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
 //     std::generate(tag_owf_in3.data(), tag_owf_in3.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
 
 //     // TODO: add second tag owf input.
-//     // test_finalize_sk_for_tag(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+//     // test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 //     test_finalize_sk_for_cbc_tag2(&sk, &tag_cbc, tag_owf_in0.data(), tag_owf_in1.data(), tag_owf_in2.data(), tag_owf_in3.data());
 
 //     const auto delta = rand<block_secpar>();
