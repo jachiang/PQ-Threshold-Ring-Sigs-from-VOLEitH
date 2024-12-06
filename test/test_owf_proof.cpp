@@ -135,7 +135,7 @@ TEST_CASE( "cbc-tagged ring owf proof", "[cbc-tagged ring owf proof]" ) {
 
     const auto delta = rand<block_secpar>();
 
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness3), TAGGED_RING_WITNESS_BITS3, delta, true); // tag true.
+    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness3), CBC_TAGGED_RING_WITNESS_BITS, delta, true); // tag true.
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 

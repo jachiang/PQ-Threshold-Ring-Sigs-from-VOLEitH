@@ -440,11 +440,11 @@ inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, cbc_tag* tag, unsigned 
 {
     if(!faest_unpack_secret_key_for_cbc_tag(sk, tag_owf_input0, tag_owf_input1, tag_owf_input2, tag_owf_input3)) { return false; }
 
-    for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
+    for (size_t i = 0; i < CBC_TAGGED_RING_TAG_OWF_NUM; ++i) {
         memcpy(&tag->owf_inputs[i], &sk->tag_cbc.owf_inputs[i], sizeof(tag->owf_inputs[i]));
         // memcpy(&tag->owf_outputs[i], &sk->tag_cbc.owf_outputs[i], sizeof(tag->owf_outputs[i]));
     }
-    memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_outputs[TAGGED_RING_TAG_OWF_NUM3-1], sizeof(tag->owf_output[0]));
+    memcpy(&tag->owf_output[0], &sk->tag_cbc.owf_outputs[CBC_TAGGED_RING_TAG_OWF_NUM-1], sizeof(tag->owf_output[0]));
     // #if defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     // memcpy(&tag_pk0->fixed_key, &sk->tag.fixed_key, sizeof(tag_pk0->fixed_key));
     // memcpy(&tag_pk1->fixed_key, &sk->tag1.fixed_key, sizeof(tag_pk1->fixed_key));

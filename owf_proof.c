@@ -210,10 +210,10 @@ static ALWAYS_INLINE void load_fixed_round_key(quicksilver_state* state, quicksi
 // static ALWAYS_INLINE void load_fixed_round_key_cbc(quicksilver_state* state, quicksilver_vec_gf2* round_key_bits,
 //         quicksilver_vec_gfsecpar* round_key_bytes, const rijndael_round_keys* fixed_key) {
 
-//     // quicksilver_vec_gf2 tag_round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * TAGGED_RING_CBC_OWF_NUM];
-//     // quicksilver_vec_gfsecpar tag_round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * TAGGED_RING_CBC_OWF_NUM];
+//     // quicksilver_vec_gf2 tag_round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * ALT_TAGGED_RING_OWF_NUM];
+//     // quicksilver_vec_gfsecpar tag_round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * ALT_TAGGED_RING_OWF_NUM];
 
-//     for (size_t tag_owf = 0; tag_owf < TAGGED_RING_CBC_OWF_NUM; ++tag_owf) {
+//     for (size_t tag_owf = 0; tag_owf < ALT_TAGGED_RING_OWF_NUM; ++tag_owf) {
 
 //         const uint8_t* rk_bytes = (const uint8_t*) fixed_key[tag_owf];
 
@@ -663,7 +663,7 @@ static ALWAYS_INLINE void enc_bkwd3(quicksilver_state* state, const quicksilver_
                 size_t inv_shifted_index = 4 * ((col_j + NUM_COLS - row_k) % NUM_COLS) + row_k;
 #endif
                 // Read witness bits directy unless last round and last tag owf.
-                if (!((round_i == OWF_ROUNDS - 1) && (tag_owf == TAGGED_RING_TAG_OWF_NUM3 - 1))) {
+                if (!((round_i == OWF_ROUNDS - 1) && (tag_owf == CBC_TAGGED_RING_TAG_OWF_NUM - 1))) {
                     // read witness bits directly
                     for (size_t bit_i = 0; bit_i < 8; ++bit_i) {
                         witness_bits[bit_i] = quicksilver_get_witness_vec(
@@ -829,7 +829,7 @@ static ALWAYS_INLINE void enc_fwd_cbc(quicksilver_state* state, const quicksilve
 
 #if defined(ALLOW_ZERO_SBOX)
 static ALWAYS_INLINE void enc_bkwd_cbc(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output, quicksilver_vec_gfsecpar* sq_output, quicksilver_vec_gfsecpar* output_block, size_t tag_owf, size_t tag_owf_num) {
-// enc_bkwd_cbc(state, round_key_bits, witness_bit_offset, tag_out, inv_outputs, sq_inv_outputs, owf_output_bytes, tag_owf, TAGGED_RING_CBC_OWF_NUM);
+// enc_bkwd_cbc(state, round_key_bits, witness_bit_offset, tag_out, inv_outputs, sq_inv_outputs, owf_output_bytes, tag_owf, ALT_TAGGED_RING_OWF_NUM);
 #else
 #error "ALLOW_ZERO_SBOX required in CBC mode."
 // static ALWAYS_INLINE void enc_bkwd(quicksilver_state* state, const quicksilver_vec_gf2* round_key_bits, size_t witness_bit_offset, owf_block out, quicksilver_vec_gfsecpar* output) {
@@ -1280,7 +1280,7 @@ static ALWAYS_INLINE void enc_constraints_cbc_alt(quicksilver_state* state,
     quicksilver_vec_gfsecpar cbc_state_bytes;
 
     // Loop through tag owfs.
-    for (size_t tag_owf = 0; tag_owf < TAGGED_RING_CBC_OWF_NUM; ++tag_owf) {
+    for (size_t tag_owf = 0; tag_owf < ALT_TAGGED_RING_OWF_NUM; ++tag_owf) {
 
         // Offset accomodates all rounds in cbc chain.
         size_t pk_tag_offset_bits = TAGGED_RING_PK_OWF_NUM * (OWF_BLOCKS * OWF_BLOCK_SIZE * 8 * (OWF_ROUNDS - 1))
@@ -1301,7 +1301,7 @@ static ALWAYS_INLINE void enc_constraints_cbc_alt(quicksilver_state* state,
 
         // Each tag owf ignores first bit in each tag input block.
         enc_fwd_cbc(state, round_key_bytes, round_key_bits, witness_bit_offset, tag_ins[tag_owf], inv_inputs, sq_inv_inputs, &cbc_state_bytes, tag_owf);
-        enc_bkwd_cbc(state, round_key_bits, witness_bit_offset, tag_out, inv_outputs, sq_inv_outputs, &cbc_state_bytes, tag_owf, TAGGED_RING_CBC_OWF_NUM);
+        enc_bkwd_cbc(state, round_key_bits, witness_bit_offset, tag_out, inv_outputs, sq_inv_outputs, &cbc_state_bytes, tag_owf, ALT_TAGGED_RING_OWF_NUM);
     #else
         // Not supported.
         #error "ALLOW_ZERO_SBOX required."
@@ -1581,7 +1581,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
     quicksilver_vec_gf2 cbc_state_bits[OWF_BLOCK_SIZE*8];
     quicksilver_vec_gfsecpar cbc_state_bytes[OWF_BLOCK_SIZE];
 
-    for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
+    for (size_t i = 0; i < CBC_TAGGED_RING_TAG_OWF_NUM; ++i) {
         // TODO: Set tag->owf_outputs[0] input param.
         enc_constraints_cbc(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_output[0], cbc_state_bits, cbc_state_bytes, i); // Reads and updates cbc state.
     }
@@ -1657,14 +1657,14 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 //     }
 // #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 
-//     quicksilver_vec_gf2 tag_round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * TAGGED_RING_CBC_OWF_NUM];
-//     quicksilver_vec_gfsecpar tag_round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * TAGGED_RING_CBC_OWF_NUM];
+//     quicksilver_vec_gf2 tag_round_key_bits[8 * OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * ALT_TAGGED_RING_OWF_NUM];
+//     quicksilver_vec_gfsecpar tag_round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1) * ALT_TAGGED_RING_OWF_NUM];
 //     // 1st Tag OWF.
 //     load_fixed_round_key_cbc(state, tag_round_key_bits, tag_round_key_bytes, &tag->fixed_key); // Handles multiple fixed keys.
 //     // enc_constraints_cbc_alt(state, tag_round_key_bits, tag_round_key_bytes, 0, owf_block_set_low32(0), tag->owf_output[0], true, 0); // TODO: ... for EM mode.
 
-//     owf_block tag_ins[TAGGED_RING_CBC_OWF_NUM];
-//     for (size_t i = 0; i < TAGGED_RING_CBC_OWF_NUM; i++)
+//     owf_block tag_ins[ALT_TAGGED_RING_OWF_NUM];
+//     for (size_t i = 0; i < ALT_TAGGED_RING_OWF_NUM; i++)
 //     {
 //         tag_ins[i] = owf_block_set_low32(0);
 //     }
@@ -1707,7 +1707,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 // // #if defined(OWF_AES_CTR)
 //     // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 (B1) | PK_OWF_1 (B2) | PK_OWF_2 (B1) | PK_OWF_2 (B2) | TAG_OWF_1 | TAG_OWF_2 | ...
 //     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
-//     for (size_t i = 0; i < TAGGED_RING_CBC_OWF_NUM; ++i) {
+//     for (size_t i = 0; i < ALT_TAGGED_RING_OWF_NUM; ++i) {
 //         enc_constraints2(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], true, i);
 //     }
 //     // for (size_t i = 0; i < OWF_BLOCKS; ++i) {

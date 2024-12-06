@@ -146,10 +146,10 @@ bool faest_unpack_secret_key_for_cbc_tag(secret_key* unpacked_sk, const uint8_t*
 {
 	memcpy(&unpacked_sk->tag_cbc.owf_inputs[0], tag_owf_input0, sizeof(unpacked_sk->tag_cbc.owf_inputs[0]));
 	memcpy(&unpacked_sk->tag_cbc.owf_inputs[1], tag_owf_input1, sizeof(unpacked_sk->tag_cbc.owf_inputs[1]));
-	if (TAGGED_RING_TAG_OWF_NUM3 > 2) {
+	if (CBC_TAGGED_RING_TAG_OWF_NUM > 2) {
 		memcpy(&unpacked_sk->tag_cbc.owf_inputs[2], tag_owf_input2, sizeof(unpacked_sk->tag_cbc.owf_inputs[2]));
 	}
-	if (TAGGED_RING_TAG_OWF_NUM3 > 3) {
+	if (CBC_TAGGED_RING_TAG_OWF_NUM > 3) {
 		memcpy(&unpacked_sk->tag_cbc.owf_inputs[3], tag_owf_input3, sizeof(unpacked_sk->tag_cbc.owf_inputs[3]));
 	}
 #if defined(OWF_AES_CTR)
@@ -881,7 +881,7 @@ bool faest_compute_witness_cbc_tag(secret_key* sk, bool ring, bool tag)
 
 size_t owf_num;
 if (tag){
-	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM3; // Always 2 + 2?
+	owf_num = TAGGED_RING_PK_OWF_NUM + CBC_TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
 }
 else{
 	owf_num = 1;
@@ -1933,14 +1933,14 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
-	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
-	faest_pack_cbc_tag(cbc_tag_packed, tag, TAGGED_RING_TAG_OWF_NUM3);
+	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
+	faest_pack_cbc_tag(cbc_tag_packed, tag, CBC_TAGGED_RING_TAG_OWF_NUM);
 
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_RING_SIZE * FAEST_PUBLIC_KEY_BYTES);
-	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
 	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
 	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
@@ -2512,15 +2512,15 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
-	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
-	faest_pack_cbc_tag(cbc_tag_packed, tag, TAGGED_RING_TAG_OWF_NUM3);
+	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
+	faest_pack_cbc_tag(cbc_tag_packed, tag, CBC_TAGGED_RING_TAG_OWF_NUM);
 
 	block128 iv;
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
-	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
 	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
 	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
