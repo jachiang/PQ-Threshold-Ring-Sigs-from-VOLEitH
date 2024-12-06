@@ -263,7 +263,7 @@ TEST_CASE( "keygen/sign/verify", "[faest ring]" ) {
     free(pk_ring.pubkeys);
 }
 
-
+#if defined(OWF_AES_CTR)
 TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     printf("TAGGED RING WITNESS BITS: %u\n", CBC_TAGGED_RING_WITNESS_BITS);
@@ -272,6 +272,7 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     // printf("VOLE_TAGGED_RING_COL_BLOCKS: %u\n", VOLE_CBC_TAGGED_RING_COL_BLOCKS);
 
     std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
+    // std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
 
@@ -281,12 +282,9 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     secret_key sk;
     uint32_t active_idx = test_gen_rand_idx();
-    // for (size_t i; i < TAGGED_RING_WITNESS_BLOCKS; i++) {
-    //     sk.tagged_ring_witness[i] = block128_set_zero();
-    // }
 
-    std::array<uint8_t, FAEST_IV_BYTES> owf_input0; // TODO: fixed
-    std::array<uint8_t, FAEST_IV_BYTES> owf_input1; // TODO: fixed
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
+    std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
@@ -300,8 +298,19 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1; // TODO: hash of nonce and msg
     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
-
     test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+
+    // cbc_tag tag;
+    // std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in0;
+    // std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in1;
+    // std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in2;
+    // std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in3;
+    // std::generate(tag_owf_in0.data(), tag_owf_in0.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    // std::generate(tag_owf_in1.data(), tag_owf_in1.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    // std::generate(tag_owf_in2.data(), tag_owf_in2.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    // std::generate(tag_owf_in3.data(), tag_owf_in3.data() + OWF_BLOCK_SIZE, rand<uint8_t>);
+    // test_finalize_sk_for_cbc_tag(&sk, &tag, tag_owf_in0.data(), tag_owf_in1.data(),
+    //                                      tag_owf_in2.data(), tag_owf_in3.data());
 
     REQUIRE( faest_tagged_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag_pk0, &tag_pk1, NULL, 0) );
     REQUIRE( faest_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag_pk0, &tag_pk1) );
@@ -309,6 +318,7 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);
 }
+#endif
 
 // TODO: Deprecate non-cbc version.
 TEST_CASE( "keygen/sign/verify", "[faest tagged ring]" ) {
