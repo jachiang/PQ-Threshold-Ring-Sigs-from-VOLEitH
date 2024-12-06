@@ -314,7 +314,7 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
                                             tag_owf_in2.data(), tag_owf_in3.data());
 
     REQUIRE( faest_cbc_tagged_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag, &tag_pk0, &tag_pk1, NULL, 0) );
-    REQUIRE( faest_cbc_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag_pk0, &tag_pk1) );
+    REQUIRE( faest_cbc_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag, &tag_pk0, &tag_pk1) );
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);

@@ -1940,8 +1940,9 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_state hasher;
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_RING_SIZE * FAEST_PUBLIC_KEY_BYTES);
-	hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES); // JC: Add to verifier.
-	hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES); // JC: Add to verifier.
+	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
+	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -2502,7 +2503,7 @@ bool faest_tagged_ring_sign(
 #if defined(OWF_AES_CTR)
 
 bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1)
+                  	   const public_key_ring* pk_ring, const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1)
 {
     uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring);
@@ -2511,13 +2512,17 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
+	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	faest_pack_cbc_tag(cbc_tag_packed, tag, TAGGED_RING_TAG_OWF_NUM3);
+
 	block128 iv;
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
-	hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
-	hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
+	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (TAGGED_RING_TAG_OWF_NUM3 + 1));
+	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
+	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
