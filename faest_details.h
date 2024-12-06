@@ -75,7 +75,7 @@ typedef struct
 	aes_round_keys round_keys;
 #endif
 	vole_block witness[WITNESS_BLOCKS];
-	vole_block tagged_witness[WITNESS_BLOCKS4];
+	vole_block tagged_witness[TAGGED_WITNESS_BLOCKS];
 	vole_block ring_witness[RING_WITNESS_BLOCKS];
 	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS]; // TODO: deprecate.
 	#if defined(OWF_AES_CTR)
