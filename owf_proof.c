@@ -557,7 +557,7 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
             quicksilver_vec_gf2 input_bit = quicksilver_const_gf2(state, poly1_load(in_bytes[byte_i], bit_j)); // Load input (bitwise).
             if (tag_owf == 0) {
                 // Activate msb bit of input.
-                if (byte_i == 0 && bit_j == 7){
+                if (byte_i == OWF_BLOCK_SIZE-1 && bit_j == 7){
                     input_bit = quicksilver_one_gf2(state);
                 }
                 tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise).
@@ -565,7 +565,7 @@ static ALWAYS_INLINE void enc_fwd3(quicksilver_state* state, const quicksilver_v
             else if (tag_owf > 0) {
                 tmp_bits[bit_j] = quicksilver_add_gf2(state, input_bit, prev_output_bits[8*byte_i + bit_j]); // Add cbc state (bitwise).
                 // Activate msb bit of intermediary input state.
-                if (byte_i == 0 && bit_j == 7){
+                if (byte_i == OWF_BLOCK_SIZE-1 && bit_j == 7){
                     tmp_bits[bit_j] = quicksilver_one_gf2(state);
                 }
                 tmp_bits[bit_j] = quicksilver_add_gf2(state, tmp_bits[bit_j], round_key_bits[8*byte_i + bit_j]); // Add round key (bitwise)
