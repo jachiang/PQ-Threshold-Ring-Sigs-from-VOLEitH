@@ -185,8 +185,8 @@ TEST_CASE( "cbc-tagged ring owf proof 3", "[cbc-tagged ring owf proof 3]" ) {
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches_and_tag3(&qs_state_prover, &pk_ring, &tag);
-    owf_constraints_verifier_all_branches_and_tag3(&qs_state_verifier, &pk_ring, &tag);
+    owf_constraints_prover_all_branches_and_cbc_tag(&qs_state_prover, &pk_ring, &tag);
+    owf_constraints_verifier_all_branches_and_cbc_tag(&qs_state_verifier, &pk_ring, &tag);
 
 	auto [check_prover, check_verifier] = qs_test.compute_check();
     REQUIRE(check_prover == check_verifier);
