@@ -421,7 +421,7 @@ inline bool test_finalize_sk_for_tag_alt(secret_key* sk, public_key* tag_pk0, pu
     return true;
 }
 
-inline bool test_finalize_sk_for_tag4(secret_key* sk, public_key* tag_pk0, unsigned char* tag_owf_input0)
+inline bool test_finalize_sk_for_tag(secret_key* sk, public_key* tag_pk0, unsigned char* tag_owf_input0)
 {
     if(!faest_unpack_secret_key_for_tag(sk, tag_owf_input0)) { return false; }
 
