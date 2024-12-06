@@ -142,7 +142,7 @@ bool faest_unpack_secret_key_for_tag4(secret_key* unpacked_sk, const uint8_t* ta
 
 
 #if defined(OWF_AES_CTR)
-bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3)
+bool faest_unpack_secret_key_for_cbc_tag(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1, const uint8_t* tag_owf_input2, const uint8_t* tag_owf_input3)
 {
 	memcpy(&unpacked_sk->tag_cbc.owf_inputs[0], tag_owf_input0, sizeof(unpacked_sk->tag_cbc.owf_inputs[0]));
 	memcpy(&unpacked_sk->tag_cbc.owf_inputs[1], tag_owf_input1, sizeof(unpacked_sk->tag_cbc.owf_inputs[1]));
@@ -160,7 +160,7 @@ bool faest_unpack_secret_key_for_tag3(secret_key* unpacked_sk, const uint8_t* ta
 #else
 #error "Unsupported OWF."
 #endif
-	if (!faest_compute_witness3(unpacked_sk, true, true))
+	if (!faest_compute_witness_cbc_tag(unpacked_sk, true, true))
 	{
 		return false;
 	}
@@ -824,7 +824,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 
 // Support CBC only in AES mode.
 #if defined(OWF_AES_CTR)
-bool faest_compute_witness3(secret_key* sk, bool ring, bool tag)
+bool faest_compute_witness_cbc_tag(secret_key* sk, bool ring, bool tag)
 {
 	uint8_t* w_ptr;
 	if (!ring) {

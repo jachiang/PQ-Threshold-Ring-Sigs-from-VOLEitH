@@ -436,9 +436,9 @@ inline bool test_finalize_sk_for_tag4(secret_key* sk, public_key* tag_pk0, unsig
 }
 
 #if defined(OWF_AES_CTR)
-inline bool test_finalize_sk_for_tag3(secret_key* sk, cbc_tag* tag, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1, unsigned char* tag_owf_input2, unsigned char* tag_owf_input3)
+inline bool test_finalize_sk_for_cbc_tag(secret_key* sk, cbc_tag* tag, unsigned char* tag_owf_input0, unsigned char* tag_owf_input1, unsigned char* tag_owf_input2, unsigned char* tag_owf_input3)
 {
-    if(!faest_unpack_secret_key_for_tag3(sk, tag_owf_input0, tag_owf_input1, tag_owf_input2, tag_owf_input3)) { return false; }
+    if(!faest_unpack_secret_key_for_cbc_tag(sk, tag_owf_input0, tag_owf_input1, tag_owf_input2, tag_owf_input3)) { return false; }
 
     for (size_t i = 0; i < TAGGED_RING_TAG_OWF_NUM3; ++i) {
         memcpy(&tag->owf_inputs[i], &sk->tag_cbc.owf_inputs[i], sizeof(tag->owf_inputs[i]));
