@@ -122,8 +122,10 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring);
 
+#if defined(OWF_AES_CTR)
 bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1);
+#endif
 
 bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1);
