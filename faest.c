@@ -1502,7 +1502,7 @@ static bool faest_ring_sign_attempt(
 // 	const secret_key* sk, const uint8_t* pk_packed,
 // 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 // {
-    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+    uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
 
 	block_2secpar mu;
@@ -2216,10 +2216,11 @@ static bool faest_tagged_ring_sign_attempt(
 // 	const secret_key* sk, const uint8_t* pk_packed,
 // 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 // {
-    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+    uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
-	uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+
+	uint8_t pk_tag0_packed[FAEST_PUBLIC_KEY_BYTES];
+	uint8_t pk_tag1_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
@@ -2706,6 +2707,8 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta_check, sizeof(delta_check));
 
+	bool verify = memcmp(delta, &delta_check, sizeof(delta_check));
+    printf("Test passes: %s\n", verify ? "true" : "false");
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }
 #endif
@@ -2714,10 +2717,10 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1)
 {
-    uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
+    uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring);
-	uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+	uint8_t pk_tag0_packed[FAEST_PUBLIC_KEY_BYTES];
+	uint8_t pk_tag1_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_tag0_packed, pk_tag0);
 	faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
