@@ -76,7 +76,7 @@ void vole_commit_for_cbc_tagged_ring(
 
 bool vole_reconstruct_for_cbc_tagged_ring(
 	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
-	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check);
+	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check, size_t vole_col_blocks, size_t vole_rows);
 #endif
 
 #endif

@@ -2565,7 +2565,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check, VOLE_TAGGED_RING_COL_BLOCKS, VOLE_TAGGED_RING_ROWS);
 	if (reconstruct_success == 0){
 		free(q);
 		printf("Reconstruction failed\n");
