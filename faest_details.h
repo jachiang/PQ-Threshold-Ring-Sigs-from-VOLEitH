@@ -79,7 +79,7 @@ typedef struct
 	vole_block ring_witness[RING_WITNESS_BLOCKS];
 	vole_block tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS]; // TODO: deprecate.
 	#if defined(OWF_AES_CTR)
-	vole_block tagged_ring_witness3[TAGGED_RING_WITNESS_BLOCKS3];
+	vole_block cbc_tagged_ring_witness[CBC_TAGGED_RING_WITNESS_BLOCKS];
 	#endif
 } secret_key;
 
