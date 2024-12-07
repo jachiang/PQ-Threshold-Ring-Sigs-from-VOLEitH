@@ -1962,12 +1962,12 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	// size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
-	// QUICKSILVER_TAGGED_RING_ROWS_PADDED
-	size_t param_qs_rows_padded = QUICKSILVER_TAGGED_RING_ROWS_PADDED;
-	// FAEST_TAGGED_RING_SIGNATURE_BYTES
-	size_t param_faest_signature_bytes = FAEST_TAGGED_RING_SIGNATURE_BYTES;
+	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
+	// FAEST_TAGGED_RING_SIGNATURE_BYTES  (static assert)
 
-	// TODO: witness.
+	// Witness.
+	// Prover
+	// Verifier
 
 	block_secpar seed;
 	block128 iv;
@@ -2004,9 +2004,9 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	block_2secpar* hashed_leaves =
 		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
 	vole_block* u =
-		aligned_alloc(alignof(vole_block), VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), param_vole_col_blocks * sizeof(vole_block));
 	vole_block* v =
-		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * param_vole_col_blocks * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	// vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
@@ -2016,15 +2016,15 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
-	hash_update(&hasher, signature, VOLE_TAGGED_RING_COMMIT_SIZE);
+	hash_update(&hasher, signature, param_vole_commit_size);
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	uint8_t* vole_check_proof = signature + VOLE_TAGGED_RING_COMMIT_SIZE;
+	uint8_t* vole_check_proof = signature + param_vole_commit_size;
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
 	printf("Prover chall 1:");
     for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -2048,16 +2048,16 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	printf("\n");
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
-	size_t remainder = (TAGGED_RING_WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
-	for (size_t i = 0; i < TAGGED_RING_WITNESS_BLOCKS - (remainder != 0); ++i)
+	size_t remainder = (param_witness_bits / 8) % (16 * VOLE_BLOCK);
+	for (size_t i = 0; i < param_witness_blocks - (remainder != 0); ++i)
 	{
 		vole_block correction_i = vole_block_xor(u[i], sk->tagged_ring_witness[i]);
 		memcpy(correction + i * sizeof(vole_block), &correction_i, sizeof(vole_block));
 	}
 	if (remainder)
 	{
-		vole_block correction_i = vole_block_xor(u[TAGGED_RING_WITNESS_BLOCKS - 1], sk->tagged_ring_witness[TAGGED_RING_WITNESS_BLOCKS - 1]);
-		memcpy(correction + (TAGGED_RING_WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction_i, remainder);
+		vole_block correction_i = vole_block_xor(u[param_witness_blocks - 1], sk->tagged_ring_witness[param_witness_blocks - 1]);
+		memcpy(correction + (param_witness_blocks - 1) * sizeof(vole_block), &correction_i, remainder);
 	}
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
@@ -2065,7 +2065,7 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_update(&hasher, chal1, sizeof(chal1));
     hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
     hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-    hash_update(&hasher, correction, TAGGED_RING_WITNESS_BITS / 8);
+    hash_update(&hasher, correction, param_witness_bits / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
@@ -2078,10 +2078,10 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
 
-	memcpy(&u[0], &sk->tagged_ring_witness[0], TAGGED_RING_WITNESS_BITS / 8);
+	memcpy(&u[0], &sk->tagged_ring_witness[0], param_witness_bits / 8);
 
 	static_assert(QUICKSILVER_TAGGED_RING_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
-	transpose_secpar(v, macs, VOLE_TAGGED_RING_COL_STRIDE, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
+	transpose_secpar(v, macs, param_vole_col_stride, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
 	free(v);
 
 	quicksilver_state qs;
@@ -2090,7 +2090,7 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 
-	uint8_t* qs_proof = correction + TAGGED_RING_WITNESS_BITS / 8;
+	uint8_t* qs_proof = correction + param_witness_bits / 8;
 	uint8_t* qs_proof_quad = qs_proof + QUICKSILVER_PROOF_BYTES;
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	uint8_t* qs_proof_cubic = qs_proof_quad + QUICKSILVER_PROOF_BYTES;
@@ -2102,15 +2102,15 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	uint8_t* qs_proof_quintic = qs_proof_quartic + QUICKSILVER_PROOF_BYTES;
 	#endif
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
-	quicksilver_prove_or(&qs, TAGGED_RING_WITNESS_BITS,
+	quicksilver_prove_or(&qs, param_witness_bits,
 						 qs_proof_quad,
 						 qs_proof, qs_check);
 	#elif (FAEST_RING_HOTVECTOR_DIM == 2)
-	quicksilver_prove_or(&qs, TAGGED_RING_WITNESS_BITS,
+	quicksilver_prove_or(&qs, param_witness_bits,
 						 qs_proof_cubic, qs_proof_quad,
 						 qs_proof, qs_check);
 	#elif (FAEST_RING_HOTVECTOR_DIM == 4)
-	quicksilver_prove_or(&qs, TAGGED_RING_WITNESS_BITS, qs_proof_quintic,
+	quicksilver_prove_or(&qs, param_witness_bits, qs_proof_quintic,
 						 qs_proof_quartic, qs_proof_cubic, qs_proof_quad,
 						 qs_proof, qs_check);
 	#endif
@@ -2565,12 +2565,14 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
-	// QUICKSILVER_TAGGED_RING_ROWS_PADDED
-	size_t param_qs_rows_padded = QUICKSILVER_TAGGED_RING_ROWS_PADDED;
+	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
 
-	const uint8_t* vole_check_proof = signature + VOLE_TAGGED_RING_COMMIT_SIZE;
+	// Prover
+	// Verifier
+
+	const uint8_t* vole_check_proof = signature + param_vole_commit_size;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
-	const uint8_t* qs_proof = correction + TAGGED_RING_WITNESS_BITS / 8;
+	const uint8_t* qs_proof = correction + param_witness_bits / 8;
 	const uint8_t* qs_proof_quad = qs_proof + QUICKSILVER_PROOF_BYTES;
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
 	const uint8_t* qs_proof_cubic = qs_proof_quad + QUICKSILVER_PROOF_BYTES;
@@ -2602,7 +2604,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
 
 	vole_block* q =
-		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * param_vole_col_blocks * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
@@ -2618,13 +2620,13 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
-	hash_update(&hasher, signature, VOLE_TAGGED_RING_COMMIT_SIZE);
+	hash_update(&hasher, signature, param_vole_commit_size);
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
 	printf("Verifier chall 1:");
     for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
@@ -2652,7 +2654,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_update(&hasher, &chal1, sizeof(chal1));
 	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	hash_update(&hasher, correction, TAGGED_RING_WITNESS_BITS / 8);
+	hash_update(&hasher, correction, param_witness_bits / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
@@ -2662,15 +2664,15 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	}
 	printf("\n");
 
-	vole_block correction_blocks[TAGGED_RING_WITNESS_BLOCKS];
-	memcpy(&correction_blocks, correction, TAGGED_RING_WITNESS_BITS / 8);
-	memset(((uint8_t*) &correction_blocks) + TAGGED_RING_WITNESS_BITS / 8, 0,
-	       sizeof(correction_blocks) - TAGGED_RING_WITNESS_BITS / 8);
-	vole_receiver_apply_correction(TAGGED_RING_WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
+	vole_block correction_blocks[param_witness_blocks];
+	memcpy(&correction_blocks, correction, param_witness_bits / 8);
+	memset(((uint8_t*) &correction_blocks) + param_witness_bits / 8, 0,
+	       sizeof(correction_blocks) - param_witness_bits / 8);
+	vole_receiver_apply_correction(param_witness_blocks, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, param_vole_col_blocks);
 
 	block_secpar* macs =
-		aligned_alloc(alignof(block_secpar), VOLE_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
-	transpose_secpar(q, macs, VOLE_TAGGED_RING_COL_STRIDE, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
+		aligned_alloc(alignof(block_secpar), param_vole_rows_padded * sizeof(block_secpar));
+	transpose_secpar(q, macs, param_vole_col_stride, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
 	free(q);
 
 	block_secpar delta_block;
@@ -2682,11 +2684,11 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
-	quicksilver_verify_or(&qs, TAGGED_RING_WITNESS_BITS, qs_proof_quad, qs_proof, qs_check);
+	quicksilver_verify_or(&qs, param_witness_bits, qs_proof_quad, qs_proof, qs_check);
 	#elif  (FAEST_RING_HOTVECTOR_DIM == 2)
-	quicksilver_verify_or(&qs, TAGGED_RING_WITNESS_BITS, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
+	quicksilver_verify_or(&qs, param_witness_bits, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
 	#elif  (FAEST_RING_HOTVECTOR_DIM == 4)
-	quicksilver_verify_or(&qs, TAGGED_RING_WITNESS_BITS, qs_proof_quintic, qs_proof_quartic, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
+	quicksilver_verify_or(&qs, param_witness_bits, qs_proof_quintic, qs_proof_quartic, qs_proof_cubic, qs_proof_quad, qs_proof, qs_check);
 	#endif
 	free(macs);
 
