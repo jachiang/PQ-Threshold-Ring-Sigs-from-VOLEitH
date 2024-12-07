@@ -268,11 +268,7 @@ TEST_CASE( "cbc keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     printf("CBC TAGGED RING WITNESS BITS: %u\n", CBC_TAGGED_RING_WITNESS_BITS);
 
-    // printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
-    // printf("VOLE_TAGGED_RING_COL_BLOCKS: %u\n", VOLE_CBC_TAGGED_RING_COL_BLOCKS);
-
-    std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
-    // std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
+    std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
 
@@ -309,7 +305,6 @@ TEST_CASE( "cbc keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);
-    printf("Test passed");
 }
 #endif
 
