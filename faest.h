@@ -108,18 +108,21 @@ bool faest_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
 	const uint8_t* random_seed, size_t random_seed_len);
 
+// TODO: input packed key/tag
 bool faest_tagged_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
 	const uint8_t* random_seed, size_t random_seed_len);
 
+// TODO: input packed keys
 bool faest_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring, const uint8_t* random_seed, size_t random_seed_len);
 
 #if defined(OWF_AES_CTR)
+// TODO: input packed keys/tags
 bool faest_cbc_tagged_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring, const cbc_tag* tag, const uint8_t* random_seed, size_t random_seed_len);
 #endif
-
+// TODO: deprecate
 bool faest_tagged_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
 	public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len);
@@ -130,16 +133,18 @@ bool faest_tagged_ring_sign(
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
 
+// TODO: input packed key/tag
 bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	     const uint8_t* pk_packed);
-
+// TODO: input packed keys
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring);
 
 #if defined(OWF_AES_CTR)
+// TODO: input packed keys/tags
 bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring, const cbc_tag* tag);
 #endif
-
+// TODO: deprecate
 bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1);
