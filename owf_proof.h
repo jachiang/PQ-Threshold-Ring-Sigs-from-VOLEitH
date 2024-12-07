@@ -122,23 +122,22 @@
 #define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
 // JC: Double the number of OWF for tagged ring sigs
-#define TAGGED_RING_PK_OWF_NUM (2)
-#define TAGGED_RING_TAG_OWF_NUM (2)
-// #define CBC_TAGGED_RING_TAG_OWF_NUM (2)
+#define TAGGED_RING_PK_OWF_NUM (2) 	// TODO: Keep for cbc tagged ring.
+#define TAGGED_RING_TAG_OWF_NUM (2) // TODO: Remove after deprecating non-cbc tag.
 
 #if defined(OWF_AES_CTR)
 	#if SECURITY_PARAM == 128
-		#define ALT_TAGGED_RING_OWF_NUM (2)
+		#define ALT_TAGGED_RING_OWF_NUM (2) 		// TODO: Deprecate.
 		#define CBC_TAGGED_RING_TAG_OWF_NUM (2)
 	#elif SECURITY_PARAM == 192
-		#define ALT_TAGGED_RING_OWF_NUM (3)
+		#define ALT_TAGGED_RING_OWF_NUM (2)			// TODO: Deprecate.
 		#define CBC_TAGGED_RING_TAG_OWF_NUM (3)
 	#elif SECURITY_PARAM == 256
-		#define ALT_TAGGED_RING_OWF_NUM (4)
+		#define ALT_TAGGED_RING_OWF_NUM (2)			// TODO: Deprecate.
 		#define CBC_TAGGED_RING_TAG_OWF_NUM (4)
 	#endif
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
-	// TODO: EM mode for CBC.
+	// TODO: Deprecate.
 	#define ALT_TAGGED_RING_OWF_NUM (2)
 #endif
 

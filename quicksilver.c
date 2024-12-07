@@ -52,7 +52,6 @@ void quicksilver_init_verifier(
 	state->macs = macs;
 }
 
-// TODO: bool cbc.
 void quicksilver_init_or_prover(
 	quicksilver_state* state, const uint8_t* witness, const block_secpar* macs, const uint8_t* challenge, bool tag)
 {
@@ -76,8 +75,6 @@ void quicksilver_init_or_prover(
 	assert(state->state_or_64_linear != NULL);
 	assert(state->state_or_64_quad != NULL);
 
-	// size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
-
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
 		size_t branch_constraints;
 		if (!tag) {
@@ -93,13 +90,14 @@ void quicksilver_init_or_prover(
 		hasher_gfsecpar_64_init_state(&state->state_or_64_linear[branch], branch_constraints);
 		hasher_gfsecpar_64_init_state(&state->state_or_64_quad[branch], branch_constraints);
 	}
-	// JC: Init state for final ZKHash state of KE, (tag OWF) and each (batched) OR branch constraint.
+
 	size_t final_constraints;
 	if (!tag) {
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	else {
-		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		// TODO: Update TAGGED_RING_PK_OWF_NUM to tag owf constraint count.
+		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_PK_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);
 	hasher_gfsecpar_init_state(&state->state_secpar_linear, final_constraints);
@@ -124,7 +122,6 @@ void quicksilver_init_or_prover(
 	state->macs = macs;
 }
 
-// TODO: bool cbc.
 void quicksilver_init_or_verifier(
 	quicksilver_state* state, const block_secpar* macs, block_secpar delta, const uint8_t* challenge, bool tag)
 {
@@ -142,7 +139,6 @@ void quicksilver_init_or_verifier(
 	assert(state->state_or_secpar_const != NULL);
 	assert(state->state_or_64_const != NULL);
 
-	// size_t num_enc_constraints = num_owf_constraints - num_ke_constraints;
 	for (size_t branch = 0;  branch < FAEST_RING_SIZE; ++ branch){
 		size_t branch_constraints;
 		if (!tag) {
@@ -154,14 +150,14 @@ void quicksilver_init_or_verifier(
 		hasher_gfsecpar_init_state(&state->state_or_secpar_const[branch], branch_constraints);
 		hasher_gfsecpar_64_init_state(&state->state_or_64_const[branch], branch_constraints);
 	}
-	// JC: TODO - Update number of constraints based on TAGGED_RING_TAG_OWF_NUM
+
 	size_t final_constraints;
 	if (!tag) {
 		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	else{
-		// TODO: Deprecate non-cbc tag implementation.
-		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_TAG_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
+		// TODO: Update TAGGED_RING_PK_OWF_NUM to tag owf constraint count.
+		final_constraints = OWF_KEY_SCHEDULE_CONSTRAINTS + ENC_SCHEDULE_CONSTRAINTS * TAGGED_RING_PK_OWF_NUM + FAEST_RING_SIZE + FAEST_RING_HOTVECTOR_DIM;
 	}
 	hasher_gfsecpar_init_state(&state->state_secpar_const, final_constraints);
 	hasher_gfsecpar_64_init_state(&state->state_64_const, final_constraints);
