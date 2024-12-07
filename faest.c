@@ -1947,6 +1947,18 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
 
+	// PARAMS.
+		// TAGGED_RING_WITNESS_BITS
+		// TAGGED_RING_WITNESS_BLOCKS
+		// VOLE_TAGGED_RING_COMMIT_SIZE
+		// VOLE_TAGGED_RING_COL_BLOCKS
+		// VOLE_TAGGED_RING_COL_STRIDE
+	// VOLE_TAGGED_RING_ROWS_PADDED (NOT USED)
+		// QUICKSILVER_TAGGED_RING_ROWS
+		// QUICKSILVER_TAGGED_RING_ROWS_PADDED
+		// FAEST_TAGGED_RING_SIGNATURE_BYTES
+	// Witness.
+
 	block_secpar seed;
 	block128 iv;
 	uint8_t seed_iv[sizeof(seed) + sizeof(iv)];
@@ -2527,6 +2539,16 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
+
+	// PARAMS.
+	// TAGGED_RING_WITNESS_BITS
+	// TAGGED_RING_WITNESS_BLOCKS
+	// VOLE_TAGGED_RING_COMMIT_SIZE
+	// VOLE_TAGGED_RING_COL_BLOCKS
+	// VOLE_TAGGED_RING_COL_STRIDE
+	// VOLE_TAGGED_RING_ROWS_PADDED
+	// QUICKSILVER_TAGGED_RING_ROWS
+	// QUICKSILVER_TAGGED_RING_ROWS_PADDED
 
 	const uint8_t* vole_check_proof = signature + VOLE_TAGGED_RING_COMMIT_SIZE;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
