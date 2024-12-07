@@ -110,8 +110,8 @@ bool faest_sign(
 
 // TODO: input packed key/tag
 bool faest_tagged_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
-	const uint8_t* random_seed, size_t random_seed_len);
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk,
+	const public_key* pk, const public_key* tag, const uint8_t* random_seed, size_t random_seed_len);
 
 // TODO: input packed keys
 bool faest_ring_sign(
@@ -135,7 +135,7 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 
 // TODO: input packed key/tag
 bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  	     const uint8_t* pk_packed);
+                  		 const public_key* pk, const public_key* tag);
 // TODO: input packed keys
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring);

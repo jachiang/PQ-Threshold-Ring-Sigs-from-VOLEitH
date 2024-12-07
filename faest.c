@@ -1496,15 +1496,24 @@ bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
 
 static bool faest_tagged_sign_attempt(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len,
-	const secret_key* sk, const uint8_t* pk_packed,
+	const secret_key* sk, const public_key* pk, const public_key* tag,
 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
 	// TODO: Do we need to domain separate by the faest parameters?
 
+	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	faest_pack_public_key(pk_packed, pk);
+
+	uint8_t tag_packed[FAEST_PUBLIC_KEY_BYTES];
+	faest_pack_public_key(tag_packed, tag);
+
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
+
 	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
+	hash_update(&hasher, tag_packed, FAEST_PUBLIC_KEY_BYTES);
+
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -1657,37 +1666,48 @@ static bool faest_tagged_sign_attempt(
 }
 
 bool faest_tagged_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk,
+	const public_key* pk, const public_key* tag,
 	const uint8_t* random_seed, size_t random_seed_len)
 {
-	secret_key sk;
-	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
-	if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
-		return false;
+	// secret_key sk;
+	// uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	// if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
+	// 	return false;
 
 	uint64_t attempt_num = 0;
 	do
 	{
-		if (faest_tagged_sign_attempt(signature, msg, msg_len, &sk, &pk_packed[0],
+		if (faest_tagged_sign_attempt(signature, msg, msg_len, sk, pk, tag,
 			                   		  random_seed, random_seed_len, attempt_num))
 		{
-			faest_free_secret_key(&sk);
+			// faest_free_secret_key(&sk);
 			return true;
 		}
 	} while (++attempt_num != 0);
 
-	faest_free_secret_key(&sk);
+	// faest_free_secret_key(&sk);
 	return false;
 }
 
 bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-                  		 const uint8_t* pk_packed)
+                  		 const public_key* pk, const public_key* tag)
 {
+
+	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
+	faest_pack_public_key(pk_packed, pk);
+
+	uint8_t tag_packed[FAEST_PUBLIC_KEY_BYTES];
+	faest_pack_public_key(tag_packed, tag);
+
 	block128 iv;
 	block_2secpar mu;
 	hash_state hasher;
 	hash_init(&hasher);
+
 	hash_update(&hasher, pk_packed, FAEST_PUBLIC_KEY_BYTES);
+	hash_update(&hasher, tag_packed, FAEST_PUBLIC_KEY_BYTES);
+
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -1752,14 +1772,14 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	block_secpar delta_block;
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
-	public_key pk;
-	faest_unpack_public_key(&pk, pk_packed);
+	// public_key pk;
+	// faest_unpack_public_key(&pk, pk_packed);
 
 	quicksilver_state qs;
 	quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
-	owf_constraints_verifier(&qs, &pk);
+	owf_constraints_verifier(&qs, pk);
 
-	faest_free_public_key(&pk);
+	// faest_free_public_key(&pk);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);
