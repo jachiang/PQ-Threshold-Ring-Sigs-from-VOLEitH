@@ -1928,10 +1928,10 @@ static bool faest_cbc_tagged_ring_sign_attempt(
     uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
 
-	uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	faest_pack_public_key(pk_tag0_packed, pk_tag0);
-	faest_pack_public_key(pk_tag1_packed, pk_tag1);
+	// uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+	// uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+	// faest_pack_public_key(pk_tag0_packed, pk_tag0);
+	// faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
 	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
 	faest_pack_cbc_tag(cbc_tag_packed, tag, CBC_TAGGED_RING_TAG_OWF_NUM);
@@ -2507,10 +2507,10 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 {
     uint8_t* pk_ring_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring);
-	uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
-	faest_pack_public_key(pk_tag0_packed, pk_tag0);
-	faest_pack_public_key(pk_tag1_packed, pk_tag1);
+	// uint8_t* pk_tag0_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+	// uint8_t* pk_tag1_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), FAEST_PUBLIC_KEY_BYTES);
+	// faest_pack_public_key(pk_tag0_packed, pk_tag0);
+	// faest_pack_public_key(pk_tag1_packed, pk_tag1);
 
 	uint8_t* cbc_tag_packed = (uint8_t *)aligned_alloc(alignof(uint8_t), OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
 	faest_pack_cbc_tag(cbc_tag_packed, tag, CBC_TAGGED_RING_TAG_OWF_NUM);
