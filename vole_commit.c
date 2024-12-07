@@ -287,8 +287,7 @@ end:
 void vole_commit_for_cbc_tagged_ring(
 	block_secpar seed, block128 iv, block_secpar* restrict forest, block_2secpar* hashed_leaves,
 	vole_block* restrict u, vole_block* restrict v,
-	uint8_t* restrict commitment, uint8_t* restrict check,
-	size_t vole_col_blocks, size_t vole_rows)
+	uint8_t* restrict commitment, uint8_t* restrict check)
 {
 	block_secpar* leaves =
 		aligned_alloc(alignof(block_secpar), VECTOR_COMMIT_LEAVES * sizeof(block_secpar));
@@ -306,31 +305,31 @@ void vole_commit_for_cbc_tagged_ring(
 	prg_vole_fixed_key fixed_key;
 	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
-	vole_block correction[vole_col_blocks];
+	vole_block correction[VOLE_TAGGED_RING_COL_BLOCKS];
 	// vole_block correction[VOLE_COL_BLOCKS];
 	block_secpar* leaves_iter = leaves;
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, vole_col_blocks);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_TAGGED_RING_COL_BLOCKS);
 		else
 		{
-			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, vole_col_blocks);
-			memcpy(commitment, correction, vole_rows / 8);
-			commitment += vole_rows / 8;
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_TAGGED_RING_COL_BLOCKS);
+			memcpy(commitment, correction, VOLE_TAGGED_RING_ROWS / 8);
+			commitment += VOLE_TAGGED_RING_ROWS / 8;
 			// memcpy(commitment, correction, VOLE_ROWS / 8);
 			// commitment += VOLE_ROWS / 8;
 		}
 
 		leaves_iter += (size_t) 1 << k;
-		v += vole_col_blocks * k;
+		v += VOLE_TAGGED_RING_COL_BLOCKS * k;
 		// v += VOLE_COL_BLOCKS * k;
 
 	}
 
 	// Clear unused VOLE columns (corresponding to 0 bits of Delta.)
-	memset(v, 0, vole_col_blocks * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
+	memset(v, 0, VOLE_TAGGED_RING_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
 	// memset(v, 0, VOLE_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
 
 	free(leaves);
@@ -338,7 +337,7 @@ void vole_commit_for_cbc_tagged_ring(
 
 bool vole_reconstruct_for_cbc_tagged_ring(
 	block128 iv, vole_block* restrict q, const uint8_t* delta_bytes,
-	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check, size_t vole_col_blocks, size_t vole_rows)
+	const uint8_t* restrict commitment, const uint8_t* restrict opening, uint8_t* restrict check)
 {
 	bool success = 1;
 	block_secpar* leaves =
