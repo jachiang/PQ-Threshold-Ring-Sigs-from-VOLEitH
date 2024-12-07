@@ -268,7 +268,7 @@ TEST_CASE( "cbc keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
     printf("CBC TAGGED RING WITNESS BITS: %u\n", CBC_TAGGED_RING_WITNESS_BITS);
 
-    std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
+    std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> tagged_ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
 
@@ -300,8 +300,8 @@ TEST_CASE( "cbc keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     test_finalize_sk_for_cbc_tag(&sk, &tag, tag_owf_in0.data(), tag_owf_in1.data(),
                                             tag_owf_in2.data(), tag_owf_in3.data());
 
-    REQUIRE( faest_cbc_tagged_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag, NULL, 0) );
-    REQUIRE( faest_cbc_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag) );
+    REQUIRE( faest_cbc_tagged_ring_sign(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag, NULL, 0) );
+    REQUIRE( faest_cbc_tagged_ring_verify(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag) );
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);
@@ -315,7 +315,7 @@ TEST_CASE( "keygen/sign/verify", "[faest tagged ring]" ) {
 
     printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
 
-    std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> ring_signature;
+    std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> tagged_ring_signature;
 
     const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
 
@@ -347,8 +347,8 @@ TEST_CASE( "keygen/sign/verify", "[faest tagged ring]" ) {
 
     test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
-    REQUIRE( faest_tagged_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag_pk0, &tag_pk1, NULL, 0) );
-    REQUIRE( faest_tagged_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag_pk0, &tag_pk1) );
+    REQUIRE( faest_tagged_ring_sign(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag_pk0, &tag_pk1, NULL, 0) );
+    REQUIRE( faest_tagged_ring_verify(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag_pk0, &tag_pk1) );
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);
