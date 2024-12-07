@@ -1962,9 +1962,9 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	// size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+
 	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
 	// FAEST_TAGGED_RING_SIGNATURE_BYTES  (static assert)
-
 	// vole_commit
 	// Witness
 	// Prover
@@ -2566,8 +2566,8 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
-	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
 
+	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
 	// vole_reconstruct
 	// Prover
 	// Verifier
