@@ -1558,7 +1558,7 @@ static bool faest_tagged_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit_for_tagged(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -1731,7 +1731,7 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	bool reconstruct_success =  vole_reconstruct(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	bool reconstruct_success =  vole_reconstruct_for_tagged(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	if (reconstruct_success == 0){
 		free(q);
 		return 0;
