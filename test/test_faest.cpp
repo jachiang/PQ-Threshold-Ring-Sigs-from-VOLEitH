@@ -288,19 +288,19 @@ TEST_CASE( "keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    // JC: Generate ring and secret key.
+    // Generate ring and secret key.
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
-    // JC: At signing time - generate tag output = owf(sk, h(nonce, msg)).
+    // TODO: Deprecate non-cbc tags.
     public_key tag_pk0;
     public_key tag_pk1;
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0; // TODO: hash of nonce and msg
     std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1; // TODO: hash of nonce and msg
     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    // TODO: Writes to alternative witness.
     test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
+    // TODO: Prove and verify cbc tag.
     cbc_tag tag;
     std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in0;
     std::array<uint8_t, OWF_BLOCK_SIZE> tag_owf_in1;
