@@ -47,8 +47,8 @@ typedef struct public_key_ring
 {
 	public_key* pubkeys;  // 1st owf
 	public_key* pubkeys1; // 2nd owf
-	public_key* pubkeys2; // 3rd owf (TODO: Deprecate)
-	public_key* pubkeys3; // 4th owf (TODO: Deprecate)
+	// public_key* pubkeys2; // 3rd owf (TODO: Deprecate)
+	// public_key* pubkeys3; // 4th owf (TODO: Deprecate)
 } public_key_ring;
 
 typedef struct

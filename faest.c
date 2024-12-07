@@ -1939,25 +1939,25 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 
 	// PARAMS requiring changing for cbc.
 	// TAGGED_RING_WITNESS_BITS
-	size_t param_witness_bits = TAGGED_RING_WITNESS_BITS;
+	size_t param_witness_bits = CBC_TAGGED_RING_WITNESS_BITS;
 	// TAGGED_RING_WITNESS_BLOCKS
-	size_t param_witness_blocks = TAGGED_RING_WITNESS_BLOCKS;
+	size_t param_witness_blocks = CBC_TAGGED_RING_WITNESS_BLOCKS;
 	// VOLE_TAGGED_RING_COMMIT_SIZE
-	size_t param_vole_commit_size = VOLE_TAGGED_RING_COMMIT_SIZE;
+	size_t param_vole_commit_size = VOLE_CBC_TAGGED_RING_COMMIT_SIZE;
 	// VOLE_TAGGED_RING_COL_BLOCKS
-	size_t param_vole_col_blocks = VOLE_TAGGED_RING_COL_BLOCKS;
+	size_t param_vole_col_blocks = VOLE_CBC_TAGGED_RING_COL_BLOCKS;
 	// VOLE_TAGGED_RING_COL_STRIDE
-	size_t param_vole_col_stride = VOLE_TAGGED_RING_COL_STRIDE;
+	size_t param_vole_col_stride = VOLE_CBC_TAGGED_RING_COL_STRIDE;
 	// VOLE_TAGGED_RING_ROWS_PADDED
 	// size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
-	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+	size_t param_qs_rows =	QUICKSILVER_CBC_TAGGED_RING_ROWS;
 
-	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
-	// FAEST_TAGGED_RING_SIGNATURE_BYTES  (static assert)
-	// vole_commit
-	// Witness
-	// Prover
+		// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
+		// FAEST_TAGGED_RING_SIGNATURE_BYTES  (static assert)
+		// vole_commit
+		// Witness
+		// Prover
 
 	block_secpar seed;
 	block128 iv;
@@ -1999,8 +1999,8 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * param_vole_col_blocks * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	// vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
-	vole_commit_for_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	// vole_commit_for_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -2041,12 +2041,12 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	size_t remainder = (param_witness_bits / 8) % (16 * VOLE_BLOCK);
 	for (size_t i = 0; i < param_witness_blocks - (remainder != 0); ++i)
 	{
-		vole_block correction_i = vole_block_xor(u[i], sk->tagged_ring_witness[i]);
+		vole_block correction_i = vole_block_xor(u[i], sk->cbc_tagged_ring_witness[i]);
 		memcpy(correction + i * sizeof(vole_block), &correction_i, sizeof(vole_block));
 	}
 	if (remainder)
 	{
-		vole_block correction_i = vole_block_xor(u[param_witness_blocks - 1], sk->tagged_ring_witness[param_witness_blocks - 1]);
+		vole_block correction_i = vole_block_xor(u[param_witness_blocks - 1], sk->cbc_tagged_ring_witness[param_witness_blocks - 1]);
 		memcpy(correction + (param_witness_blocks - 1) * sizeof(vole_block), &correction_i, remainder);
 	}
 
@@ -2066,17 +2066,18 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	printf("\n");
 
 	block_secpar* macs =
-		aligned_alloc(alignof(block_secpar), QUICKSILVER_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
+		aligned_alloc(alignof(block_secpar), QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
 
-	memcpy(&u[0], &sk->tagged_ring_witness[0], param_witness_bits / 8);
+	memcpy(&u[0], &sk->cbc_tagged_ring_witness[0], param_witness_bits / 8);
 
-	static_assert(QUICKSILVER_TAGGED_RING_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
-	transpose_secpar(v, macs, param_vole_col_stride, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
+	static_assert(QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
+	transpose_secpar(v, macs, param_vole_col_stride, QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED);
 	free(v);
 
 	quicksilver_state qs;
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, true); // tag flag true.
-	owf_constraints_prover_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
+	// owf_constraints_prover_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
+	owf_constraints_prover_all_branches_and_cbc_tag(&qs, pk_ring, tag);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 
@@ -2198,7 +2199,7 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	(void) counter_dst;
 #endif
 
-	assert(counter_dst + COUNTER_BYTES == signature + FAEST_TAGGED_RING_SIGNATURE_BYTES);
+	assert(counter_dst + COUNTER_BYTES == signature + FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES);
 
 	return true;
 }
@@ -2538,23 +2539,23 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	// PARAMS requiring changing for cbc.
 	// TAGGED_RING_WITNESS_BITS
-	size_t param_witness_bits = TAGGED_RING_WITNESS_BITS;
+	size_t param_witness_bits = CBC_TAGGED_RING_WITNESS_BITS;
 	// TAGGED_RING_WITNESS_BLOCKS
-	size_t param_witness_blocks = TAGGED_RING_WITNESS_BLOCKS;
+	size_t param_witness_blocks = CBC_TAGGED_RING_WITNESS_BLOCKS;
 	// VOLE_TAGGED_RING_COMMIT_SIZE
-	size_t param_vole_commit_size = VOLE_TAGGED_RING_COMMIT_SIZE;
+	size_t param_vole_commit_size = VOLE_CBC_TAGGED_RING_COMMIT_SIZE;
 	// VOLE_TAGGED_RING_COL_BLOCKS
-	size_t param_vole_col_blocks = VOLE_TAGGED_RING_COL_BLOCKS;
+	size_t param_vole_col_blocks = VOLE_CBC_TAGGED_RING_COL_BLOCKS;
 	// VOLE_TAGGED_RING_COL_STRIDE
-	size_t param_vole_col_stride = VOLE_TAGGED_RING_COL_STRIDE;
+	size_t param_vole_col_stride = VOLE_CBC_TAGGED_RING_COL_STRIDE;
 	// VOLE_TAGGED_RING_ROWS_PADDED
-	size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
+	size_t param_vole_rows_padded = VOLE_CBC_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
-	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+	size_t param_qs_rows =	QUICKSILVER_CBC_TAGGED_RING_ROWS;
 
-	// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
-	// vole_reconstruct
-	// Verifier
+		// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
+		// vole_reconstruct
+		// Verifier
 
 	const uint8_t* vole_check_proof = signature + param_vole_commit_size;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
@@ -2594,8 +2595,8 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	bool reconstruct_success =  vole_reconstruct_for_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
-	// bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	// bool reconstruct_success =  vole_reconstruct_for_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	if (reconstruct_success == 0){
 		free(q);
 		printf("Reconstruction failed\n");
@@ -2658,7 +2659,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), param_vole_rows_padded * sizeof(block_secpar));
-	transpose_secpar(q, macs, param_vole_col_stride, QUICKSILVER_TAGGED_RING_ROWS_PADDED);
+	transpose_secpar(q, macs, param_vole_col_stride, QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED);
 	free(q);
 
 	block_secpar delta_block;
@@ -2666,7 +2667,8 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	quicksilver_state qs;
 	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, true); // tag true.
-	owf_constraints_verifier_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
+	// owf_constraints_verifier_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
+	owf_constraints_verifier_all_branches_and_cbc_tag(&qs, pk_ring, tag);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	#if (FAEST_RING_HOTVECTOR_DIM == 1)
