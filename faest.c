@@ -1917,7 +1917,7 @@ bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_
 #if defined(OWF_AES_CTR)
 static bool faest_cbc_tagged_ring_sign_attempt(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const secret_key* sk,
-	const public_key_ring* pk_ring, const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
+	const public_key_ring* pk_ring, const cbc_tag* tag, const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
     uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring);
@@ -2478,13 +2478,12 @@ static bool faest_tagged_ring_sign_attempt(
 
 #if defined(OWF_AES_CTR)
 bool faest_cbc_tagged_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
-	const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1, const uint8_t* random_seed, size_t random_seed_len)
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring, const cbc_tag* tag, const uint8_t* random_seed, size_t random_seed_len)
 {
 	uint64_t attempt_num = 0;
 	do
 	{
-		if (faest_cbc_tagged_ring_sign_attempt(signature, msg, msg_len, sk, pk_ring, tag, pk_tag0, pk_tag1, random_seed, random_seed_len, attempt_num))
+		if (faest_cbc_tagged_ring_sign_attempt(signature, msg, msg_len, sk, pk_ring, tag, random_seed, random_seed_len, attempt_num))
 		{
 			faest_free_secret_key(sk);
 			return true;
@@ -2516,7 +2515,7 @@ bool faest_tagged_ring_sign(
 
 #if defined(OWF_AES_CTR)
 
-bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len, const public_key_ring* pk_ring, const cbc_tag* tag, public_key* pk_tag0, public_key* pk_tag1)
+bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len, const public_key_ring* pk_ring, const cbc_tag* tag)
 {
     uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring);
@@ -2553,7 +2552,7 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_CBC_TAGGED_RING_ROWS;
 
-		// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
+		// QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED (static assert)
 		// vole_reconstruct
 		// Verifier
 
