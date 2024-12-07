@@ -57,6 +57,15 @@
 #define FAEST_RING_PROOF_ELEMS (5)
 #endif
 
+#define FAEST_TAGGED_SIGNATURE_BYTES ( \
+	VOLE_TAGGED_COMMIT_SIZE + \
+	VOLE_CHECK_PROOF_BYTES + \
+	WITNESS_BITS4 / 8 + \
+	QUICKSILVER_PROOF_BYTES * FAEST_RING_PROOF_ELEMS + \
+	VECTOR_COM_OPEN_SIZE + \
+	SECURITY_PARAM / 8 + \
+	16 + COUNTER_BYTES)
+
 #define FAEST_RING_SIGNATURE_BYTES ( \
 	VOLE_RING_COMMIT_SIZE + \
 	VOLE_CHECK_PROOF_BYTES + \
@@ -99,9 +108,12 @@ bool faest_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
 	const uint8_t* random_seed, size_t random_seed_len);
 
-bool faest_ring_sign(
-	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
+bool faest_tagged_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, const uint8_t* sk_packed,
 	const uint8_t* random_seed, size_t random_seed_len);
+
+bool faest_ring_sign(
+	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring, const uint8_t* random_seed, size_t random_seed_len);
 
 #if defined(OWF_AES_CTR)
 bool faest_cbc_tagged_ring_sign(
@@ -117,6 +129,9 @@ bool faest_tagged_ring_sign(
 // signature and false otherwise.
 bool faest_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   const uint8_t* pk_packed);
+
+bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
+                  	     const uint8_t* pk_packed);
 
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring);

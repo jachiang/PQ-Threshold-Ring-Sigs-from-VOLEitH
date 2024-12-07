@@ -233,19 +233,34 @@ TEST_CASE( "test vector", "[faest tv]" ) {
 // TODO: Adapt for tagged signature.
 TEST_CASE( "tagged sig: keygen/sign/verify", "[faest tagged]" ) {
 
-    printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_WITNESS_BITS);
+    std::array<uint8_t, FAEST_TAGGED_SIGNATURE_BYTES> tagged_signature;
 
-    printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
+    const std::string message = "This is the message string to be signed.";
+
+    std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
+    std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
+    test_gen_keypair(packed_pk.data(), packed_sk.data());
+
+    secret_key sk; public_key pk;
+    REQUIRE(faest_unpack_sk_and_get_pubkey(packed_pk.data(), packed_sk.data(), &sk));
+    faest_unpack_public_key(&pk, packed_pk.data());
+
+    public_key tag_pk;
+    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input;
+    std::generate(tag_owf_input.data(), tag_owf_input.data() + FAEST_IV_BYTES, rand<uint8_t>);
+    test_finalize_sk_for_tag(&sk, &tag_pk, tag_owf_input.data());
+
+    // ....
 
     std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> tagged_ring_signature;
 
-    const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
+    // const std::string message = "This is the message string to be signed with the anonymous tagged ring signature.";
 
     public_key_ring pk_ring;
     pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
     pk_ring.pubkeys1 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
 
-    secret_key sk;
+    // secret_key sk;
     uint32_t active_idx = test_gen_rand_idx();
     for (size_t i; i < TAGGED_RING_WITNESS_BLOCKS; i++) {
         sk.tagged_ring_witness[i] = block128_set_zero();
