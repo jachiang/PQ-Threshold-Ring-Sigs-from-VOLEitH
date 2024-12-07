@@ -1948,16 +1948,26 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_final(&hasher, &mu, sizeof(mu));
 
 	// PARAMS.
-		// TAGGED_RING_WITNESS_BITS
-		// TAGGED_RING_WITNESS_BLOCKS
-		// VOLE_TAGGED_RING_COMMIT_SIZE
-		// VOLE_TAGGED_RING_COL_BLOCKS
-		// VOLE_TAGGED_RING_COL_STRIDE
-	// VOLE_TAGGED_RING_ROWS_PADDED (NOT USED)
-		// QUICKSILVER_TAGGED_RING_ROWS
-		// QUICKSILVER_TAGGED_RING_ROWS_PADDED
-		// FAEST_TAGGED_RING_SIGNATURE_BYTES
-	// Witness.
+	// TAGGED_RING_WITNESS_BITS
+	size_t param_witness_bits = TAGGED_RING_WITNESS_BITS;
+	// TAGGED_RING_WITNESS_BLOCKS
+	size_t param_witness_blocks = TAGGED_RING_WITNESS_BLOCKS;
+	// VOLE_TAGGED_RING_COMMIT_SIZE
+	size_t param_vole_commit_size = VOLE_TAGGED_RING_COMMIT_SIZE;
+	// VOLE_TAGGED_RING_COL_BLOCKS
+	size_t param_vole_col_blocks = VOLE_TAGGED_RING_COL_BLOCKS;
+	// VOLE_TAGGED_RING_COL_STRIDE
+	size_t param_vole_col_stride = VOLE_TAGGED_RING_COL_STRIDE;
+	// VOLE_TAGGED_RING_ROWS_PADDED
+	// size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
+	// QUICKSILVER_TAGGED_RING_ROWS
+	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+	// QUICKSILVER_TAGGED_RING_ROWS_PADDED
+	size_t param_qs_rows_padded = QUICKSILVER_TAGGED_RING_ROWS_PADDED;
+	// FAEST_TAGGED_RING_SIGNATURE_BYTES
+	size_t param_faest_signature_bytes = FAEST_TAGGED_RING_SIGNATURE_BYTES;
+
+	// TODO: witness.
 
 	block_secpar seed;
 	block128 iv;
@@ -2542,13 +2552,21 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	// PARAMS.
 	// TAGGED_RING_WITNESS_BITS
+	size_t param_witness_bits = TAGGED_RING_WITNESS_BITS;
 	// TAGGED_RING_WITNESS_BLOCKS
+	size_t param_witness_blocks = TAGGED_RING_WITNESS_BLOCKS;
 	// VOLE_TAGGED_RING_COMMIT_SIZE
+	size_t param_vole_commit_size = VOLE_TAGGED_RING_COMMIT_SIZE;
 	// VOLE_TAGGED_RING_COL_BLOCKS
+	size_t param_vole_col_blocks = VOLE_TAGGED_RING_COL_BLOCKS;
 	// VOLE_TAGGED_RING_COL_STRIDE
+	size_t param_vole_col_stride = VOLE_TAGGED_RING_COL_STRIDE;
 	// VOLE_TAGGED_RING_ROWS_PADDED
+	size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
+	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
 	// QUICKSILVER_TAGGED_RING_ROWS_PADDED
+	size_t param_qs_rows_padded = QUICKSILVER_TAGGED_RING_ROWS_PADDED;
 
 	const uint8_t* vole_check_proof = signature + VOLE_TAGGED_RING_COMMIT_SIZE;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
