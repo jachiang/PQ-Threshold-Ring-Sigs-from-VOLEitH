@@ -305,31 +305,31 @@ void vole_commit_for_cbc_tagged_ring(
 	prg_vole_fixed_key fixed_key;
 	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
-	vole_block correction[VOLE_TAGGED_RING_COL_BLOCKS];
+	vole_block correction[VOLE_CBC_TAGGED_RING_COL_BLOCKS];
 	// vole_block correction[VOLE_COL_BLOCKS];
 	block_secpar* leaves_iter = leaves;
 	for (size_t i = 0; i < BITS_PER_WITNESS; ++i)
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_TAGGED_RING_COL_BLOCKS);
+			vole_sender(k, leaves_iter, iv, &fixed_key, NULL, v, u, VOLE_CBC_TAGGED_RING_COL_BLOCKS);
 		else
 		{
-			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_TAGGED_RING_COL_BLOCKS);
-			memcpy(commitment, correction, VOLE_TAGGED_RING_ROWS / 8);
-			commitment += VOLE_TAGGED_RING_ROWS / 8;
+			vole_sender(k, leaves_iter, iv, &fixed_key, u, v, correction, VOLE_CBC_TAGGED_RING_COL_BLOCKS);
+			memcpy(commitment, correction, VOLE_CBC_TAGGED_RING_ROWS / 8);
+			commitment += VOLE_CBC_TAGGED_RING_ROWS / 8;
 			// memcpy(commitment, correction, VOLE_ROWS / 8);
 			// commitment += VOLE_ROWS / 8;
 		}
 
 		leaves_iter += (size_t) 1 << k;
-		v += VOLE_TAGGED_RING_COL_BLOCKS * k;
+		v += VOLE_CBC_TAGGED_RING_COL_BLOCKS * k;
 		// v += VOLE_COL_BLOCKS * k;
 
 	}
 
 	// Clear unused VOLE columns (corresponding to 0 bits of Delta.)
-	memset(v, 0, VOLE_TAGGED_RING_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
+	memset(v, 0, VOLE_CBC_TAGGED_RING_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
 	// memset(v, 0, VOLE_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*v));
 
 	free(leaves);
@@ -362,9 +362,9 @@ bool vole_reconstruct_for_cbc_tagged_ring(
 	prg_vole_fixed_key fixed_key;
 	vole_fixed_key_init(&fixed_key, fixed_key_iv);
 
-	vole_block correction[VOLE_TAGGED_RING_COL_BLOCKS];
-	if (VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block) != VOLE_TAGGED_RING_ROWS / 8)
-		correction[VOLE_TAGGED_RING_COL_BLOCKS - 1] = vole_block_set_zero();
+	vole_block correction[VOLE_CBC_TAGGED_RING_COL_BLOCKS];
+	if (VOLE_CBC_TAGGED_RING_COL_BLOCKS * sizeof(vole_block) != VOLE_CBC_TAGGED_RING_ROWS / 8)
+		correction[VOLE_CBC_TAGGED_RING_COL_BLOCKS - 1] = vole_block_set_zero();
 	// vole_block correction[VOLE_COL_BLOCKS];
 	// if (VOLE_COL_BLOCKS * sizeof(vole_block) != VOLE_ROWS / 8)
 	// 	correction[VOLE_COL_BLOCKS - 1] = vole_block_set_zero();
@@ -374,24 +374,24 @@ bool vole_reconstruct_for_cbc_tagged_ring(
 	{
 		unsigned int k = i < VOLES_MAX_K ? VOLE_MAX_K : VOLE_MIN_K;
 		if (!i)
-			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, NULL, q, delta_bytes, VOLE_CBC_TAGGED_RING_COL_BLOCKS);
 		else
 		{
-			memcpy(correction, commitment, VOLE_TAGGED_RING_ROWS / 8);
-			commitment += VOLE_TAGGED_RING_ROWS / 8;
+			memcpy(correction, commitment, VOLE_CBC_TAGGED_RING_ROWS / 8);
+			commitment += VOLE_CBC_TAGGED_RING_ROWS / 8;
 			// memcpy(correction, commitment, VOLE_ROWS / 8);
 			// commitment += VOLE_ROWS / 8;
-			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes, VOLE_TAGGED_RING_COL_BLOCKS);
+			vole_receiver(k, leaves_iter, iv, &fixed_key, correction, q, delta_bytes, VOLE_CBC_TAGGED_RING_COL_BLOCKS);
 		}
 
 		leaves_iter += (size_t) 1 << k;
-		q += VOLE_TAGGED_RING_COL_BLOCKS * k;
+		q += VOLE_CBC_TAGGED_RING_COL_BLOCKS * k;
 		// q += VOLE_COL_BLOCKS * k;
 		delta_bytes += k;
 	}
 
 	// Clear unused VOLE columns (corresponding to 0 bits of Delta.)
-	memset(q, 0, VOLE_TAGGED_RING_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*q));
+	memset(q, 0, VOLE_CBC_TAGGED_RING_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*q));
 	// memset(q, 0, VOLE_COL_BLOCKS * ZERO_BITS_IN_CHALLENGE_3 * sizeof(*q));
 
 end:
