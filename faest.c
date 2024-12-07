@@ -1987,7 +1987,7 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_TAGGED_RING_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check, VOLE_TAGGED_RING_COL_BLOCKS, VOLE_TAGGED_RING_ROWS);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
