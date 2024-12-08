@@ -59,7 +59,7 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     test_finalize_sk_for_tag(&sk, &tag_pk, tag_owf_input.data());
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), WITNESS_BITS4, delta);
+    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), TAGGED_WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 

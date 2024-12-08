@@ -1501,6 +1501,29 @@ static bool faest_tagged_sign_attempt(
 {
 	// TODO: Do we need to domain separate by the faest parameters?
 
+
+	// PARAMS requiring changing for cbc.
+	// WITNESS_BITS
+	size_t param_witness_bits = TAGGED_WITNESS_BITS;
+	// WITNESS_BLOCKS
+	size_t param_witness_blocks = TAGGED_WITNESS_BLOCKS;
+	// VOLE_COMMIT_SIZE
+	size_t param_vole_commit_size = VOLE_TAGGED_COMMIT_SIZE;
+	// VOLE_COL_BLOCKS
+	size_t param_vole_col_blocks = VOLE_TAGGED_COL_BLOCKS;
+	// VOLE_COL_STRIDE
+	size_t param_vole_col_stride = VOLE_TAGGED_COL_STRIDE;
+	// VOLE_ROWS_PADDED
+	// size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
+	// QUICKSILVER_ROWS
+	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+
+		// QUICKSILVER_ROWS_PADDED (static assert)
+		// FAEST_SIGNATURE_BYTES  (static assert)
+		// vole_commit
+		// Witness
+		// Prover
+
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_packed, pk);
 
@@ -1558,7 +1581,8 @@ static bool faest_tagged_sign_attempt(
 		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
-	vole_commit_for_tagged(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	// vole_commit_for_tagged(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
+	vole_commit(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -1693,6 +1717,24 @@ bool faest_tagged_sign(
 bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   		 const public_key* pk, const public_key* tag)
 {
+	// WITNESS_BITS
+	size_t param_witness_bits = TAGGED_WITNESS_BITS;
+	// WITNESS_BLOCKS
+	size_t param_witness_blocks = TAGGED_WITNESS_BLOCKS;
+	// VOLE_COMMIT_SIZE
+	size_t param_vole_commit_size = VOLE_TAGGED_COMMIT_SIZE;
+	// VOLE_COL_BLOCKS
+	size_t param_vole_col_blocks = VOLE_TAGGED_COL_BLOCKS;
+	// VOLE_COL_STRIDE
+	size_t param_vole_col_stride = VOLE_TAGGED_COL_STRIDE;
+	// VOLE_ROWS_PADDED
+	size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
+	// QUICKSILVER_ROWS
+	size_t param_qs_rows =	QUICKSILVER_TAGGED_ROWS;
+
+		// QUICKSILVER_ROWS_PADDED (static assert)
+		// vole_reconstruct
+		// Verifier
 
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_packed, pk);
@@ -1731,7 +1773,8 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	bool reconstruct_success =  vole_reconstruct_for_tagged(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	// bool reconstruct_success =  vole_reconstruct_for_tagged(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+	bool reconstruct_success =  vole_reconstruct(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	if (reconstruct_success == 0){
 		free(q);
 		return 0;
