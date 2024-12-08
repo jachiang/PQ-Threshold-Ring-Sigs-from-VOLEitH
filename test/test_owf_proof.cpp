@@ -49,8 +49,10 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
     test_gen_keypair(packed_pk.data(), packed_sk.data());
 
-    secret_key sk; public_key pk;
+    secret_key sk;
     REQUIRE(faest_unpack_sk_and_get_pubkey(packed_pk.data(), packed_sk.data(), &sk));
+
+    public_key pk;
     faest_unpack_public_key(&pk, packed_pk.data());
 
     public_key tag_pk;
@@ -59,7 +61,7 @@ TEST_CASE( "tagged owf proof", "[tagged owf proof]" ) {
     test_finalize_sk_for_tag(&sk, &tag_pk, tag_owf_input.data());
 
     const auto delta = rand<block_secpar>();
-    quicksilver_test_state qs_test(OWF_NUM_CONSTRAINTS4, reinterpret_cast<uint8_t*>(sk.tagged_witness), TAGGED_WITNESS_BITS, delta);
+    quicksilver_test_state qs_test(TAGGED_OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_witness), TAGGED_WITNESS_BITS, delta);
     auto& qs_state_prover = qs_test.prover_state;
     auto& qs_state_verifier = qs_test.verifier_state;
 

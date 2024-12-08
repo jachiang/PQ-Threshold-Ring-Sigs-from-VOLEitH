@@ -1521,7 +1521,7 @@ static bool faest_tagged_sign_attempt(
 		// QUICKSILVER_ROWS_PADDED (static assert)
 		// FAEST_SIGNATURE_BYTES  (static assert)
 		// vole_commit
-		// Witness
+		// Witness (tagged_witness)
 		// Prover
 
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];

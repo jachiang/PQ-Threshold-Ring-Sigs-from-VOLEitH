@@ -230,7 +230,6 @@ TEST_CASE( "test vector", "[faest tv]" ) {
 
 #endif
 
-// TODO: Adapt for tagged signature.
 TEST_CASE( "tagged sig: keygen/sign/verify", "[faest tagged]" ) {
 
     std::array<uint8_t, FAEST_TAGGED_SIGNATURE_BYTES> tagged_signature;
