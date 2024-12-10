@@ -1504,25 +1504,25 @@ static bool faest_tagged_sign_attempt(
 
 	// PARAMS requiring changing for cbc.
 	// WITNESS_BITS
-	size_t param_witness_bits = TAGGED_WITNESS_BITS;
+	size_t param_witness_bits = WITNESS_BITS;
 	// WITNESS_BLOCKS
-	size_t param_witness_blocks = TAGGED_WITNESS_BLOCKS;
+	size_t param_witness_blocks = WITNESS_BLOCKS;
 	// VOLE_COMMIT_SIZE
-	size_t param_vole_commit_size = VOLE_TAGGED_COMMIT_SIZE;
+	size_t param_vole_commit_size = VOLE_COMMIT_SIZE;
 	// VOLE_COL_BLOCKS
-	size_t param_vole_col_blocks = VOLE_TAGGED_COL_BLOCKS;
+	size_t param_vole_col_blocks = VOLE_COL_BLOCKS;
 	// VOLE_COL_STRIDE
-	size_t param_vole_col_stride = VOLE_TAGGED_COL_STRIDE;
+	size_t param_vole_col_stride = VOLE_COL_STRIDE;
 	// VOLE_ROWS_PADDED
 	// size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
 	// QUICKSILVER_ROWS
-	size_t param_qs_rows =	QUICKSILVER_TAGGED_RING_ROWS;
+	size_t param_qs_rows =	QUICKSILVER_ROWS;
 
 		// QUICKSILVER_ROWS_PADDED (static assert)
 		// FAEST_SIGNATURE_BYTES  (static assert)
 		// vole_commit
 		// Witness (tagged_witness)
-		// Prover
+		// Prover (TAGGED_OWF_NUM_CONSTRAINTS)
 
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_packed, pk);
@@ -1576,9 +1576,9 @@ static bool faest_tagged_sign_attempt(
 	block_2secpar* hashed_leaves =
 		aligned_alloc(alignof(block_2secpar), VECTOR_COMMIT_LEAVES * sizeof(block_2secpar));
 	vole_block* u =
-		aligned_alloc(alignof(vole_block), VOLE_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), param_vole_col_blocks * sizeof(vole_block));
 	vole_block* v =
-		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * param_vole_col_blocks * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	// vole_commit_for_tagged(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
@@ -1588,26 +1588,26 @@ static bool faest_tagged_sign_attempt(
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
-	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update(&hasher, signature, param_vole_commit_size);
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	uint8_t* vole_check_proof = signature + param_vole_commit_size;
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_ROWS, VOLE_COL_BLOCKS);
+	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
-	size_t remainder = (WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
-	for (size_t i = 0; i < WITNESS_BLOCKS - (remainder != 0); ++i)
+	size_t remainder = (param_witness_bits / 8) % (16 * VOLE_BLOCK);
+	for (size_t i = 0; i < param_witness_blocks - (remainder != 0); ++i)
 	{
 		vole_block correction_i = vole_block_xor(u[i], sk->witness[i]);
 		memcpy(correction + i * sizeof(vole_block), &correction_i, sizeof(vole_block));
 	}
 	if (remainder)
 	{
-		vole_block correction_i = vole_block_xor(u[WITNESS_BLOCKS - 1], sk->witness[WITNESS_BLOCKS - 1]);
-		memcpy(correction + (WITNESS_BLOCKS - 1) * sizeof(vole_block), &correction_i, remainder);
+		vole_block correction_i = vole_block_xor(u[param_witness_blocks - 1], sk->witness[param_witness_blocks - 1]);
+		memcpy(correction + (param_witness_blocks - 1) * sizeof(vole_block), &correction_i, remainder);
 	}
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
@@ -1615,25 +1615,25 @@ static bool faest_tagged_sign_attempt(
 	hash_update(&hasher, chal1, sizeof(chal1));
     hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
     hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-    hash_update(&hasher, correction, WITNESS_BITS / 8);
+    hash_update(&hasher, correction, param_witness_bits / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_ROWS_PADDED * sizeof(block_secpar));
 
-	memcpy(&u[0], &sk->witness[0], WITNESS_BITS / 8);
+	memcpy(&u[0], &sk->witness[0], param_witness_bits / 8);
 	static_assert(QUICKSILVER_ROWS_PADDED % TRANSPOSE_BITS_ROWS == 0, "");
-	transpose_secpar(v, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
+	transpose_secpar(v, macs, param_vole_col_stride, QUICKSILVER_ROWS_PADDED);
 	free(v);
 
 	quicksilver_state qs;
 	quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
 	owf_constraints_prover(&qs, &sk->pk);
 
-	uint8_t* qs_proof = correction + WITNESS_BITS / 8;
+	uint8_t* qs_proof = correction + param_witness_bits / 8;
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
-	quicksilver_prove(&qs, WITNESS_BITS, qs_proof, qs_check);
+	quicksilver_prove(&qs, param_witness_bits, qs_proof, qs_check);
 	free(macs);
 	free(u);
 
@@ -1718,19 +1718,19 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
                   		 const public_key* pk, const public_key* tag)
 {
 	// WITNESS_BITS
-	size_t param_witness_bits = TAGGED_WITNESS_BITS;
+	size_t param_witness_bits = WITNESS_BITS;
 	// WITNESS_BLOCKS
-	size_t param_witness_blocks = TAGGED_WITNESS_BLOCKS;
+	size_t param_witness_blocks = WITNESS_BLOCKS;
 	// VOLE_COMMIT_SIZE
-	size_t param_vole_commit_size = VOLE_TAGGED_COMMIT_SIZE;
+	size_t param_vole_commit_size = VOLE_COMMIT_SIZE;
 	// VOLE_COL_BLOCKS
-	size_t param_vole_col_blocks = VOLE_TAGGED_COL_BLOCKS;
+	size_t param_vole_col_blocks = VOLE_COL_BLOCKS;
 	// VOLE_COL_STRIDE
-	size_t param_vole_col_stride = VOLE_TAGGED_COL_STRIDE;
+	size_t param_vole_col_stride = VOLE_COL_STRIDE;
 	// VOLE_ROWS_PADDED
-	size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
+	size_t param_vole_rows_padded = VOLE_ROWS_PADDED;
 	// QUICKSILVER_ROWS
-	size_t param_qs_rows =	QUICKSILVER_TAGGED_ROWS;
+	size_t param_qs_rows =	QUICKSILVER_ROWS;
 
 		// QUICKSILVER_ROWS_PADDED (static assert)
 		// vole_reconstruct
@@ -1754,9 +1754,9 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
 
-	const uint8_t* vole_check_proof = signature + VOLE_COMMIT_SIZE;
+	const uint8_t* vole_check_proof = signature + param_vole_commit_size;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
-	const uint8_t* qs_proof = correction + WITNESS_BITS / 8;
+	const uint8_t* qs_proof = correction + param_witness_bits / 8;
 	const uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES;
 	const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
 	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
@@ -1769,7 +1769,7 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 		delta_bytes[i] = expand_bit_to_byte(delta[i / 8], i % 8);
 
 	vole_block* q =
-		aligned_alloc(alignof(vole_block), SECURITY_PARAM * VOLE_COL_BLOCKS * sizeof(vole_block));
+		aligned_alloc(alignof(vole_block), SECURITY_PARAM * param_vole_col_blocks * sizeof(vole_block));
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
@@ -1784,32 +1784,32 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
-	hash_update(&hasher, signature, VOLE_COMMIT_SIZE);
+	hash_update(&hasher, signature, param_vole_commit_size);
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
-	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_ROWS, VOLE_COL_BLOCKS);
+	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
 	hash_update(&hasher, &chal1, sizeof(chal1));
 	hash_update(&hasher, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	hash_update(&hasher, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	hash_update(&hasher, correction, WITNESS_BITS / 8);
+	hash_update(&hasher, correction, param_witness_bits / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	vole_block correction_blocks[WITNESS_BLOCKS];
-	memcpy(&correction_blocks, correction, WITNESS_BITS / 8);
-	memset(((uint8_t*) &correction_blocks) + WITNESS_BITS / 8, 0,
-	       sizeof(correction_blocks) - WITNESS_BITS / 8);
-	vole_receiver_apply_correction(WITNESS_BLOCKS, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, VOLE_COL_BLOCKS);
+	vole_block correction_blocks[param_witness_blocks];
+	memcpy(&correction_blocks, correction, param_witness_bits / 8);
+	memset(((uint8_t*) &correction_blocks) + param_witness_bits / 8, 0,
+	       sizeof(correction_blocks) - param_witness_bits / 8);
+	vole_receiver_apply_correction(param_witness_blocks, NONZERO_BITS_IN_CHALLENGE_3, correction_blocks, q, delta_bytes, param_vole_col_blocks);
 
 	block_secpar* macs =
-		aligned_alloc(alignof(block_secpar), VOLE_ROWS_PADDED * sizeof(block_secpar));
-	transpose_secpar(q, macs, VOLE_COL_STRIDE, QUICKSILVER_ROWS_PADDED);
+		aligned_alloc(alignof(block_secpar), param_vole_rows_padded * sizeof(block_secpar));
+	transpose_secpar(q, macs, param_vole_col_stride, QUICKSILVER_ROWS_PADDED);
 	free(q);
 
 	block_secpar delta_block;
@@ -1825,7 +1825,7 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	// faest_free_public_key(&pk);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
-	quicksilver_verify(&qs, WITNESS_BITS, qs_proof, qs_check);
+	quicksilver_verify(&qs, param_witness_bits, qs_proof, qs_check);
 	free(macs);
 
 	block_secpar delta_check;
