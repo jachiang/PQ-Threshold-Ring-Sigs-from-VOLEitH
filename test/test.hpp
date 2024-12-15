@@ -2,6 +2,7 @@
 #define TEST_TEST_HPP
 
 #include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -494,3 +495,16 @@ inline uint32_t test_gen_rand_idx()
 }
 
 #endif
+
+using Clock = std::chrono::high_resolution_clock;
+
+inline Clock::time_point get_time_stamp()
+{
+    return Clock::now();
+}
+
+inline int get_duration(Clock::time_point begin, Clock::time_point end)
+{
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    return static_cast<int>(ms);
+}

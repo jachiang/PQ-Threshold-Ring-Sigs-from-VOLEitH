@@ -142,6 +142,19 @@ TEST_CASE( "unpack sk", "[faest]" ) {
 #endif
 
 TEST_CASE( "keygen/sign/verify", "[faest]" ) {
+
+    #if defined(OWF_AES_CTR)
+        printf("AES-");
+    #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
+        printf("EM-");
+    #endif
+    printf("%u\n", SECURITY_PARAM);
+
+    printf("RING POWER: %u\n", FAEST_RING_2_POW);
+    printf("HOTVECTOR DIM: %u\n", FAEST_RING_HOTVECTOR_DIM);
+
+    printf("FAEST SIGNATURE BYTES: %u\n", FAEST_SIGNATURE_BYTES);
+
     std::array<uint8_t, FAEST_SECRET_KEY_BYTES> packed_sk;
     std::array<uint8_t, FAEST_PUBLIC_KEY_BYTES> packed_pk;
     std::array<uint8_t, FAEST_SIGNATURE_BYTES> signature;
@@ -153,13 +166,13 @@ TEST_CASE( "keygen/sign/verify", "[faest]" ) {
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_sk.data(), NULL, 0) );
     auto signer_end = std::chrono::high_resolution_clock::now();
     auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
-    std::cout << "Faest Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+    std::cout << "Faest Signer runtime (ms): " << signer_duration.count() <<  std::endl;
 
     auto verifier_start = std::chrono::high_resolution_clock::now();
     REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), packed_pk.data()) );
     auto verifier_end = std::chrono::high_resolution_clock::now();
     auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
-    std::cout << "Faest Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
+    std::cout << "Faest Verifier runtime (ms): " << verifier_duration.count() << std::endl;
 
 }
 
@@ -213,24 +226,24 @@ TEST_CASE( "test vector", "[faest tv]" ) {
     faest_pubkey(packed_pk.data(), tv::packed_sk.data());
     CHECK( packed_pk == tv::packed_pk );
 
-    auto signer_start = std::chrono::high_resolution_clock::now();
+    auto begin = get_time_stamp();
     REQUIRE( faest_sign(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_sk.data(), tv::randomness.data(), tv::randomness.size()) );
-    auto signer_end = std::chrono::high_resolution_clock::now();
-    auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
-    std::cout << "Faest Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+    auto end = get_time_stamp();
+    std::cout << "Faest signer runtime (ms): " << get_duration(begin, end) << std::endl;
 
     CHECK( signature == tv::signature );
 
-    auto verifier_start = std::chrono::high_resolution_clock::now();
+    begin = get_time_stamp();
     REQUIRE( faest_verify(signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), tv::packed_pk.data()) );
-    auto verifier_end = std::chrono::high_resolution_clock::now();
-    auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
-    std::cout << "Faest Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
+    end = get_time_stamp();
+    std::cout << "Faest verifier runtime (ms): " << get_duration(begin, end) << std::endl;
 }
 
 #endif
 
 TEST_CASE( "tagged sig: keygen/sign/verify", "[faest tagged]" ) {
+
+    printf("TAGGED SIGNATURE BYTES: %u\n", FAEST_TAGGED_SIGNATURE_BYTES);
 
     std::array<uint8_t, FAEST_TAGGED_SIGNATURE_BYTES> tagged_signature;
 
@@ -252,15 +265,20 @@ TEST_CASE( "tagged sig: keygen/sign/verify", "[faest tagged]" ) {
     std::generate(tag_owf_input.data(), tag_owf_input.data() + FAEST_IV_BYTES, rand<uint8_t>);
     test_finalize_sk_for_tag(&sk, &tag, tag_owf_input.data());
 
+    auto begin = get_time_stamp();
     REQUIRE( faest_tagged_sign(tagged_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk, &tag, NULL, 0) );
+    auto end = get_time_stamp();
+    std::cout << "Tagged signer runtime (ms): " << get_duration(begin, end) << std::endl;
+
+    begin = get_time_stamp();
     REQUIRE( faest_tagged_verify(tagged_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk, &tag) );
+    end = get_time_stamp();
+    std::cout << "Tagged verifier runtime (ms): " << get_duration(begin, end) << std::endl;
 }
 
 TEST_CASE( "ring sig: keygen/sign/verify", "[faest ring]" ) {
 
-    printf("FAEST WITNESS BITS: %u\n", WITNESS_BITS);
-    printf("RING WITNESS BITS: %u\n", RING_WITNESS_BITS);
-    printf("RING SIGNATURE SIZE: %u\n", FAEST_RING_SIGNATURE_BYTES);
+    printf("RING SIGNATURE BYTES: %u\n", FAEST_RING_SIGNATURE_BYTES);
 
     std::array<uint8_t, FAEST_RING_SIGNATURE_BYTES> ring_signature;
 
@@ -274,17 +292,15 @@ TEST_CASE( "ring sig: keygen/sign/verify", "[faest ring]" ) {
     secret_key sk;
     test_gen_ring_keys(&pk_ring, &sk, test_gen_rand_idx());
 
-    auto signer_start = std::chrono::high_resolution_clock::now();
+    auto begin = get_time_stamp();
     REQUIRE( faest_ring_sign(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, NULL, 0) );
-    auto signer_end = std::chrono::high_resolution_clock::now();
-    auto signer_duration = std::chrono::duration_cast<std::chrono::milliseconds>(signer_end - signer_start);
-    std::cout << "Ring Signer runtime: " << signer_duration.count() << " ms" << std::endl;
+    auto end = get_time_stamp();
+    std::cout << "Ring signer runtime (ms): " << get_duration(begin, end) << std::endl;
 
-    auto verifier_start = std::chrono::high_resolution_clock::now();
+    begin = get_time_stamp();
     REQUIRE( faest_ring_verify(ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring) );
-    auto verifier_end = std::chrono::high_resolution_clock::now();
-    auto verifier_duration = std::chrono::duration_cast<std::chrono::milliseconds>(verifier_end - verifier_start);
-    std::cout << "Ring Verifier runtime: " << verifier_duration.count() << " ms" << std::endl;
+    end = get_time_stamp();
+    std::cout << "Ring verifier runtime (ms): " << get_duration(begin, end) << std::endl;
 
     free(pk_ring.pubkeys);
 }
@@ -292,7 +308,7 @@ TEST_CASE( "ring sig: keygen/sign/verify", "[faest ring]" ) {
 #if defined(OWF_AES_CTR)
 TEST_CASE( "Tagged ring sig: keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
-    printf("CBC TAGGED RING WITNESS BITS: %u\n", CBC_TAGGED_RING_WITNESS_BITS);
+    printf("TAGGED RING SIGNATURE BYTES: %u\n", FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES);
 
     std::array<uint8_t, FAEST_CBC_TAGGED_RING_SIGNATURE_BYTES> tagged_ring_signature;
 
@@ -326,8 +342,15 @@ TEST_CASE( "Tagged ring sig: keygen/sign/verify", "[faest cbc-tagged ring]" ) {
     test_finalize_sk_for_cbc_tag(&sk, &tag, tag_owf_in0.data(), tag_owf_in1.data(),
                                             tag_owf_in2.data(), tag_owf_in3.data());
 
+    auto begin = get_time_stamp();
     REQUIRE( faest_cbc_tagged_ring_sign(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &sk, &pk_ring, &tag, NULL, 0) );
+    auto end = get_time_stamp();
+    std::cout << "Tagged ring signer runtime (ms): " << get_duration(begin, end) << std::endl;
+
+    begin = get_time_stamp();
     REQUIRE( faest_cbc_tagged_ring_verify(tagged_ring_signature.data(), reinterpret_cast<const uint8_t*>(message.c_str()), message.size(), &pk_ring, &tag) );
+    end = get_time_stamp();
+    std::cout << "Tagged ring verifier runtime (ms): " << get_duration(begin, end) << std::endl;
 
     free(pk_ring.pubkeys);
     free(pk_ring.pubkeys1);
@@ -336,10 +359,6 @@ TEST_CASE( "Tagged ring sig: keygen/sign/verify", "[faest cbc-tagged ring]" ) {
 
 // TODO: Deprecate non-cbc version.
 TEST_CASE( "Tagged ring sig (deprecated): keygen/sign/verify", "[faest tagged ring]" ) {
-
-    printf("TAGGED RING WITNESS BITS: %u\n", TAGGED_RING_WITNESS_BITS);
-
-    printf("VOLE_COL_BLOCKS: %u\n", VOLE_TAGGED_RING_COL_BLOCKS);
 
     std::array<uint8_t, FAEST_TAGGED_RING_SIGNATURE_BYTES> tagged_ring_signature;
 

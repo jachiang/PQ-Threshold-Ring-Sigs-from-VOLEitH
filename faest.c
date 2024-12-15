@@ -3060,8 +3060,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &delta_check, sizeof(delta_check));
 
-	bool verify = (memcmp(delta, &delta_check, sizeof(delta_check)) == 0);
-    printf("Test passes: %s\n", verify ? "true" : "false");
 	return memcmp(delta, &delta_check, sizeof(delta_check)) == 0;
 }
 #endif
