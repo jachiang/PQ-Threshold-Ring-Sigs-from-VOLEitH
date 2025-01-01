@@ -1588,15 +1588,36 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
     // 2nd Tag OWF.
     // enc_constraints_cbc(state, round_key_bits, round_key_bytes, 0, tag1->owf_input[i], tag1->owf_output[i], true, 1);
     // }
-    constraints_cached cache; // Cache is not used.
+    // constraints_cached cache; // Cache is not used.
+    // for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
+    //     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
+    //         // 1st Pk OWF.
+    //         enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false);
+    //         // 2nd Pk OWF.
+    //         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i], &cache, false);
+    //     }
+    // }
+
+    // key_sched_constraints(state, round_key_bits, round_key_bytes, true);
+    // Cache for sbox inputs and outputs/constraints.
+    constraints_cached cache_owf1;
+    constraints_cached cache_owf2;
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
-        for (size_t i = 0; i < OWF_BLOCKS; ++i) {
-            // 1st Pk OWF.
-            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, i, pk->pubkeys[branch].owf_input[i], pk->pubkeys[branch].owf_output[i], &cache, false);
-            // 2nd Pk OWF.
-            enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, i, pk->pubkeys1[branch].owf_input[i], pk->pubkeys1[branch].owf_output[i], &cache, false);
+        if (branch == 0) {
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0], &cache_owf1, false);
+            if (OWF_BLOCK_SIZE == 2){
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 1, pk->pubkeys[branch].owf_input[1], pk->pubkeys[branch].owf_output[1], &cache_owf2, false);
+            }
+        }
+        else
+        {
+            enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0], &cache_owf1, true);
+            if (OWF_BLOCK_SIZE == 2){
+                enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 1, pk->pubkeys[branch].owf_input[1], pk->pubkeys[branch].owf_output[1], &cache_owf2, true);
+            }
         }
     }
+
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
     // 1st Tag OWF.
     load_fixed_round_key(state, round_key_bits, round_key_bytes, &tag0->fixed_key);

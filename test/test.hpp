@@ -10,6 +10,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <openssl/evp.h>
 
 extern "C" {
 #define restrict __restrict__
@@ -495,6 +496,59 @@ inline uint32_t test_gen_rand_idx()
 }
 
 #endif
+
+inline std::vector<std::array<uint8_t, FAEST_IV_BYTES>> fixed_owf_inputs(size_t num_blocks) {
+    std::vector<std::array<uint8_t, FAEST_IV_BYTES>> blocks(num_blocks);
+
+    for (size_t i = 0; i < num_blocks; ++i) {
+        blocks[i].fill(0);
+        blocks[i][15] = static_cast<uint8_t>(2*i + 1);
+        if (FAEST_IV_BYTES > 16) {
+            blocks[i][31] = static_cast<uint8_t>(2*i + 2);
+        }
+    }
+    return blocks;
+}
+
+inline std::array<uint8_t, 64> sha512_to_array(const std::string& input) {
+    std::array<uint8_t, 64> hash{};
+    EVP_MD_CTX* context = EVP_MD_CTX_new();
+
+    if (!context) {
+        throw std::runtime_error("Failed to create EVP_MD_CTX");
+    }
+
+    try {
+        if (EVP_DigestInit_ex(context, EVP_sha512(), nullptr) != 1) {
+            throw std::runtime_error("EVP_DigestInit_ex failed");
+        }
+        if (EVP_DigestUpdate(context, input.data(), input.size()) != 1) {
+            throw std::runtime_error("EVP_DigestUpdate failed");
+        }
+        unsigned int length = 0;
+        if (EVP_DigestFinal_ex(context, hash.data(), &length) != 1) {
+            throw std::runtime_error("EVP_DigestFinal_ex failed");
+        }
+
+        EVP_MD_CTX_free(context);
+        return hash;
+    } catch (...) {
+        EVP_MD_CTX_free(context);
+        throw;
+    }
+}
+
+inline std::vector<std::array<uint8_t, 16>> split_512_into_128(const std::array<uint8_t, 64>& hash) {
+    constexpr size_t block_size = 16;
+    constexpr size_t num_blocks = 64 / 16;
+    std::vector<std::array<uint8_t, block_size>> blocks(num_blocks);
+
+    for (size_t i = 0; i < num_blocks; ++i) {
+        std::copy_n(hash.begin() + i * block_size, block_size, blocks[i].begin());
+    }
+
+    return blocks;
+}
 
 using Clock = std::chrono::high_resolution_clock;
 

@@ -153,50 +153,50 @@ TEST_CASE( "cbc-tagged ring owf proof", "[cbc-tagged ring owf proof]" ) {
 #endif
 
 
-// TODO: deprecate non-cbc tagged ring implementation.
-TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
-    // For each ring element, there are 2 OWF over fixed inputs(AES)/keys(EM).
-    public_key_ring pk_ring;
-    pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
-    pk_ring.pubkeys1 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+// // TODO: deprecate non-cbc tagged ring implementation.
+// TEST_CASE( "tagged ring owf proof", "[tagged ring owf proof]" ) {
+//     // For each ring element, there are 2 OWF over fixed inputs(AES)/keys(EM).
+//     public_key_ring pk_ring;
+//     pk_ring.pubkeys = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
+//     pk_ring.pubkeys1 = (public_key *)aligned_alloc(alignof(public_key), FAEST_RING_SIZE * sizeof(public_key));
 
-    secret_key sk;
-    uint32_t active_idx = test_gen_rand_idx();
+//     secret_key sk;
+//     uint32_t active_idx = test_gen_rand_idx();
 
-	// owf_inputs are fixed, and owf_key is identical for all owfs.
-    std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
-    std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
-    std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+// 	// owf_inputs are fixed, and owf_key is identical for all owfs.
+//     std::array<uint8_t, FAEST_IV_BYTES> owf_input0;
+//     std::array<uint8_t, FAEST_IV_BYTES> owf_input1;
+//     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
+//     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    // JC: Generate ring keys.
-    test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
+//     // JC: Generate ring keys.
+//     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
-    // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
-    public_key tag_pk0;
-    public_key tag_pk1;
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
-    std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
-    std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
-    std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
+//     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
+//     public_key tag_pk0;
+//     public_key tag_pk1;
+//     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
+//     std::generate(tag_owf_input0.data(), tag_owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
+//     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input1;
+//     std::generate(tag_owf_input1.data(), tag_owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
+//     test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
-    const auto delta = rand<block_secpar>();
-    // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
-    // Sets tag flag to true.
-    quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true); // tag true.
-    auto& qs_state_prover = qs_test.prover_state;
-    auto& qs_state_verifier = qs_test.verifier_state;
+//     const auto delta = rand<block_secpar>();
+//     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
+//     // Sets tag flag to true.
+//     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true); // tag true.
+//     auto& qs_state_prover = qs_test.prover_state;
+//     auto& qs_state_verifier = qs_test.verifier_state;
 
-    owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &tag_pk0, &tag_pk1);
-    owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &tag_pk0, &tag_pk1);
+//     owf_constraints_prover_all_branches_and_tag(&qs_state_prover, &pk_ring, &tag_pk0, &tag_pk1);
+//     owf_constraints_verifier_all_branches_and_tag(&qs_state_verifier, &pk_ring, &tag_pk0, &tag_pk1);
 
-	auto [check_prover, check_verifier] = qs_test.compute_check();
-    REQUIRE(check_prover == check_verifier);
+// 	auto [check_prover, check_verifier] = qs_test.compute_check();
+//     REQUIRE(check_prover == check_verifier);
 
-    free(pk_ring.pubkeys);
-    free(pk_ring.pubkeys1);
-}
+//     free(pk_ring.pubkeys);
+//     free(pk_ring.pubkeys1);
+// }
 
 
