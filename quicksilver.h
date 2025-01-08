@@ -4,7 +4,7 @@
 #include "polynomials.h"
 #include "universal_hash.h"
 #include "util.h"
-#include <stdio.h> // JC: for debugging.
+#include <stdio.h> // for debugging.
 
 #define QUICKSILVER_CHALLENGE_BYTES ((3 * SECURITY_PARAM + 64) / 8)
 #define QUICKSILVER_PROOF_BYTES (SECURITY_PARAM / 8)
@@ -39,10 +39,10 @@ typedef struct
 {
 	poly_2secpar_vec mac0;
 	poly_2secpar_vec mac1;
-	poly_2secpar_vec value; // JC: Needed for unsatisfied ring branches.
+	poly_2secpar_vec value; // Needed for unsatisfied ring branches.
 } quicksilver_vec_deg2;
 
-// JC: QS polynomials represented as coefficient terms.
+// QS polynomials represented as coefficient terms.
 typedef struct
 {
 	poly_secpar_vec c0;
@@ -108,7 +108,7 @@ typedef struct
 	bool ring;
 	hasher_gfsecpar_key key_secpar;
 
-	// JC: Hasher state for KE + hashed OR constraints.
+	// Hasher state for KE + hashed OR constraints.
 	hasher_gfsecpar_state state_secpar_const;
 	hasher_gfsecpar_state state_secpar_linear;
 	hasher_gfsecpar_state state_secpar_quad;
@@ -122,14 +122,14 @@ typedef struct
 	hasher_gfsecpar_state state_secpar_quintic;
 	#endif
 
-	// JC: Hasher state for OR branch constraints.
+	// Hasher state for OR branch constraints.
 	hasher_gfsecpar_state* state_or_secpar_const;
 	hasher_gfsecpar_state* state_or_secpar_linear;
 	hasher_gfsecpar_state* state_or_secpar_quad;
 
 	hasher_gfsecpar_64_key key_64;
 
-	// JC: Hasher state for KE + hashed OR constraints.
+	// Hasher state for KE + hashed OR constraints.
 	hasher_gfsecpar_64_state state_64_const;
 	hasher_gfsecpar_64_state state_64_linear;
 	hasher_gfsecpar_64_state state_64_quad;
@@ -143,7 +143,7 @@ typedef struct
 	hasher_gfsecpar_64_state state_64_quintic;
 	#endif
 
-	// JC: Hasher state for OR branch constraints.
+	// Hasher state for OR branch constraints.
 	hasher_gfsecpar_64_state* state_or_64_const;
 	hasher_gfsecpar_64_state* state_or_64_linear;
 	hasher_gfsecpar_64_state* state_or_64_quad;
@@ -676,7 +676,7 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 
 		if (ring) {
 			#if (FAEST_RING_HOTVECTOR_DIM == 1)
-			// JC: For hotvector dim 1, the final satisified QS poly degree is 3.
+			// For hotvector dim 1, the final satisified QS poly degree is 3.
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, const_term);
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, lin_term);
@@ -684,7 +684,7 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_linear, const_term);
 			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, lin_term);
 			#elif (FAEST_RING_HOTVECTOR_DIM == 2)
-			// JC: For hotvector dim 2, the final satisified QS poly degree is 4.
+			// For hotvector dim 2, the final satisified QS poly degree is 4.
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_set_zero());
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, const_term);
@@ -694,7 +694,7 @@ inline void quicksilver_constraint(quicksilver_state* state, quicksilver_vec_deg
 			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quad, const_term);
 			hasher_gfsecpar_64_update(&state->key_64, &state->state_64_cubic, lin_term);
 			#elif (FAEST_RING_HOTVECTOR_DIM == 4)
-			// JC: For hotvector dim 4, the final satisified QS poly degree is 6.
+			// For hotvector dim 4, the final satisified QS poly degree is 6.
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_const, poly_secpar_set_zero());
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_linear, poly_secpar_set_zero());
 			hasher_gfsecpar_update(&state->key_secpar, &state->state_secpar_quad, poly_secpar_set_zero());
@@ -810,7 +810,7 @@ inline void quicksilver_pseudoinverse_constraint_to_branch_and_cache(quicksilver
 	quicksilver_constraint_to_branch(state, branch, constraint2);
 }
 
-// JC: Various operations over polynomials represented as coefficients.
+// Various operations over polynomials represented as coefficients.
 inline void quicksilver_prover_init_poly_deg1(const quicksilver_state* state, qs_prover_poly_deg1* in)
 {
 	assert(!state->verifier);

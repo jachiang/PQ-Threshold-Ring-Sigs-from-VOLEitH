@@ -1375,7 +1375,7 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
     }
 }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-// JC: OWF not supported.
+// OWF not supported.
 static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, owf_block in, owf_block out) {
     // compute the starting index of the witness bits corresponding to the s-boxes in this round of
     // encryption
@@ -1391,7 +1391,7 @@ static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, ui
     }
 }
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-// JC: OWF not supported.
+// OWF not supported.
 static ALWAYS_INLINE void enc_constraints_to_branch(quicksilver_state* state, uint32_t branch, const public_key* pk) {
 
     #if defined(OWF_MQ_2_1)
@@ -1516,7 +1516,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #endif
 #if defined(OWF_AES_CTR)
-    // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
+    // Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     for (size_t i = 0; i < OWF_BLOCKS; ++i) {
         // 1st Tag OWF.
@@ -1550,12 +1550,12 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_tag(quicksilver_state
         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, &pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0]);
     }
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, pk->pubkeys[branch]);
     }
@@ -1574,7 +1574,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #endif
 #if defined(OWF_AES_CTR)
-    // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
+    // Packed witness - KEY_SCHEDULE | PK_OWF_1 | PK_OWF_2 | TAG_OWF_1 | TAG_OWF_2
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // for (size_t i = 0; i < OWF_BLOCKS; ++i) {
     // 1st Tag OWF.
@@ -1635,12 +1635,12 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, &pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0]);
     }
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, pk->pubkeys[branch]);
     }
@@ -1708,10 +1708,10 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 //         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0], &cache, false);
 //     }
 // #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-//     // JC: TODO - OWF not supported.
+//     // TODO - OWF not supported.
 //     #error "unsupported OWF"
 // #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-//     // JC: TODO - OWF not supported.
+//     // TODO - OWF not supported.
 //     #error "unsupported OWF"
 // #else
 // #error "unsupported OWF"
@@ -1726,7 +1726,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 //     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 // // #endif
 // // #if defined(OWF_AES_CTR)
-//     // JC: Packed witness - KEY_SCHEDULE | PK_OWF_1 (B1) | PK_OWF_1 (B2) | PK_OWF_2 (B1) | PK_OWF_2 (B2) | TAG_OWF_1 | TAG_OWF_2 | ...
+//     // Packed witness - KEY_SCHEDULE | PK_OWF_1 (B1) | PK_OWF_1 (B2) | PK_OWF_2 (B1) | PK_OWF_2 (B2) | TAG_OWF_1 | TAG_OWF_2 | ...
 //     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
 //     for (size_t i = 0; i < ALT_TAGGED_RING_OWF_NUM; ++i) {
 //         enc_constraints2(state, round_key_bits, round_key_bytes, 0, tag->owf_inputs[i], tag->owf_outputs[i], true, i);
@@ -1764,12 +1764,12 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 // //         enc_constraints_to_branch(state, branch, 1, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys1[branch].owf_output[0], &cache, false);
 // //     }
 // // #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-// //     // JC: TODO - OWF not supported.
+// //     // TODO - OWF not supported.
 // //     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
 // //         enc_constraints_to_branch(state, branch, &pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0]);
 // //     }
 // // #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-// //     // JC: TODO - OWF not supported.
+// //     // TODO - OWF not supported.
 // //     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
 // //         enc_constraints_to_branch(state, branch, pk->pubkeys[branch]);
 // //     }
@@ -1781,7 +1781,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches_and_cbc_tag(quicksilver_s
 
 #endif
 
-// JC: TODO - add tagged flag.
+// TODO - add tagged flag.
 // static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk, bool tagged)
 static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state, const public_key_ring* pk) // TODO: Active branch
 {
@@ -1791,7 +1791,7 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
     quicksilver_vec_gfsecpar round_key_bytes[OWF_BLOCK_SIZE * (OWF_ROUNDS + 1)];
 #endif
 #if defined(OWF_AES_CTR)
-    // JC: Packed witness - KEY_SCHEDULE | ENC_1 | ENC_2 | ...
+    // Packed witness - KEY_SCHEDULE | ENC_1 | ENC_2 | ...
     key_sched_constraints(state, round_key_bits, round_key_bytes, true);
     // Cache for sbox inputs and outputs/constraints.
     constraints_cached cache_owf1;
@@ -1818,12 +1818,12 @@ static ALWAYS_INLINE void owf_constraints_all_branches(quicksilver_state* state,
         enc_constraints_to_branch(state, branch, 0, round_key_bits, round_key_bytes, 0, owf_block_set_low32(0), pk->pubkeys[branch].owf_output[0], &cache, false);
     }
 #elif defined(OWF_RAIN_3) || defined(OWF_RAIN_4)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, &pk->pubkeys[branch].owf_input[0], pk->pubkeys[branch].owf_output[0]);
     }
 #elif defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
-    // JC: TODO - OWF not supported.
+    // TODO - OWF not supported.
     for (size_t branch = 0; branch < FAEST_RING_SIZE; ++branch) {
         enc_constraints_to_branch(state, branch, pk->pubkeys[branch]);
     }

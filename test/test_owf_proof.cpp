@@ -119,7 +119,7 @@ TEST_CASE( "cbc-tagged ring owf proof", "[cbc-tagged ring owf proof]" ) {
     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-    // JC: Generate ring keys.
+    // Generate ring keys.
     // Note: Runs compute_witness procedure on tagged_ring_witness.
     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
@@ -169,10 +169,10 @@ TEST_CASE( "cbc-tagged ring owf proof", "[cbc-tagged ring owf proof]" ) {
 //     std::generate(owf_input0.data(), owf_input0.data() + FAEST_IV_BYTES, rand<uint8_t>);
 //     std::generate(owf_input1.data(), owf_input1.data() + FAEST_IV_BYTES, rand<uint8_t>);
 
-//     // JC: Generate ring keys.
+//     // Generate ring keys.
 //     test_gen_tagged_ring_keys(&sk, &pk_ring, active_idx, owf_input0.data(), owf_input1.data());
 
-//     // JC: At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
+//     // At signing time - generate tag output = owf(sk, h(msg)) and expand witness.
 //     public_key tag_pk0;
 //     public_key tag_pk1;
 //     std::array<uint8_t, FAEST_IV_BYTES> tag_owf_input0;
@@ -183,7 +183,7 @@ TEST_CASE( "cbc-tagged ring owf proof", "[cbc-tagged ring owf proof]" ) {
 //     test_finalize_sk_for_tag_alt(&sk, &tag_pk0, &tag_pk1, tag_owf_input0.data(), tag_owf_input1.data());
 
 //     const auto delta = rand<block_secpar>();
-//     // JC: Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
+//     // Witness layout is KEY-SCHED | PK_ENC_SCHED | PK1_ENC_SCHED2 | TAG_ENC_SCHED | TAG_ENC_SCHED1
 //     // Sets tag flag to true.
 //     quicksilver_test_or_state qs_test(OWF_NUM_CONSTRAINTS, reinterpret_cast<uint8_t*>(sk.tagged_ring_witness), TAGGED_RING_WITNESS_BITS, delta, true); // tag true.
 //     auto& qs_state_prover = qs_test.prover_state;

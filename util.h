@@ -72,7 +72,7 @@ void printHex(const char* s, const uint8_t* data, size_t len);
 
 inline void base_decompose(uint32_t value, uint32_t base, uint32_t* decomp, int dim) {
 
-    // JC: Ensure decomp is zero initialized.
+    // Ensure decomp is zero initialized.
     int index = 0;
     if (value != 0) {
         while (value > 0 && index < dim) {

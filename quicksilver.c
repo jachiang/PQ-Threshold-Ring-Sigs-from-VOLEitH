@@ -3,7 +3,7 @@
 
 #include <assert.h>
 #include <stdalign.h>
-#include <stdio.h> // JC: for debugging.
+#include <stdio.h> // for debugging.
 
 // TODO: Figure out how to vectorize things here, for a later VAES implementation
 static_assert(POLY_VEC_LEN == 1, "");
@@ -58,9 +58,9 @@ void quicksilver_init_or_prover(
 	state->verifier = false;
 	state->ring = true;
 
-	// JC: initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
+	// initialize hash keys, which are reused by prover for both branch and final (ZK)hashes.
 	quicksilver_init_hash_keys(state, challenge);
-	// JC: init state of (ZK)Hash for batching constraints of each OR branch.
+	// init state of (ZK)Hash for batching constraints of each OR branch.
 	state->state_or_secpar_const = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
 	state->state_or_secpar_linear = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
 	state->state_or_secpar_quad = (hasher_gfsecpar_state *)aligned_alloc(alignof(hasher_gfsecpar_state), FAEST_RING_SIZE * sizeof(hasher_gfsecpar_state));
@@ -165,7 +165,7 @@ void quicksilver_init_or_verifier(
 	state->macs = macs;
 }
 
-// JC: Non-ZK Hash of constraints stored to hasher states.
+// Non-ZK Hash of constraints stored to hasher states.
 static poly_secpar_vec quicksilver_lincombine_hasher_state(
 	const quicksilver_state* state,
 	const hasher_gfsecpar_state* state_secpar, const hasher_gfsecpar_64_state* state_64)
@@ -174,7 +174,7 @@ static poly_secpar_vec quicksilver_lincombine_hasher_state(
 	hashes[0] = hasher_gfsecpar_final(state_secpar);
 	hashes[1] = hasher_gfsecpar_64_final(state_64);
 
-	poly_2secpar_vec sum = poly_2secpar_set_zero(); // JC: Set to zero, No mask required.
+	poly_2secpar_vec sum = poly_2secpar_set_zero(); // Set to zero, No mask required.
 	for (size_t i = 0; i < 2; ++i) {
 		sum = poly_2secpar_add(sum, poly_secpar_mul(state->hash_combination[i], hashes[i]));
 	}
@@ -275,7 +275,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	assert(!state->verifier);
 	assert(witness_bits % 8 == 0);
 
-	// JC: TODO: Implement higher degree masks.
+	// TODO: Implement higher degree masks.
 	qs_prover_poly_deg1 mask1;
 	qs_prover_poly_deg2 mask2;
 	quicksilver_prover_init_poly_deg1(state, &mask1);
@@ -366,7 +366,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 
 	for (uint16_t idx = 0; idx < FAEST_RING_HOTVECTOR_BITS + 1; ++idx) {
 		if (idx < FAEST_RING_HOTVECTOR_BITS) {
-			// JC: Load branch selector bit commitment.
+			// Load branch selector bit commitment.
 			quicksilver_vec_gf2	hotvec0_bit = quicksilver_get_witness_vec(state, witness_bits - FAEST_RING_HOTVECTOR_BYTES * 8 + idx);
 			hotvec0[idx].c0 = hotvec0_bit.mac;
 			hotvec0[idx].c1 = poly_secpar_from_1(hotvec0_bit.value);
@@ -387,7 +387,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 			#endif
 		}
 		else {
-			// JC: Derive final selector bit commitment from aggregate.
+			// Derive final selector bit commitment from aggregate.
 			hotvec0[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec0_sum);
 			#if (FAEST_RING_HOTVECTOR_DIM > 1)
 			hotvec1[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec1_sum);
@@ -399,7 +399,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 			hotvec3[idx] = qs_prover_poly_const_add_deg1(state, poly_secpar_from_byte(1), hotvec3_sum);
 			#endif
 		}
-		// JC: Aggregate selector bits and selector multiplied by branch index.
+		// Aggregate selector bits and selector multiplied by branch index.
 		hotvec0_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_sum, hotvec0[idx]);
 		hotvec0_mul_idx_sum = qs_prover_poly_deg1_add_deg1(state, hotvec0_mul_idx_sum, qs_prover_poly_const_mul_deg1(state, poly_secpar_from_1(idx + 1), hotvec0[idx]));
 		#if (FAEST_RING_HOTVECTOR_DIM > 1)
@@ -482,7 +482,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 		#endif
 	}
 
-	// JC: Well-formedness of hotvec (single active bit).
+	// Well-formedness of hotvec (single active bit).
 	qs_prover_poly_deg2 hotvec0_single_active_bit_constraint;
 	quicksilver_prover_init_poly_deg2(state, &hotvec0_single_active_bit_constraint);
 
@@ -619,7 +619,7 @@ void quicksilver_prove_or(quicksilver_state* state, size_t witness_bits, uint8_t
 	hasher_gfsecpar_64_update(&state->key_64, &state->state_64_quintic, hotvec3_single_active_bit_constraint.c1);
 	#endif
 
-	// JC: Final ZKHash.
+	// Final ZKHash.
 	// quicksilver_final(state, &state->state_secpar_const, &state->state_64_const, mac_mask, check);
 	// quicksilver_final(state, &state->state_secpar_linear, &state->state_64_linear, value_mask, proof_lin);
 	// quicksilver_final(state, &state->state_secpar_quad, &state->state_64_quad, zero_mask, proof_quad);
@@ -744,7 +744,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		branch_constraint.key = quicksilver_lincombine_hasher_state(state, &state->state_or_secpar_const[branch], &state->state_or_64_const[branch]);
 		branch_constraint.deg = 2;
 
-		// JC: Decompose branch idx into (i,j).
+		// Decompose branch idx into (i,j).
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
 		base_decompose(branch, base, decomp, FAEST_RING_HOTVECTOR_DIM);
@@ -768,7 +768,7 @@ void quicksilver_verify_or(quicksilver_state* state, size_t witness_bits, const 
 		#endif
 	}
 
-	// JC: Well-formedness of hotvec (single active bit).
+	// Well-formedness of hotvec (single active bit).
 	qs_verifier_key hotvec0_const2;
 	quicksilver_verifier_init_key_0(state, &hotvec0_const2);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)

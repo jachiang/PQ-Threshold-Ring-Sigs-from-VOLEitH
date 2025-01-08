@@ -121,7 +121,7 @@
 #define TAGGED_WITNESS_BITS (8 * OWF_BLOCKS * OWF_BLOCK_SIZE * (OWF_ROUNDS - 1) * 2 + OWF_KEY_WITNESS_BITS)
 #define RING_WITNESS_BITS (WITNESS_BITS + FAEST_RING_HOTVECTOR_BYTES * 8)
 
-// JC: Double the number of OWF for tagged ring sigs
+// Double the number of OWF for tagged ring sigs
 #define TAGGED_RING_PK_OWF_NUM (2) 	// TODO: Keep for cbc tagged ring.
 #define TAGGED_RING_TAG_OWF_NUM (2) // TODO: Remove after deprecating non-cbc tag.
 

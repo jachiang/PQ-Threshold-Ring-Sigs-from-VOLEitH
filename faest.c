@@ -10,7 +10,7 @@
 #include "small_vole.h"
 #include "vole_commit.h"
 #include "util.h"
-#include <stdio.h> // JC: For debugging.
+#include <stdio.h>
 
 void faest_free_public_key(public_key* pk)
 {
@@ -100,7 +100,7 @@ bool faest_unpack_secret_key_fixed_owf_inputs(secret_key* unpacked_sk, const uin
 	return true;
 }
 
-// JC: Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
+// Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
 bool faest_unpack_secret_key_for_tag_alt(secret_key* unpacked_sk, const uint8_t* tag_owf_input0, const uint8_t* tag_owf_input1)
 {
 	memcpy(&unpacked_sk->tag.owf_input, tag_owf_input0, sizeof(unpacked_sk->tag.owf_input));
@@ -120,7 +120,7 @@ bool faest_unpack_secret_key_for_tag_alt(secret_key* unpacked_sk, const uint8_t*
 	return true;
 }
 
-// JC: Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
+// Intended to be called on sk generated in faest_unpack_secret_key_fixed_owf_inputs.
 bool faest_unpack_secret_key_for_tag(secret_key* unpacked_sk, const uint8_t* tag_owf_input0)
 {
 	memcpy(&unpacked_sk->tag.owf_input, tag_owf_input0, sizeof(unpacked_sk->tag.owf_input));
@@ -261,25 +261,8 @@ else{
 	owf_num = 1;
 }
 bool tag_itr = false;
-// JC: Witness expansion for each active-pk-OWF and tag-OWF.
+// Witness expansion for each active-pk-OWF and tag-OWF.
 for (size_t owf = 0; owf < owf_num; ++owf) {
-	// printf("OWF loop begin: %u\n", owf);
-
-	// Skip final iteration if not tag ring sig.
-	// if (owf == owf_num) {
-	// if (owf  > TAGGED_RING_PK_OWF_NUM - 1) {
-	// 	if (tag) {
-	// 		tag_itr = true;
-	// 	}
-	// 	else {
-	// 		break;
-	// 	}
-	// }
-
-	// if (tag_itr) {
-	// 	size_t offset = (w_ptr - (uint8_t*) &sk->tagged_ring_witness);
-	// 	printf("Tag witness offset: %u\n", offset);
-	// }
 
 #if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
@@ -312,11 +295,11 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
 	}
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #elif defined(OWF_RAIN_4)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #endif
@@ -387,7 +370,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			}
 	#endif
 #elif defined(OWF_RAIN_3)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 			if (round != OWF_ROUNDS) {
 				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -409,7 +392,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 
 	#endif
 #elif defined(OWF_RAIN_4)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 		if (round != OWF_ROUNDS) {
 			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -468,46 +451,38 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 	}
 	else {
-		// JC: Decompose active branch index (according to hotvector size/dim).
+		// Decompose active branch index (according to hotvector size/dim).
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
 		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
 
-		// JC: Serialization of hotvectors as bytes.
+		// Serialization of hotvectors as bytes.
 		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
 
-		// JC: Init indices and vars.
+		// Init indices and vars.
 		int curr_byte_idx = 0;
 		int curr_bit_idx = 0;
 
 		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-			// JC: Remaining free bits in current byte.
+			// Remaining free bits in current byte.
 			int remaining_bits = 8 - curr_bit_idx;
 			if ((decomp[i] != base - 1)) {
-				// JC: Hotvector has exactly one active bit.
+				// Hotvector has exactly one active bit.
 				uint32_t hotvector_idx = decomp[i];
 				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
 				int active_byte_idx = curr_byte_idx;
 				if (hotvector_idx + 1 > remaining_bits) {
 					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
 				}
-				// printf("Active byte idx: %u \n", active_byte_idx);
-				// printf("Active bit idx: %u \n", active_bit_idx);
 
-				// JC: Activate bit in hotvectors byte array.
+				// Activate bit in hotvectors byte array.
 				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
 			}
-			// else{
-			// 	if (decomp[i] == base - 1) {
-			// 		printf("Last active bit omitted in hotvector %u\n", i);
-			// 	}
-			// }
-			// // JC: Update indices vars.
 			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
 			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
 		}
 
-		// JC: Copy 1-hotvector serialization to witness.
+		// Copy 1-hotvector serialization to witness.
 		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 	}
 	return true;
@@ -520,15 +495,6 @@ bool faest_compute_witness_tag(secret_key* sk, bool ring, bool tag) // tagged si
 	tag = true; ring = false;
 
 	uint8_t* w_ptr = (uint8_t*) &sk->tagged_witness;
-	// if (!ring) {
-	// 	w_ptr = (uint8_t*) &sk->witness;
-	// }
-	// else if (ring && !tag) {
-	// 	w_ptr = (uint8_t*) &sk->ring_witness;
-	// }
-	// else if (ring && tag) {
-	// 	w_ptr = (uint8_t*) &sk->tagged_ring_witness;
-	// }
 
 #if defined(OWF_MQ_2_1) || defined(OWF_MQ_2_8)
 
@@ -563,32 +529,10 @@ bool faest_compute_witness_tag(secret_key* sk, bool ring, bool tag) // tagged si
 #endif
 
 size_t owf_num = 2;
-// if (tag){
-// 	owf_num = TAGGED_RING_PK_OWF_NUM + TAGGED_RING_TAG_OWF_NUM; // Always 2 + 2?
-// }
-// else{
-// 	owf_num = 1;
-// }
+
 bool tag_itr = false;
-// JC: Witness expansion for each active-pk-OWF and tag-OWF.
+// Witness expansion for each active-pk-OWF and tag-OWF.
 for (size_t owf = 0; owf < owf_num; ++owf) {
-	// printf("OWF loop begin: %u\n", owf);
-
-	// Skip final iteration if not tag ring sig.
-	// if (owf == owf_num) {
-	// if (owf  > TAGGED_RING_PK_OWF_NUM - 1) {
-	// 	if (tag) {
-	// 		tag_itr = true;
-	// 	}
-	// 	else {
-	// 		break;
-	// 	}
-	// }
-
-	// if (tag_itr) {
-	// 	size_t offset = (w_ptr - (uint8_t*) &sk->tagged_ring_witness);
-	// 	printf("Tag witness offset: %u\n", offset);
-	// }
 
 #if defined(OWF_AES_CTR)
 	for (uint32_t i = 0; i < OWF_BLOCKS; ++i)
@@ -600,12 +544,6 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			// sk->pk.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->pk.owf_input[i]);
 			sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
 		}
-		// else if (owf == 2) {
-		// 	sk->tag.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag.owf_input[i]);
-		// }
-		// else if (owf == 3) {
-		// 	sk->tag1.owf_output[i] = owf_block_xor(sk->round_keys.keys[0], sk->tag1.owf_input[i]);
-		// }
 	}
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	static_assert(OWF_BLOCKS == 1, "");
@@ -613,22 +551,14 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 	}
 	else if (owf == 1) {
-		// TODO: Migrate to tag pk.
-		// sk->pk.owf_output[0] = owf_block_xor(sk->pk.fixed_key.keys[0], sk->sk);
 		sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
 	}
-	// else if (owf == 2) {
-	// 	sk->tag.owf_output[0] = owf_block_xor(sk->tag.fixed_key.keys[0], sk->sk);
-	// }
-	// else if (owf == 3) {
-	// 	sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
-	// }
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #elif defined(OWF_RAIN_4)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #endif
@@ -649,30 +579,16 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				// aes_round_function(&sk->round_keys, &sk->pk.owf_output[i], &after_sbox, round);
 				aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
 			}
-			// else if (owf == 2) {
-			// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[i], &after_sbox, round);
-			// }
-			// else if (owf == 3) {
-			// 	aes_round_function(&sk->round_keys, &sk->tag1.owf_output[i], &after_sbox, round);
-			// }
 #elif defined(OWF_RIJNDAEL_EVEN_MANSOUR)
 	#if SECURITY_PARAM == 128
 			if (owf == 0) {
 				aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 			}
 			else if (owf == 1) {
-				// aes_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 				aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
-			// else if (owf == 2) {
-			// 	aes_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			// }
-			// else if (owf == 3) {
-			// 	aes_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			// }
 	#elif SECURITY_PARAM == 192
 			if (owf == 0) {
 				rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
@@ -681,12 +597,6 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				// rijndael192_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 				rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
-			// else if (owf == 2) {
-			// 	rijndael192_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			// }
-			// else if (owf == 3) {
-			// 	rijndael192_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			// }
 	#elif SECURITY_PARAM == 256
 			if (owf == 0) {
 				rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
@@ -695,15 +605,9 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 				// rijndael256_round_function(&sk->pk.fixed_key, &sk->pk.owf_output[i], &after_sbox, round);
 				rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
 			}
-			// else if (owf == 2) {
-			// 	rijndael256_round_function(&sk->tag.fixed_key, &sk->tag.owf_output[i], &after_sbox, round);
-			// }
-			// else if (owf == 3) {
-			// 	rijndael256_round_function(&sk->tag1.fixed_key, &sk->tag1.owf_output[i], &after_sbox, round);
-			// }
 	#endif
 #elif defined(OWF_RAIN_3)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 			if (round != OWF_ROUNDS) {
 				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -725,7 +629,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 
 	#endif
 #elif defined(OWF_RAIN_4)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 		if (round != OWF_ROUNDS) {
 			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -768,66 +672,13 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			// sk->pk.owf_output[i] = owf_block_xor(sk->pk.owf_output[i], sk->sk);
 			sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
 		}
-		// else if (owf == 2) {
-		// 	sk->tag.owf_output[i] = owf_block_xor(sk->tag.owf_output[i], sk->sk);
-		// }
-		// else if (owf == 3) {
-		// 	sk->tag1.owf_output[i] = owf_block_xor(sk->tag1.owf_output[i], sk->sk);
-		// }
 	}
 #endif
 
 #endif
-	// printf("OWF loop end: %u\n", owf);
+
 	} // End of loop over OWF 1-4.
 
-	// if(false) {
-	// 	assert(w_ptr - (uint8_t*) &sk->witness == WITNESS_BITS / 8);
-	// 	memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
-	// }
-	// else {
-	// 	// JC: Decompose active branch index (according to hotvector size/dim).
-	// 	uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
-	// 	uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
-	// 	base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
-
-	// 	// JC: Serialization of hotvectors as bytes.
-	// 	uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
-
-	// 	// JC: Init indices and vars.
-	// 	int curr_byte_idx = 0;
-	// 	int curr_bit_idx = 0;
-
-	// 	for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-	// 		// JC: Remaining free bits in current byte.
-	// 		int remaining_bits = 8 - curr_bit_idx;
-	// 		if ((decomp[i] != base - 1)) {
-	// 			// JC: Hotvector has exactly one active bit.
-	// 			uint32_t hotvector_idx = decomp[i];
-	// 			int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
-	// 			int active_byte_idx = curr_byte_idx;
-	// 			if (hotvector_idx + 1 > remaining_bits) {
-	// 				active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
-	// 			}
-	// 			// printf("Active byte idx: %u \n", active_byte_idx);
-	// 			// printf("Active bit idx: %u \n", active_bit_idx);
-
-	// 			// JC: Activate bit in hotvectors byte array.
-	// 			hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
-	// 		}
-	// 		// else{
-	// 		// 	if (decomp[i] == base - 1) {
-	// 		// 		printf("Last active bit omitted in hotvector %u\n", i);
-	// 		// 	}
-	// 		// }
-	// 		// // JC: Update indices vars.
-	// 		curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
-	// 		curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
-	// 	}
-
-	// 	// JC: Copy 1-hotvector serialization to witness.
-	// 	memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
-	// }
 	return true;
 }
 
@@ -887,25 +738,9 @@ else{
 	owf_num = 1;
 }
 bool tag_itr = false;
-// JC: Witness expansion for each active-pk-OWF and tag-OWF.
+// Witness expansion for each active-pk-OWF and tag-OWF.
 for (size_t owf = 0; owf < owf_num; ++owf) {
-	// printf("OWF loop begin: %u\n", owf);
 
-	// Skip final iteration if not tag ring sig.
-	// if (owf == owf_num) {
-	// if (owf  > TAGGED_RING_PK_OWF_NUM - 1) {
-	// 	if (tag) {
-	// 		tag_itr = true;
-	// 	}
-	// 	else {
-	// 		break;
-	// 	}
-	// }
-
-	// if (tag_itr) {
-	// 	size_t offset = (w_ptr - (uint8_t*) &sk->tagged_ring_witness);
-	// 	printf("Tag witness offset: %u\n", offset);
-	// }
 
 #if defined(OWF_AES_CTR)
 	// PK: Initial XOR with keys.
@@ -924,17 +759,6 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		if (tag_owf == 0) {
 			// Set msb bit of input block to 1 prior to XOR with round keys.
 			sk->tag_cbc.owf_outputs[0] = owf_block_xor(sk->round_keys.keys[0], block128_activate_msb(sk->tag_cbc.owf_inputs[0]));
-
-			// uint8_t bytes[16];
-			// _mm_storeu_si128((__m128i *)bytes, block128_activate_msb(sk->tag_cbc.owf_inputs[0]));
-			// uint8_t bytes1[16];
-			// _mm_storeu_si128((__m128i *)bytes1, sk->tag_cbc.owf_inputs[0]);
-			// printf("First OWF input bytes: ");
-			// for (int i = 0; i < 16; i++) {
-			// 	printf("%02X ", bytes[i]); // Print each byte in hex
-			// 	printf("%02X ", bytes1[i]); // Print each byte in hex
-			// }
-			// printf("\n");
 		}
 		else if (tag_owf > 0)
 		{
@@ -959,11 +783,11 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		sk->tag1.owf_output[0] = owf_block_xor(sk->tag1.fixed_key.keys[0], sk->sk);
 	}
 #elif defined(OWF_RAIN_3)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #elif defined(OWF_RAIN_4)	// This should be similar to EM, except I will add the sk later in the round function call
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	static_assert(OWF_BLOCKS == 1, "");
 	sk->pk.owf_output[0] = sk->pk.owf_input[0];
 #endif
@@ -1028,7 +852,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 			}
 	#endif
 #elif defined(OWF_RAIN_3)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 			if (round != OWF_ROUNDS) {
 				rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -1050,7 +874,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 
 	#endif
 #elif defined(OWF_RAIN_4)
-	// JC: Not supported for tagged ring sigs.
+	// Not supported for tagged ring sigs.
 	#if SECURITY_PARAM == 128
 		if (round != OWF_ROUNDS) {
 			rain_round_function((uint64_t*)&sk->pk.owf_output[i],(uint64_t*)&sk->sk,rain_rc_128[round-1],rain_mat_128[(round-1)*128],(uint64_t*)&after_sbox);
@@ -1080,22 +904,10 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		if (owf > TAGGED_RING_PK_OWF_NUM - 1){
 			aes_round_function(&sk->round_keys, &sk->tag_cbc.owf_outputs[owf-TAGGED_RING_PK_OWF_NUM], &after_sbox, round);
 			// Copy state except last round and last tag owf.
-			// if (round < OWF_ROUNDS)
-			// 	memcpy(w_ptr, &after_sbox, sizeof(owf_block));
 			if (!(round == OWF_ROUNDS && owf == owf_num-1)) {
 				memcpy(w_ptr, &after_sbox, sizeof(owf_block));
 			}
 		}
-		// if (owf == 2) {
-		// 	aes_round_function(&sk->round_keys, &sk->tag.owf_output[0], &after_sbox, round);
-		// 	if (round < OWF_ROUNDS)
-		// 		memcpy(w_ptr, &after_sbox, sizeof(owf_block));
-		// }
-		// else if (owf == 3) {
-		// 	aes_round_function(&sk->round_keys, &sk->tag1.owf_output[0], &after_sbox, round);
-		// 	if (round < OWF_ROUNDS)
-		// 		memcpy(w_ptr, &after_sbox, sizeof(owf_block));
-		// }
 
 		// PK: Witness pointer offset for all but last round.
 		if (owf < TAGGED_RING_PK_OWF_NUM) {
@@ -1134,7 +946,6 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 #endif
 
 #endif
-	// printf("OWF loop end: %u\n", owf);
 	} // End of loop over OWF 1-4.
 
 	if(!ring) {
@@ -1142,46 +953,37 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 		memset(w_ptr, 0, sizeof(sk->witness) - WITNESS_BITS / 8);
 	}
 	else {
-		// JC: Decompose active branch index (according to hotvector size/dim).
+		// Decompose active branch index (according to hotvector size/dim).
 		uint32_t base = FAEST_RING_HOTVECTOR_BITS + 1;
 		uint32_t decomp[FAEST_RING_HOTVECTOR_DIM] = {0};
 		base_decompose(sk->idx, base, decomp, FAEST_RING_HOTVECTOR_DIM);
 
-		// JC: Serialization of hotvectors as bytes.
+		// Serialization of hotvectors as bytes.
 		uint8_t hotvectors_bytes[(FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8] = {0};
 
-		// JC: Init indices and vars.
+		// Init indices and vars.
 		int curr_byte_idx = 0;
 		int curr_bit_idx = 0;
 
 		for (int i = 0; i < FAEST_RING_HOTVECTOR_DIM; ++i) {
-			// JC: Remaining free bits in current byte.
+			// Remaining free bits in current byte.
 			int remaining_bits = 8 - curr_bit_idx;
 			if ((decomp[i] != base - 1)) {
-				// JC: Hotvector has exactly one active bit.
+				// Hotvector has exactly one active bit.
 				uint32_t hotvector_idx = decomp[i];
 				int active_bit_idx = (curr_bit_idx + hotvector_idx) % 8;
 				int active_byte_idx = curr_byte_idx;
 				if (hotvector_idx + 1 > remaining_bits) {
 					active_byte_idx = ((hotvector_idx - remaining_bits + 7 + 1) / 8) + curr_byte_idx;
 				}
-				// printf("Active byte idx: %u \n", active_byte_idx);
-				// printf("Active bit idx: %u \n", active_bit_idx);
-
-				// JC: Activate bit in hotvectors byte array.
+				// Activate bit in hotvectors byte array.
 				hotvectors_bytes[active_byte_idx] = hotvectors_bytes[active_byte_idx] ^ (1 << (active_bit_idx));
 			}
-			// else{
-			// 	if (decomp[i] == base - 1) {
-			// 		printf("Last active bit omitted in hotvector %u\n", i);
-			// 	}
-			// }
-			// // JC: Update indices vars.
 			curr_byte_idx = (FAEST_RING_HOTVECTOR_BITS - remaining_bits + 7) / 8 + curr_byte_idx;
 			curr_bit_idx = (curr_bit_idx + FAEST_RING_HOTVECTOR_BITS) % 8;
 		}
 
-		// JC: Copy 1-hotvector serialization to witness.
+		// Copy 1-hotvector serialization to witness.
 		memcpy(w_ptr, hotvectors_bytes, (FAEST_RING_HOTVECTOR_BITS * FAEST_RING_HOTVECTOR_DIM + 7) / 8);
 	}
 	return true;
@@ -1191,7 +993,7 @@ for (size_t owf = 0; owf < owf_num; ++owf) {
 // done
 bool faest_unpack_sk_and_get_pubkey(uint8_t* pk_packed, const uint8_t* sk_packed, secret_key* sk)
 {
-	if (!faest_unpack_secret_key(sk, sk_packed, false)) // JC: Unpacks sk with witness for non-ring sig.
+	if (!faest_unpack_secret_key(sk, sk_packed, false)) // Unpacks sk with witness for non-ring sig.
 		return false;
 
 	faest_pack_public_key(pk_packed, &sk->pk);
@@ -1499,8 +1301,6 @@ static bool faest_tagged_sign_attempt(
 	const secret_key* sk, const public_key* pk, const public_key* tag,
 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
-	// TODO: Do we need to domain separate by the faest parameters?
-
 
 	// PARAMS requiring changing for cbc.
 	// WITNESS_BITS
@@ -1517,12 +1317,6 @@ static bool faest_tagged_sign_attempt(
 	// size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
 	// QUICKSILVER_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_ROWS;
-
-		// QUICKSILVER_ROWS_PADDED (static assert)
-		// FAEST_SIGNATURE_BYTES  (static assert)
-		// vole_commit
-		// Witness (tagged_witness)
-		// Prover (TAGGED_OWF_NUM_CONSTRAINTS)
 
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_packed, pk);
@@ -1696,10 +1490,6 @@ bool faest_tagged_sign(
 	const public_key* pk, const public_key* tag,
 	const uint8_t* random_seed, size_t random_seed_len)
 {
-	// secret_key sk;
-	// uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
-	// if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
-	// 	return false;
 
 	uint64_t attempt_num = 0;
 	do
@@ -1733,10 +1523,6 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	size_t param_vole_rows_padded = VOLE_TAGGED_ROWS_PADDED;
 	// QUICKSILVER_ROWS
 	size_t param_qs_rows =	QUICKSILVER_TAGGED_ROWS;
-
-		// QUICKSILVER_ROWS_PADDED (static assert)
-		// vole_reconstruct
-		// Verifier
 
 	uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
 	faest_pack_public_key(pk_packed, pk);
@@ -1776,7 +1562,7 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
 	bool reconstruct_success =  vole_reconstruct_for_tagged(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
-	// bool reconstruct_success =  vole_reconstruct(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
+
 	if (reconstruct_success == 0){
 		free(q);
 		return 0;
@@ -1817,16 +1603,10 @@ bool faest_tagged_verify(const uint8_t* signature, const uint8_t* msg, size_t ms
 	block_secpar delta_block;
 	memcpy(&delta_block, delta, sizeof(delta_block));
 
-	// public_key pk;
-	// faest_unpack_public_key(&pk, pk_packed);
-
 	quicksilver_state qs;
-	// quicksilver_init_verifier(&qs, macs, OWF_NUM_CONSTRAINTS, delta_block, chal2);
-	// owf_constraints_verifier(&qs, pk);
 	quicksilver_init_verifier(&qs, macs, TAGGED_OWF_NUM_CONSTRAINTS, delta_block, chal2);
 	owf_constraints_verifier_tag(&qs, pk, tag);
 
-	// faest_free_public_key(&pk);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
 	quicksilver_verify(&qs, param_witness_bits, qs_proof, qs_check);
@@ -1850,11 +1630,7 @@ static bool faest_ring_sign_attempt(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, const secret_key* sk,
 	const public_key_ring* pk_ring, const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
-// static bool faest_ring_sign_attempt(
-// 	uint8_t* signature, const uint8_t* msg, size_t msg_len,
-// 	const secret_key* sk, const uint8_t* pk_packed,
-// 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
-// {
+
     uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
 
@@ -1912,36 +1688,20 @@ static bool faest_ring_sign_attempt(
 	hash_init(&hasher);
 	hash_update(&hasher, &mu, sizeof(mu));
 	hash_update(&hasher, vole_commit_check, VOLE_COMMIT_CHECK_SIZE);
-	hash_update(&hasher, signature, VOLE_RING_COMMIT_SIZE); // JC: check VOLE_RING_COMMIT_SIZE
+	hash_update(&hasher, signature, VOLE_RING_COMMIT_SIZE); // check VOLE_RING_COMMIT_SIZE
 	hash_update(&hasher, &iv, sizeof(iv));
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal1[0], sizeof(chal1));
 
-	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // JC: check VOLE_RING_COMMIT_SIZE
+	uint8_t* vole_check_proof = signature + VOLE_RING_COMMIT_SIZE; // check VOLE_RING_COMMIT_SIZE
 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_RING_ROWS, VOLE_RING_COL_BLOCKS);
-
-	// printf("Prover chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
 
 	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
 	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
 	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	// printf("Prover check proof:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", vole_check_proof_test[i]);
-	// }
-	// printf("\n");
-	// printf("Prover check check:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", vole_check_check_test[i]);
-	// }
-	// printf("\n");
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (RING_WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -1965,12 +1725,6 @@ static bool faest_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	// printf("Prover chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
-
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_RING_ROWS_PADDED * sizeof(block_secpar));
 
@@ -1980,8 +1734,6 @@ static bool faest_ring_sign_attempt(
 	free(v);
 
 	quicksilver_state qs;
-	// quicksilver_init_prover(&qs, (uint8_t*) &u[0], macs, OWF_NUM_CONSTRAINTS, chal2);
-	// owf_constraints_prover(&qs, &sk->pk);
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, false); // tag false.
 	owf_constraints_prover_all_branches(&qs, pk_ring);
 
@@ -2013,11 +1765,6 @@ static bool faest_ring_sign_attempt(
 						 qs_proof, qs_check);
 	#endif
 
-	// printf("QS check prover:");
-    // for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", qs_check[i]);
-	// }
-	// printf("\n");
 
 	free(macs);
 	free(u);
@@ -2028,8 +1775,6 @@ static bool faest_ring_sign_attempt(
 #if COUNTER_BYTES == 0
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
-	// hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
-	// hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
@@ -2056,10 +1801,6 @@ static bool faest_ring_sign_attempt(
 	size_t hash_prefix_size = sizeof(chal2) + FAEST_RING_PROOF_ELEMS*QUICKSILVER_PROOF_BYTES + QUICKSILVER_CHECK_BYTES;
 	unsigned char hash_prefix[hash_prefix_size];
 	memcpy(hash_prefix, &chal2, sizeof(chal2));
-
-	// memcpy(hash_prefix + sizeof(chal2), qs_proof, QUICKSILVER_PROOF_BYTES);
-	// memcpy(hash_prefix + sizeof(chal2) + QUICKSILVER_PROOF_BYTES, qs_check, QUICKSILVER_CHECK_BYTES);
-
 	memcpy(hash_prefix + sizeof(chal2), qs_check, QUICKSILVER_CHECK_BYTES);
 	memcpy(hash_prefix + sizeof(chal2) + QUICKSILVER_CHECK_BYTES, qs_proof, QUICKSILVER_PROOF_BYTES);
 	memcpy(hash_prefix + sizeof(chal2) + 2*QUICKSILVER_PROOF_BYTES, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
@@ -2075,12 +1816,6 @@ static bool faest_ring_sign_attempt(
 
 	bool open_success = force_vector_open(forest, hashed_leaves, delta, veccom_open_start, hash_prefix, hash_prefix_size, &counter);
 #endif
-
-	// printf("Delta prover:");
-    // for (size_t i = 0; i < sizeof(block_secpar); i++) {
-    //     printf("%02x", delta[i]);
-	// }
-	// printf("\n");
 
 	free(forest);
 	free(hashed_leaves);
@@ -2103,7 +1838,6 @@ static bool faest_ring_sign_attempt(
 	(void) counter_dst;
 #endif
 
-	// assert(counter_dst + COUNTER_BYTES == signature + FAEST_SIGNATURE_BYTES);
 	assert(counter_dst + COUNTER_BYTES == signature + FAEST_RING_SIGNATURE_BYTES);
 
 	return true;
@@ -2113,16 +1847,9 @@ bool faest_ring_sign(
 	uint8_t* signature, const uint8_t* msg, size_t msg_len, secret_key* sk, const public_key_ring* pk_ring,
 	const uint8_t* random_seed, size_t random_seed_len)
 {
-	// secret_key sk;
-	// uint8_t pk_packed[FAEST_PUBLIC_KEY_BYTES];
-	// if (!faest_unpack_sk_and_get_pubkey(pk_packed, sk_packed, &sk))
-	// 	return false;
-
 	uint64_t attempt_num = 0;
 	do
 	{
-		// if (faest_sign_attempt(signature, msg, msg_len, &sk, &pk_packed[0],
-		// 	                   random_seed, random_seed_len, attempt_num))
 		if (faest_ring_sign_attempt(signature, msg, msg_len, sk, pk_ring, random_seed, random_seed_len, attempt_num))
 		{
 			faest_free_secret_key(sk);
@@ -2134,8 +1861,7 @@ bool faest_ring_sign(
 	return false;
 }
 
-// bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
-//                   const uint8_t* pk_packed)
+
 bool faest_ring_verify(const uint8_t* signature, const uint8_t* msg, size_t msg_len,
                   	   const public_key_ring* pk_ring)
 {
@@ -2283,8 +2009,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_RING_SIZE * FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
-	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
-	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -2305,12 +2029,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	// size_t param_vole_rows_padded = VOLE_TAGGED_RING_ROWS_PADDED;
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_CBC_TAGGED_RING_ROWS;
-
-		// QUICKSILVER_TAGGED_RING_ROWS_PADDED (static assert)
-		// FAEST_TAGGED_RING_SIGNATURE_BYTES  (static assert)
-		// vole_commit
-		// Witness
-		// Prover
 
 	block_secpar seed;
 	block128 iv;
@@ -2353,7 +2071,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	vole_commit_for_cbc_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
-	// vole_commit_for_tagged_ring(seed, iv, forest, hashed_leaves, u, v, signature, vole_commit_check);
 
 	uint8_t chal1[VOLE_CHECK_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -2369,26 +2086,10 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
-	// printf("Prover chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
 	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
 	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	// printf("Prover check proof:");
-    // for (size_t i = 0; i < VOLE_CHECK_PROOF_BYTES; i++) {
-    //     printf("%02x", vole_check_proof_test[i]);
-	// }
-	// printf("\n");
-	// printf("Prover check check:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHECK_BYTES; i++) {
-    //     printf("%02x", vole_check_check_test[i]);
-	// }
-	// printf("\n");
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (param_witness_bits / 8) % (16 * VOLE_BLOCK);
@@ -2412,12 +2113,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
 
-	// printf("Prover chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
-
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
 
@@ -2429,7 +2124,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 
 	quicksilver_state qs;
 	quicksilver_init_or_prover(&qs, (uint8_t*) &u[0], macs, chal2, true); // tag flag true.
-	// owf_constraints_prover_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
 	owf_constraints_prover_all_branches_and_cbc_tag(&qs, pk_ring, tag);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -2461,21 +2155,12 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	free(macs);
 	free(u);
 
-	// printf("QS check prover: ");
-    // for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", qs_check[i]);
-	// }
-	// printf("\n");
-
-
 	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES*FAEST_RING_PROOF_ELEMS;
 	uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
 
 #if COUNTER_BYTES == 0
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
-	// hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
-	// hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
@@ -2517,20 +2202,6 @@ static bool faest_cbc_tagged_ring_sign_attempt(
 	bool open_success = force_vector_open(forest, hashed_leaves, delta, veccom_open_start, hash_prefix, hash_prefix_size, &counter);
 #endif
 
-	// printf("Delta prover:");
-	// uint8_t delta_test[sizeof(block_secpar)];
-	// memcpy(&delta_test, delta, sizeof(block_secpar));
-    // for (size_t i = 0; i < sizeof(block_secpar); i++) {
-    //     printf("%02x", delta_test[i]);
-	// }
-	// printf("\n");
-
-	// printf("Prover QS check: ");
-    // for (size_t i = sizeof(chal2); i < sizeof(chal2)+QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", hash_prefix[i]);
-	// }
-	// printf("\n");
-
 	free(forest);
 	free(hashed_leaves);
 
@@ -2564,11 +2235,6 @@ static bool faest_tagged_ring_sign_attempt(
 	const public_key_ring* pk_ring, public_key* pk_tag0, public_key* pk_tag1,
 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
 {
-// static bool faest_ring_sign_attempt(
-// 	uint8_t* signature, const uint8_t* msg, size_t msg_len,
-// 	const secret_key* sk, const uint8_t* pk_packed,
-// 	const uint8_t* random_seed, size_t random_seed_len, uint64_t attempt_num)
-// {
     uint8_t* pk_ring_packed = (uint8_t *)malloc(FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	faest_pack_pk_ring(pk_ring_packed, pk_ring); // TODO - EM mode.
 
@@ -2581,8 +2247,8 @@ static bool faest_tagged_ring_sign_attempt(
 	hash_state hasher;
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_RING_SIZE * FAEST_PUBLIC_KEY_BYTES);
-	hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES); // JC: Add to verifier.
-	hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES); // JC: Add to verifier.
+	hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES); // Add to verifier.
+	hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES); // Add to verifier.
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -2643,26 +2309,10 @@ static bool faest_tagged_ring_sign_attempt(
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_sender(u, v, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
 
-	// printf("Prover chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
 	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
 	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	// printf("Prover check proof:");
-    // for (size_t i = 0; i < VOLE_CHECK_PROOF_BYTES; i++) {
-    //     printf("%02x", vole_check_proof_test[i]);
-	// }
-	// printf("\n");
-	// printf("Prover check check:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHECK_BYTES; i++) {
-    //     printf("%02x", vole_check_check_test[i]);
-	// }
-	// printf("\n");
 
 	uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	size_t remainder = (TAGGED_RING_WITNESS_BITS / 8) % (16 * VOLE_BLOCK);
@@ -2685,12 +2335,6 @@ static bool faest_tagged_ring_sign_attempt(
     hash_update(&hasher, correction, TAGGED_RING_WITNESS_BITS / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
-
-	// printf("Prover chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
 
 	block_secpar* macs =
 		aligned_alloc(alignof(block_secpar), QUICKSILVER_TAGGED_RING_ROWS_PADDED * sizeof(block_secpar));
@@ -2733,13 +2377,6 @@ static bool faest_tagged_ring_sign_attempt(
 	#endif
 	free(macs);
 	free(u);
-
-	// printf("QS check prover: ");
-    // for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", qs_check[i]);
-	// }
-	// printf("\n");
-
 
 	uint8_t* veccom_open_start = qs_proof + QUICKSILVER_PROOF_BYTES*FAEST_RING_PROOF_ELEMS;
 	uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
@@ -2789,20 +2426,6 @@ static bool faest_tagged_ring_sign_attempt(
 	#endif
 	bool open_success = force_vector_open(forest, hashed_leaves, delta, veccom_open_start, hash_prefix, hash_prefix_size, &counter);
 #endif
-
-	// printf("Delta prover:");
-	// uint8_t delta_test[sizeof(block_secpar)];
-	// memcpy(&delta_test, delta, sizeof(block_secpar));
-    // for (size_t i = 0; i < sizeof(block_secpar); i++) {
-    //     printf("%02x", delta_test[i]);
-	// }
-	// printf("\n");
-
-	// printf("Prover QS check: ");
-    // for (size_t i = sizeof(chal2); i < sizeof(chal2)+QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", hash_prefix[i]);
-	// }
-	// printf("\n");
 
 	free(forest);
 	free(hashed_leaves);
@@ -2883,8 +2506,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_init(&hasher);
 	hash_update(&hasher, pk_ring_packed, FAEST_PUBLIC_KEY_BYTES * FAEST_RING_SIZE);
 	hash_update(&hasher, cbc_tag_packed,  OWF_BLOCK_SIZE * (CBC_TAGGED_RING_TAG_OWF_NUM + 1));
-	// hash_update(&hasher, pk_tag0_packed,  FAEST_PUBLIC_KEY_BYTES);
-	// hash_update(&hasher, pk_tag1_packed,  FAEST_PUBLIC_KEY_BYTES);
 	hash_update(&hasher, msg, msg_len);
 	hash_update_byte(&hasher, 1);
 	hash_final(&hasher, &mu, sizeof(mu));
@@ -2906,10 +2527,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	// QUICKSILVER_TAGGED_RING_ROWS
 	size_t param_qs_rows =	QUICKSILVER_CBC_TAGGED_RING_ROWS;
 
-		// QUICKSILVER_CBC_TAGGED_RING_ROWS_PADDED (static assert)
-		// vole_reconstruct
-		// Verifier
-
 	const uint8_t* vole_check_proof = signature + param_vole_commit_size;
 	const uint8_t* correction = vole_check_proof + VOLE_CHECK_PROOF_BYTES;
 	const uint8_t* qs_proof = correction + param_witness_bits / 8;
@@ -2927,14 +2544,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
 	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
 
-	// printf("Delta verifier:");
-	// uint8_t delta_test[SECURITY_PARAM / 8];
-	// memcpy(&delta_test, delta, sizeof(block_secpar));
-    // for (size_t i = 0; i < sizeof(block_secpar); i++) {
-    //     printf("%02x", delta_test[i]);
-	// }
-	// printf("\n");
-
 #if COUNTER_BYTES > 0
 	const uint8_t* counter = iv_ptr + sizeof(iv);
 #endif
@@ -2948,7 +2557,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	uint8_t vole_commit_check[VOLE_COMMIT_CHECK_SIZE];
 
 	memcpy(&iv, iv_ptr, sizeof(iv));
-	// bool reconstruct_success =  vole_reconstruct_for_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	bool reconstruct_success =  vole_reconstruct_for_cbc_tagged_ring(iv, q, delta_bytes, signature, veccom_open_start, vole_commit_check);
 	if (reconstruct_success == 0){
 		free(q);
@@ -2968,26 +2576,10 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, param_qs_rows, param_vole_col_blocks);
 
-	// printf("Verifier chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
 	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
 	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	// printf("Verifier check proof:");
-    // for (size_t i = 0; i < VOLE_CHECK_PROOF_BYTES; i++) {
-    //     printf("%02x", vole_check_proof_test[i]);
-	// }
-	// printf("\n");
-	// printf("Verifier check check:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHECK_BYTES; i++) {
-    //     printf("%02x", vole_check_check_test[i]);
-	// }
-	// printf("\n");
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -2997,12 +2589,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_update(&hasher, correction, param_witness_bits / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
-
-	// printf("Verifier chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
 
 	vole_block correction_blocks[param_witness_blocks];
 	memcpy(&correction_blocks, correction, param_witness_bits / 8);
@@ -3020,7 +2606,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 
 	quicksilver_state qs;
 	quicksilver_init_or_verifier(&qs, macs, delta_block, chal2, true); // tag true.
-	// owf_constraints_verifier_all_branches_and_tag(&qs, pk_ring, pk_tag0, pk_tag1);
 	owf_constraints_verifier_all_branches_and_cbc_tag(&qs, pk_ring, tag);
 
 	uint8_t qs_check[QUICKSILVER_CHECK_BYTES];
@@ -3037,11 +2622,6 @@ bool faest_cbc_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, 
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
-	// printf("Verifier qs check: ");
-	// for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", qs_check[i]);
-	// }
-	// printf("\n");
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)
@@ -3103,13 +2683,6 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	const uint8_t* delta = veccom_open_start + VECTOR_COM_OPEN_SIZE;
 	const uint8_t* iv_ptr = delta + sizeof(block_secpar);
 
-	// printf("Delta verifier:");
-	// uint8_t delta_test[SECURITY_PARAM / 8];
-	// memcpy(&delta_test, delta, sizeof(block_secpar));
-    // for (size_t i = 0; i < sizeof(block_secpar); i++) {
-    //     printf("%02x", delta_test[i]);
-	// }
-	// printf("\n");
 
 #if COUNTER_BYTES > 0
 	const uint8_t* counter = iv_ptr + sizeof(iv);
@@ -3143,26 +2716,10 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	uint8_t vole_check_check[VOLE_CHECK_CHECK_BYTES];
 	vole_check_receiver(q, delta_bytes, chal1, vole_check_proof, vole_check_check, QUICKSILVER_TAGGED_RING_ROWS, VOLE_TAGGED_RING_COL_BLOCKS);
 
-	// printf("Verifier chall 1:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal1[i]);
-	// }
-	// printf("\n");
-
 	uint8_t vole_check_proof_test[VOLE_CHECK_PROOF_BYTES];
 	uint8_t vole_check_check_test[VOLE_CHECK_CHECK_BYTES];
 	memcpy(&vole_check_proof_test, vole_check_proof, VOLE_CHECK_PROOF_BYTES);
 	memcpy(&vole_check_check_test, vole_check_check, VOLE_CHECK_CHECK_BYTES);
-	// printf("Verifier check proof:");
-    // for (size_t i = 0; i < VOLE_CHECK_PROOF_BYTES; i++) {
-    //     printf("%02x", vole_check_proof_test[i]);
-	// }
-	// printf("\n");
-	// printf("Verifier check check:");
-    // for (size_t i = 0; i < VOLE_CHECK_CHECK_BYTES; i++) {
-    //     printf("%02x", vole_check_check_test[i]);
-	// }
-	// printf("\n");
 
 	uint8_t chal2[QUICKSILVER_CHALLENGE_BYTES];
 	hash_init(&hasher);
@@ -3172,12 +2729,6 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	hash_update(&hasher, correction, TAGGED_RING_WITNESS_BITS / 8);
 	hash_update_byte(&hasher, 2);
 	hash_final(&hasher, &chal2[0], sizeof(chal2));
-
-	// printf("Verifier chall 2:");
-    // for (size_t i = 0; i < QUICKSILVER_CHALLENGE_BYTES; i++) {
-    //     printf("%02x", chal2[i]);
-	// }
-	// printf("\n");
 
 	vole_block correction_blocks[TAGGED_RING_WITNESS_BLOCKS];
 	memcpy(&correction_blocks, correction, TAGGED_RING_WITNESS_BITS / 8);
@@ -3211,11 +2762,6 @@ bool faest_tagged_ring_verify(const uint8_t* signature, const uint8_t* msg, size
 	hash_init(&hasher);
 	hash_update(&hasher, &chal2, sizeof(chal2));
 	hash_update(&hasher, qs_check, QUICKSILVER_CHECK_BYTES);
-	// printf("Verifier qs check: ");
-	// for (size_t i = 0; i < QUICKSILVER_CHECK_BYTES; i++) {
-    //     printf("%02x", qs_check[i]);
-	// }
-	// printf("\n");
 	hash_update(&hasher, qs_proof, QUICKSILVER_PROOF_BYTES);
 	hash_update(&hasher, qs_proof_quad, QUICKSILVER_PROOF_BYTES);
 	#if (FAEST_RING_HOTVECTOR_DIM > 1)

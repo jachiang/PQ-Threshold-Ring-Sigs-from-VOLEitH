@@ -630,7 +630,7 @@ inline poly_2secpar_vec poly_2secpar_set_zero()
 // Multiply polynomials coefficient-wise.
 inline void qs_polynomial_mul(const poly_secpar_vec* in1, size_t dim1, const poly_secpar_vec* in2, size_t dim2, poly_secpar_vec* out)
 {
-	// JC: out must be initialized to zero.
+	// out must be initialized to zero.
 	for (size_t i = 0; i < dim1; ++i)
 	{
 		for (size_t j = 0; j < dim2; ++j)

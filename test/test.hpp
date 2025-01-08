@@ -249,7 +249,6 @@ struct quicksilver_test_or_state
         auto witness_mask = random_vector<uint8_t>(FAEST_RING_PROOF_ELEMS * (SECURITY_PARAM / 8));
         witness.insert(witness.end(), witness_mask.begin(), witness_mask.end());
 
-        // JC: TODO - Increase size of VOLE generation.
         auto correlation = gen_vole_correlation(witness_bits + FAEST_RING_PROOF_ELEMS * SECURITY_PARAM, witness.data(), delta);
         keys = std::move(correlation.first);
         tags = std::move(correlation.second);
@@ -262,7 +261,7 @@ struct quicksilver_test_or_state
     }
 
     std::array<std::array<uint8_t, QUICKSILVER_CHECK_BYTES>, 2>
-    compute_check() // JC: No longer const function, as it modifies the prover and verifier state.
+    compute_check() // No longer const function, as it modifies the prover and verifier state.
     {
         std::array<uint8_t, QUICKSILVER_PROOF_BYTES> proof, proof_quad;
         #if (FAEST_RING_HOTVECTOR_DIM > 1)
@@ -294,7 +293,7 @@ struct quicksilver_test_or_state
                               proof_quartic.data(), proof_cubic.data(), proof_quad.data(), proof.data(), check_verifier.data());
         #endif
 
-        // JC: Free prover/verifier state.
+        // Free prover/verifier state.
         free(prover_state.state_or_secpar_const);
         free(prover_state.state_or_secpar_linear);
         free(prover_state.state_or_secpar_quad);
@@ -473,7 +472,7 @@ inline bool test_gen_tagged_ring_keys(secret_key* sk, public_key_ring* pk_ring, 
             sk_ptr = &sk_tmp;
         }
         sk_tmp.idx = active_idx;
-        // JC: Loads pk input/output to each pk in ring; if active element, loads pk input/output to sk.
+        // Loads pk input/output to each pk in ring; if active element, loads pk input/output to sk.
         #if (TAGGED_RING_PK_OWF_NUM == 2)
         if(!test_gen_keypairs_fixed_owf_inputs(sk_ptr, &pk_ring->pubkeys[i], &pk_ring->pubkeys1[i], owf_input0, owf_input1))
         { return false; }
