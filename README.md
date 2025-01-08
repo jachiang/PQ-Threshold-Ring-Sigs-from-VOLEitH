@@ -25,11 +25,11 @@ We provide a docker file `DockerfileDevEnv` for convenience.
 
 To initialize the docker build
 ```
-(sudo) docker build -t example/instance:0.1 -f DockerfileDevEnv .
+(sudo) docker build -t example/instance -f DockerfileDevEnv .
 ```
 To run the docker instance subsequently
 ```
-(sudo) docker run -it --rm --name=example --mount type=bind,source=${PWD},target=/src example/instance:0.1 bash
+(sudo) docker run -it --rm --name=example --mount type=bind,source=${PWD},target=/src example/instance bash
 ```
 Run `cd src` to find the repository mounted in the docker instance.
 
