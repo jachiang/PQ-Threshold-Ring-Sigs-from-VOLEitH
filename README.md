@@ -1,74 +1,57 @@
-# Platform Specific FAEST Implementation for x86-64 (With ISA Extensions) -- Modified for CCS Submission
+# Threshold Ring Signature Applications from VOLE-in-the-Head
 
-## Versions
+## Description
 
-The major version number of the FAEST implementation matches the major version number of the FAEST specification it implements.
-The implementation is currently at version 1.0.
+This repository extends the VOLE-in-the-Head framework of [FAEST](https://github.com/faest-sign/faest-avx)
+to implement standalone and linkable ring signatures from VOLEitH and AES encryption. We add
+support for higher degree quicksilver polynomials, disjunctions over large rings and support for
+multi-block public key and tag functions.
+
+## Requirements
+Requires
+* Support for Intel AVX2 instructions
+* GNU make
+* gcc 13.1.0 or higher
+
+## Submodules
+Pull the submodules
+```
+git submodule init
+git submodule update
+```
+
+## Optional Build Environment
+We provide a docker file `DockerfileDevEnv` for convenience.
+
+To initialize the docker build
+```
+(sudo) docker build -t example/instance:0.1 -f DockerfileDevEnv .
+```
+To run the docker instance subsequently
+```
+(sudo) docker run -it --rm --name=example --mount type=bind,source=${PWD},target=/src example/instance:0.1 bash
+```
+Run `cd src` to find the repository mounted in the docker instance.
 
 ## Compilation
 
-Building requires GNU make.
-Requires gcc 13.1.0 or higher
-Do not forget to pull the submodules
-To build all default settings, run `make -j<number_of_threads>`.
-Note: it can take a long time to compile them all.
-To build just a single setting, run `make -j<number_of_threads> <setting_name>`.
-To build tests as well, run `make -j<number_of_threads> all-<setting_name>`.
-The output will be in `Additional_Implementations/<setting_name>`.
+To build and run benchmarks
+```
+./makeRunTests.sh
+```
+The compilation script can be modified for different thread settings by modifying the `make -j<number_of_threads>`
+parameter. The script builds standalone ring signature and linkable ring signatures for security levels 128, 192 and 256.
 
-## Settings
+Note: The VOLEitH parameters hardcoded in `makeRunTests.sh` are based on settings in [BBM+24](https://eprint.iacr.org/2024/490.pdf). We highlight τ and T as the tree repetition factor and internal node threshold respectively which drive the proof size.
 
-There are many different settings of the FAEST implementation, which are all compiled independently from each other.
-Each setting is given a name: `sec<security_parameter>_<primitives>_<𝜏>_<w>_<seeds>_<platform_setting>`.
+| Security |  τ |  w |  T  |
+|:--------:|:--:|:--:|:---:|
+|    128   | 11 |  7 | 102 |
+|    192   | 16 | 12 | 162 |
+|    256   | 22 |  6 | 245 |
 
-### Security Parameter
 
-The security parameter can be 128, 192, or 256.
+## Ring Settings
 
-### Primitives
-
-FAEST is built out of hashes, PRGs, and a OWF.
-These can be set from the following options:
-- c: AES in CTR mode.
-- e: AES/Rijndael in Even–Mansour mode. Not available as a PRG for 192-bit security parameter.
-- s: SHAKE. Only available for the leaves of the GGM tree.
-
-Additionally for OWF, there are the following options:
-- r3: Rain with 3 rounds.
-- r4: Rain with 4 rounds.
-- mq1: MQ over GF(2)
-- mq8: MQ over GF(2^8)
-
-There are 4 independent primitives that can be set from these options.
-1. The one-way function that the signer proves knowledge of a preimage to.
-2. The PRG used to expand the seeds used to generate the VOLE correlation.
-3. The PRG used to expand the GGM tree.
-4. The hash/PRG used to commit to the leaves of the GGM tree.
-
-The letters for these 4 settings are concatenated together in the setting name.
-
-### 𝜏
-
-𝜏 is the number of bits that need to be sent in the signature for each bit of the witness.
-Increasing 𝜏 gives faster but longer signatures.
-
-### w
-
-This is the number of bits of the third challenge to require to be 0, enforced by resampling the signature repeatedly until they are 0.
-Increasing w makes sampling the third challenge more expensive to choose, but speeds up the rest of the signing algorithm.
-
-### seeds
-
-This is the maximum number of seeds to use when opening the all-but-τ vector commitment.
-If more seeds are needed for the opening, the signer will instead resample the third challenge.
-It can also be set to `pprf`, which means to use the older scheme based on puncturable-pseudorandom functions, which always uses the same number of seeds.
-
-### Platform Settings
-
-We plans for three sets of extensions that the implementation can use:
-
-- AVX2: The AVX2, AES-NI, PCLMULQDQ, and BMI1 instruction set extensions.
-- AVX2_VAES: The above, plus VAES and VPCLMULQDQ.
-- AVX512: The above, plus AVX512F and AVX512BW.
-
-Currently we have only implemented the AVX2 set.
+The ring setting is set to 2^10 by default and is set by `FAEST_RING_2_POW` on L32 of
+`config.h.in`. The 1-hotvector dimension `FAEST_RING_HOTVECTOR_DIM` is set on L33 and must divide the ring power.
