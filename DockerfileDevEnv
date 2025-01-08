@@ -1,0 +1,9 @@
+FROM fedora:latest
+
+LABEL Description="Build environment"
+
+ENV HOME /root
+
+SHELL ["/bin/bash", "-c"]
+
+RUN sudo dnf makecache --refresh && sudo dnf -y install gcc gcc-c++ openssl-devel valgrind
