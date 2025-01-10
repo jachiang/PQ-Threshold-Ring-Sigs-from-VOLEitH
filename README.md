@@ -39,10 +39,11 @@ To build and run benchmarks
 ```
 ./makeRunTests.sh
 ```
-The compilation script can be modified for different thread settings by modifying the `make -j<number_of_threads>`
-parameter. The script builds standalone ring signature and linkable ring signatures for security levels 128, 192 and 256.
+The compilation script calls the underlying build system with supported parameters.
+It can be modified for different thread settings by modifying the `make -j<number_of_threads>`
+parameters. The script builds standalone ring signature and linkable ring signatures for security levels 128, 192 and 256. Ring signatures are compiled with AES & AES-EM. linkable ring signatures are compiled with AES.
 
-Note: The VOLEitH parameters hardcoded in `makeRunTests.sh` are based on settings in [BBM+24](https://eprint.iacr.org/2024/490.pdf). We highlight τ and T as the tree repetition factor and internal node threshold respectively which drive the proof size.
+Note: The VOLEitH parameters hardcoded in `makeRunTests.sh` are based on settings proposed in [BBM+24](https://eprint.iacr.org/2024/490.pdf). We highlight τ and T as the tree repetition factor and internal node threshold respectively which drive the proof size.
 
 | Security |  τ |  w |  T  |
 |:--------:|:--:|:--:|:---:|
@@ -52,6 +53,10 @@ Note: The VOLEitH parameters hardcoded in `makeRunTests.sh` are based on setting
 
 
 ## Ring Settings
+The ring size and 1-hotvector dimension for the
+OR proof are user-defined in
+`config.h.in`.
 
-The ring setting is set to 2^10 by default and is set by `FAEST_RING_2_POW` on L32 of
-`config.h.in`. The 1-hotvector dimension `FAEST_RING_HOTVECTOR_DIM` is set on L33 and must divide the ring power.
+* The ring size is expressed in powers of 2
+`FAEST_RING_2_POW` (L32).
+* The 1-hotvector dimension `FAEST_RING_HOTVECTOR_DIM` (L33) must divide the ring power.
